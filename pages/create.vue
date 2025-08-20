@@ -1,6 +1,5 @@
 <template>
   <div class="flex">
-    <Sidebar />
     <main class="p-8 flex-1">
       <h1 class="text-2xl font-bold mb-4">创建文章</h1>
       <input v-model="article.title" placeholder="标题" class="border p-2 w-full mb-4"/>
