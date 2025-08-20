@@ -20,7 +20,18 @@ export function useArticles() {
 
     // 编辑或创建文章
     const saveArticle = async (article) => {
-        await axios.put(`${API_BASE}/edit`, article)
+        // 只保留有值的字段
+        const payload = {}
+        if (article.slug) payload.slug = article.slug
+        if (article.title) payload.title = article.title
+        if (article.content) payload.content = article.content
+        if (article.date) payload.date = article.date
+        if (article.description) payload.description = article.description
+        if (article.tags && article.tags.length > 0) payload.tags = article.tags
+        if (typeof article.published === 'boolean') payload.published = article.published
+
+        const res = await axios.put(`${API_BASE}/edit`, payload)
+        return res.data
     }
 
     // 删除文章

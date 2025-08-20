@@ -73,7 +73,7 @@ onMounted(async () => {
     date: fm.date || '',
     description: fm.description || '',
     tags: fm.tags || [],
-    published: fm.published || false, // 如果接口里有这个字段
+    published: fm.published || false,
     content: data.content || ''
   }
 
@@ -81,9 +81,14 @@ onMounted(async () => {
 })
 
 const save = async () => {
-  await saveArticle(article.value)
-  alert('保存成功')
-  router.push('/list')
+  try {
+    await saveArticle(article.value)
+    alert('保存成功')
+    router.push('/list')
+  } catch (err) {
+    console.error('保存失败:', err)
+    alert('保存失败，请查看控制台或稍后重试')
+  }
 }
 </script>
 
