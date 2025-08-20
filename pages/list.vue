@@ -17,7 +17,6 @@
 </template>
 
 <script setup>
-import Sidebar from '~/components/sidebar.vue'
 import { onMounted } from 'vue'
 import { useArticles } from '~/composables/useArticles.js'
 

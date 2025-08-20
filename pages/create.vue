@@ -18,7 +18,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useArticles } from '~/composables/useArticles.js'
-import Sidebar from '~/components/sidebar.vue'
 import MarkdownEditor from '~/components/MarkdownEditor.vue'
 
 const router = useRouter()

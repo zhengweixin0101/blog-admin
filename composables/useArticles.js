@@ -8,7 +8,7 @@ export function useArticles() {
 
     // 获取文章列表
     const fetchArticles = async () => {
-        const res = await axios.get(`${API_BASE}/list`)
+        const res = await axios.get(`${API_BASE}/list?posts=all`)
         articles.value = res.data
     }
 
