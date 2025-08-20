@@ -81,14 +81,9 @@ onMounted(async () => {
 })
 
 const save = async () => {
-  try {
-    await saveArticle(article.value)
-    alert('保存成功')
-    router.push('/list')
-  } catch (err) {
-    console.error('保存失败:', err)
-    alert('保存失败，请查看控制台或稍后重试')
-  }
+  await saveArticle(article.value)
+  alert('保存成功')
+  router.push('/list')
 }
 </script>
 
