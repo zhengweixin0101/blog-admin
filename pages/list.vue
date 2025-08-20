@@ -27,9 +27,15 @@ onMounted(() => {
 })
 
 const handleDelete = async (slug) => {
-  if (confirm('确定删除吗？')) {
+  if (!confirm('确定删除吗？')) return
+
+  try {
     await deleteArticle(slug)
+    alert('删除成功')
     fetchArticles()
+  } catch (err) {
+    console.error('删除失败:', err)
+    alert('删除失败，请查看控制台或稍后重试')
   }
 }
 </script>
