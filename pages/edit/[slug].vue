@@ -100,8 +100,14 @@ const goBack = () => {
 
 // 保存文章
 const save = async () => {
+  if (!hasChanges()) {
+    alert('文章没有修改，无需保存')
+    return
+  }
+
   const result = await editArticle(article.value)
   if (!result) return
+
   isSaved.value = true
   originalArticle.value = JSON.parse(JSON.stringify(article.value))
   alert('保存成功')
