@@ -1,8 +1,12 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  devtools: { enabled: true },
   modules: [
     '@unocss/nuxt',
   ],
+  runtimeConfig: {
+    apiBase: process.env.API_BASE,
+    public: {
+      apiBase: process.env.API_BASE,
+    }
+  }
 })

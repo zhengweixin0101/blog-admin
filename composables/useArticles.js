@@ -1,9 +1,11 @@
 import { ref } from 'vue'
 import axios from 'axios'
 
-const API_BASE = 'https://article.api.zhengweixin.top/api'
-
 export function useArticles() {
+
+    const config = useRuntimeConfig()
+    const API_BASE = config.public.apiBase
+
     const articles = ref([])
 
     // 获取文章列表
