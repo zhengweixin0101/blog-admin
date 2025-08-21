@@ -7,9 +7,18 @@ export function useArticles() {
     const articles = ref([])
 
     // 获取文章列表
-    const fetchArticles = async () => {
+    const getList = async () => {
         const res = await axios.get(`${API_BASE}/list?posts=all`)
-        articles.value = res.data
+
+        // 添加默认值
+        articles.value = res.data.map(article => ({
+            slug: article.slug,
+            title: article.title || '无标题',
+            date: article.date || '未指定日期',
+            description: article.description || '暂无描述',
+            tags: article.tags || ['未指定标签'],
+            published: article.published !== undefined ? article.published : false
+        }))
     }
 
     // 获取文章内容
@@ -110,5 +119,5 @@ export function useArticles() {
         }
     }
 
-    return { articles, fetchArticles, getArticle, addArticle, editArticle, deleteArticle }
+    return { articles, getList, getArticle, addArticle, editArticle, deleteArticle }
 }
