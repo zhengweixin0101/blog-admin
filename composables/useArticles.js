@@ -32,7 +32,7 @@ export function useArticles() {
         const apiKey = prompt('请输入 API Key，用于新建文章：')
         if (!apiKey) {
             alert('未输入 API Key，操作取消')
-            return
+            return null
         }
 
         try {
@@ -50,7 +50,7 @@ export function useArticles() {
             } else {
                 alert('新建文章失败，请稍后重试')
             }
-            throw err
+            return null
         }
     }
 
@@ -58,13 +58,13 @@ export function useArticles() {
     const editArticle = async (article) => {
         if (!article.slug) {
             alert('缺少 slug，无法更新文章')
-            return
+            return null
         }
 
         const apiKey = prompt('请输入 API Key，用于更新文章：')
         if (!apiKey) {
             alert('未输入 API Key，操作取消')
-            return
+            return null
         }
 
         const payload = { slug: article.slug }
@@ -88,7 +88,7 @@ export function useArticles() {
             } else {
                 alert('更新文章失败，请稍后重试')
             }
-            throw err
+            return null
         }
     }
 
@@ -97,7 +97,7 @@ export function useArticles() {
         const apiKey = prompt('请输入 API Key，用于删除文章：')
         if (!apiKey) {
             alert('未输入 API Key，操作取消')
-            return
+            return null
         }
 
         try {
@@ -105,6 +105,7 @@ export function useArticles() {
                 headers: { 'x-api-key': apiKey },
                 data: { slug }
             })
+            return { success: true };
         } catch (err) {
             if (err.response && (err.response.status === 401)) {
                 alert('API Key 错误，请检查后重试')
@@ -115,7 +116,7 @@ export function useArticles() {
             } else {
                 alert('删除文章失败，请稍后重试')
             }
-            throw err
+            return null
         }
     }
 

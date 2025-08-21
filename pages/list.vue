@@ -44,7 +44,8 @@ onMounted(() => {
 
 const handleDelete = async (slug) => {
   if (!confirm('确定删除吗？')) return
-  await deleteArticle(slug)
+  const result = await deleteArticle(slug)
+  if (!result) return
   alert('删除成功')
   getList()
 }

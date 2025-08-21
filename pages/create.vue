@@ -82,11 +82,13 @@ const goBack = () => {
 // 创建文章
 const create = async () => {
   if (!article.value.title || !article.value.slug) {
-    alert('标题和Slug不能为空')
+    alert('标题和 Slug 不能为空')
     return
   }
 
-  await addArticle(article.value)
+  const result = await addArticle(article.value)
+  if (!result) return
+
   isSaved.value = true
   alert('创建成功')
   router.push('/list')

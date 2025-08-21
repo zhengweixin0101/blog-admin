@@ -100,9 +100,9 @@ const goBack = () => {
 
 // 保存文章
 const save = async () => {
-  await editArticle(article.value)
+  const result = await editArticle(article.value)
+  if (!result) return
   isSaved.value = true
-  // 保存成功后更新原始数据
   originalArticle.value = JSON.parse(JSON.stringify(article.value))
   alert('保存成功')
 }
