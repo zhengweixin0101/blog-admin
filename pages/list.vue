@@ -4,8 +4,15 @@
       <h1 class="text-2xl font-bold mb-4">文章列表</h1>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div v-for="article in articles" :key="article.slug" class="px-4 order rounded shadow">
-          <h2 class="text-lg font-bold mb--2">{{ article.title }}</h2>
-          <p class="text-sm text-gray-500 mb--2">{{ article.date }}</p>
+          <h2 class="text-lg font-bold mb-2">{{ article.title }}</h2>
+          
+          <p class="text-sm text-gray-500 mb-2">
+            {{ article.date }} | 
+            <a :href="`https://zhengweixin.top/posts/${article.slug}`" target="_blank" class="text-gray-500 hover:text-blue-500 transition-color duration-300">
+              {{ article.slug }}
+            </a>
+          </p>
+
           <p class="text-sm text-gray-700 mb-2">{{ article.description }}</p>
 
           <div class="text-sm text-gray-600 mb-2">
