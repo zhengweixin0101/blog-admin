@@ -1,8 +1,7 @@
 import { ref } from 'vue'
 import axios from 'axios'
 
-// const API_BASE = 'https://article.api.zhengweixin.top/api'
-const API_BASE = 'http://127.0.0.1:8000/api'
+const API_BASE = 'https://article.api.zhengweixin.top/api'
 
 export function useArticles() {
     const articles = ref([])
@@ -33,8 +32,12 @@ export function useArticles() {
             })
             return res.data
         } catch (err) {
-            if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+            if (err.response && (err.response.status === 401)) {
                 alert('API Key 错误，请检查后重试')
+            } else if (err.response && err.response.status === 400) {
+                alert('slug 是必填项，请检查后重试')
+            } else if (err.response && err.response.status === 404) {
+                alert('文章不存在，请检查 slug 是否正确')
             } else {
                 alert('新建文章失败，请稍后重试')
             }
@@ -69,10 +72,10 @@ export function useArticles() {
             })
             return res.data
         } catch (err) {
-            if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+            if (err.response && (err.response.status === 401)) {
                 alert('API Key 错误，请检查后重试')
             } else if (err.response && err.response.status === 404) {
-                alert('未找到对应文章，更新失败')
+                alert('文章不存在，请检查 slug 是否正确')
             } else {
                 alert('更新文章失败，请稍后重试')
             }
@@ -94,10 +97,14 @@ export function useArticles() {
                 data: { slug }
             })
         } catch (err) {
-            if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+            if (err.response && (err.response.status === 401)) {
                 alert('API Key 错误，请检查后重试')
+            } else if (err.response && err.response.status === 404) {
+                alert('文章不存在，请检查 slug 是否正确')
+            } else if (err.response && err.response.status === 400) {
+                alert('slug 是必填项，请检查后重试')
             } else {
-                alert('删除失败，请稍后重试')
+                alert('删除文章失败，请稍后重试')
             }
             throw err
         }
