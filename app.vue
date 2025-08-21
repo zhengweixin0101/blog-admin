@@ -4,7 +4,7 @@
     <Sidebar />
 
     <!-- 主内容区域 -->
-    <div class="flex-1 overflow-auto">
+    <div class="flex-1 overflow-x ml-20 md:ml-40 pl-8">
       <NuxtPage />
     </div>
   </div>

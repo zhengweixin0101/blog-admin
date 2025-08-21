@@ -1,12 +1,22 @@
 <template>
-  <textarea
-    :value="modelValue"
-    @input="$emit('update:modelValue', $event.target.value)"
-    class="border p-2 w-full h-96"
-  ></textarea>
+  <client-only>
+    <MdEditor v-model="localValue" />
+  </client-only>
 </template>
 
 <script setup>
-defineProps(['modelValue'])
-defineEmits(['update:modelValue'])
+import { ref, watch } from 'vue'
+import { MdEditor } from 'md-editor-v3'
+import 'md-editor-v3/lib/style.css'
+
+const props = defineProps({ modelValue: String })
+const emit = defineEmits(['update:modelValue'])
+
+const localValue = ref(props.modelValue)
+
+watch(localValue, val => emit('update:modelValue', val))
+
+watch(() => props.modelValue, val => {
+  if (val !== localValue.value) localValue.value = val
+})
 </script>
