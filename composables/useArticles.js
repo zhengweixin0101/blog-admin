@@ -1,7 +1,8 @@
 import { ref } from 'vue'
 import axios from 'axios'
 
-const API_BASE = 'https://article.api.zhengweixin.top/api'
+// const API_BASE = 'https://article.api.zhengweixin.top/api'
+const API_BASE = 'http://127.0.0.1:8000/api'
 
 export function useArticles() {
     const articles = ref([])
@@ -18,16 +19,43 @@ export function useArticles() {
         return res.data
     }
 
-    // 编辑或创建文章
-    const saveArticle = async (article) => {
-        const apiKey = prompt('请输入 API Key，用于保存文章：')
+    // 新建文章
+    const addArticle = async (article) => {
+        const apiKey = prompt('请输入 API Key，用于新建文章：')
         if (!apiKey) {
             alert('未输入 API Key，操作取消')
             return
         }
 
-        const payload = {}
-        if (article.slug) payload.slug = article.slug
+        try {
+            const res = await axios.post(`${API_BASE}/add`, article, {
+                headers: { 'x-api-key': apiKey }
+            })
+            return res.data
+        } catch (err) {
+            if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+                alert('API Key 错误，请检查后重试')
+            } else {
+                alert('新建文章失败，请稍后重试')
+            }
+            throw err
+        }
+    }
+
+    // 更新文章
+    const editArticle = async (article) => {
+        if (!article.slug) {
+            alert('缺少 slug，无法更新文章')
+            return
+        }
+
+        const apiKey = prompt('请输入 API Key，用于更新文章：')
+        if (!apiKey) {
+            alert('未输入 API Key，操作取消')
+            return
+        }
+
+        const payload = { slug: article.slug }
         if (article.title) payload.title = article.title
         if (article.content) payload.content = article.content
         if (article.date) payload.date = article.date
@@ -43,8 +71,10 @@ export function useArticles() {
         } catch (err) {
             if (err.response && (err.response.status === 401 || err.response.status === 403)) {
                 alert('API Key 错误，请检查后重试')
+            } else if (err.response && err.response.status === 404) {
+                alert('未找到对应文章，更新失败')
             } else {
-                alert('保存失败，请稍后重试')
+                alert('更新文章失败，请稍后重试')
             }
             throw err
         }
@@ -73,5 +103,5 @@ export function useArticles() {
         }
     }
 
-    return { articles, fetchArticles, getArticle, saveArticle, deleteArticle }
+    return { articles, fetchArticles, getArticle, addArticle, editArticle, deleteArticle }
 }

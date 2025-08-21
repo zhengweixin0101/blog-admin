@@ -43,7 +43,7 @@ import MarkdownEditor from '~/components/MarkdownEditor.vue'
 
 const route = useRoute()
 const router = useRouter()
-const { getArticle, saveArticle } = useArticles()
+const { getArticle, editArticle } = useArticles()
 
 const article = ref({
   slug: '',
@@ -81,7 +81,7 @@ onMounted(async () => {
 })
 
 const save = async () => {
-  await saveArticle(article.value)
+  await editArticle(article.value)
   alert('保存成功')
   router.push('/list')
 }

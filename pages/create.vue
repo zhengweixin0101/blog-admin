@@ -21,15 +21,15 @@ import { useArticles } from '~/composables/useArticles.js'
 import MarkdownEditor from '~/components/MarkdownEditor.vue'
 
 const router = useRouter()
-const { saveArticle } = useArticles()
-const article = ref({ title: '', slug: '', content: '', date: '', tags: [], description: '', published: false })
+const { addArticle } = useArticles()
+const article = ref({ title: '', slug: '', content: '', date: '', tags: [], description: '', published: true })
 
 const create = async () => {
   if (!article.value.title || !article.value.slug) { 
     alert('标题和Slug不能为空'); 
     return 
   }
-  await saveArticle(article.value)
+  await addArticle(article.value)
   alert('创建成功')
   router.push('/list')
 }
