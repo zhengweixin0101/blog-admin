@@ -13,7 +13,7 @@
       <input v-model="article.date" type="date" class="border p-2 w-full mb-4"/>
 
       <!-- 描述 -->
-      <textarea v-model="article.description" placeholder="描述" class="border p-2 w-full mb-4"></textarea>
+      <input v-model="article.description" placeholder="描述" class="border p-2 w-full mb-4"></input>
 
       <!-- 标签 -->
       <input v-model="tagsString" placeholder="标签（逗号分隔）" class="border p-2 w-full mb-4"/>
