@@ -36,8 +36,8 @@ export function useArticles() {
                 alert('API Key 错误，请检查后重试')
             } else if (err.response && err.response.status === 400) {
                 alert('slug 是必填项，请检查后重试')
-            } else if (err.response && err.response.status === 404) {
-                alert('文章不存在，请检查 slug 是否正确')
+            } else if (err.response && err.response.status === 409) {
+                alert('文章已存在，请修改 slug 后重试')
             } else {
                 alert('新建文章失败，请稍后重试')
             }
