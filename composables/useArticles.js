@@ -41,6 +41,7 @@ export function useArticles() {
             if (err.response && err.response.status === 401) alert('API Key 错误，请检查后重试')
             else if (err.response && err.response.status === 400) alert('slug 是必填项，请检查后重试')
             else if (err.response && err.response.status === 409) alert('文章已存在，请修改 slug 后重试')
+            else if (err.response && err.response.status === 429) alert('错误次数过多，IP已封禁十年')
             else alert('新建文章失败，请稍后重试')
             return null
         }
@@ -68,6 +69,7 @@ export function useArticles() {
         } catch (err) {
             if (err.response && err.response.status === 401) alert('API Key 错误，请检查后重试')
             else if (err.response && err.response.status === 404) alert('文章不存在，请检查 slug 是否正确')
+            else if (err.response && err.response.status === 429) alert('错误次数过多，IP已封禁十年')
             else alert('更新文章失败，请稍后重试')
             return null
         }
@@ -88,6 +90,7 @@ export function useArticles() {
             if (err.response && err.response.status === 401) alert('API Key 错误，请检查后重试')
             else if (err.response && err.response.status === 404) alert('文章不存在，请检查旧 slug 是否正确')
             else if (err.response && err.response.status === 409) alert('新 slug 已存在，请更换后重试')
+            else if (err.response && err.response.status === 429) alert('错误次数过多，IP已封禁十年')
             else alert('修改 slug 失败，请稍后重试')
             return null
         }
@@ -107,6 +110,7 @@ export function useArticles() {
         } catch (err) {
             if (err.response && err.response.status === 401) alert('API Key 错误，请检查后重试')
             else if (err.response && err.response.status === 404) alert('文章不存在，请检查 slug 是否正确')
+            else if (err.response && err.response.status === 429) alert('错误次数过多，IP已封禁十年')
             else if (err.response && err.response.status === 400) alert('slug 是必填项，请检查后重试')
             else alert('删除文章失败，请稍后重试')
             return null
