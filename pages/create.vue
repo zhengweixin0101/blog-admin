@@ -47,7 +47,7 @@ const { addArticle } = useArticles()
 const article = ref({
   title: '',
   slug: '',
-  date: '',
+  date: new Date().toISOString().split('T')[0],
   description: '',
   tags: [],
   published: true,
