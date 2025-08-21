@@ -16,7 +16,7 @@
       <textarea v-model="article.description" placeholder="描述" class="border p-2 w-full mb-4"></textarea>
 
       <!-- 标签 -->
-      <input v-model="tagsString" placeholder="标签，逗号分隔" class="border p-2 w-full mb-4"/>
+      <input v-model="tagsString" placeholder="标签（逗号分隔）" class="border p-2 w-full mb-4"/>
 
       <!-- 已发布 -->
       <label class="flex items-center gap-2 mb-4">
@@ -28,15 +28,15 @@
       <MarkdownEditor v-model="article.content"/>
 
       <div class="mt-4 flex gap-2">
-        <button @click="save" class="btn">保存</button>
-        <NuxtLink to="/list" class="btn btn-gray">返回列表</NuxtLink>
+        <button @click="save">保存</button>
+        <button @click="goBack">返回列表</button>
       </div>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useArticles } from '~/composables/useArticles.js'
 import MarkdownEditor from '~/components/MarkdownEditor.vue'
@@ -55,6 +55,8 @@ const article = ref({
   content: ''
 })
 
+const originalArticle = ref({})
+
 const tagsString = computed({
   get: () => article.value.tags.join(','),
   set: val => {
@@ -65,7 +67,7 @@ const tagsString = computed({
 onMounted(async () => {
   const data = await getArticle(route.params.slug)
   const fm = data.frontmatter || {}
-  
+
   article.value.slug = fm.slug || ''
   article.value.title = fm.title || ''
   article.value.date = fm.date || ''
@@ -75,16 +77,33 @@ onMounted(async () => {
   article.value.content = data.content || ''
 
   tagsString.value = article.value.tags.join(',')
+
+  // 保存初始数据
+  originalArticle.value = JSON.parse(JSON.stringify(article.value))
 })
 
-const save = async () => {
-  await editArticle(article.value)
-  alert('保存成功')
+const isSaved = ref(false)
+
+// 判断文章是否有修改
+const hasChanges = () => {
+  return JSON.stringify(article.value) !== JSON.stringify(originalArticle.value)
+}
+
+// 返回按钮
+const goBack = () => {
+  if (hasChanges() && !isSaved.value) {
+    const confirmLeave = confirm('您有未保存的修改，确定要离开吗？')
+    if (!confirmLeave) return
+  }
   router.push('/list')
 }
-</script>
 
-<style scoped>
-.btn { @apply px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600; }
-.btn-gray { @apply bg-gray-500 hover:bg-gray-600; }
-</style>
+// 保存文章
+const save = async () => {
+  await editArticle(article.value)
+  isSaved.value = true
+  // 保存成功后更新原始数据
+  originalArticle.value = JSON.parse(JSON.stringify(article.value))
+  alert('保存成功')
+}
+</script>
