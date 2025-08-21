@@ -55,27 +55,24 @@ const article = ref({
   content: ''
 })
 
-// 标签字符串绑定
-const tagsString = ref('')
-watch(tagsString, (newVal) => {
-  article.value.tags = newVal.split(',').map(t => t.trim()).filter(Boolean)
+const tagsString = computed({
+  get: () => article.value.tags.join(','),
+  set: val => {
+    article.value.tags = val.split(',').map(t => t.trim()).filter(Boolean)
+  }
 })
 
 onMounted(async () => {
   const data = await getArticle(route.params.slug)
-  
-  // frontmatter 对应字段
   const fm = data.frontmatter || {}
   
-  article.value = {
-    slug: fm.slug || '',
-    title: fm.title || '',
-    date: fm.date || '',
-    description: fm.description || '',
-    tags: fm.tags || [],
-    published: fm.published || false,
-    content: data.content || ''
-  }
+  article.value.slug = fm.slug || ''
+  article.value.title = fm.title || ''
+  article.value.date = fm.date || ''
+  article.value.description = fm.description || ''
+  article.value.tags = fm.tags || []
+  article.value.published = fm.published || false
+  article.value.content = data.content || ''
 
   tagsString.value = article.value.tags.join(',')
 })
