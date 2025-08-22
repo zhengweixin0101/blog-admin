@@ -36,8 +36,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useArticles } from '~/composables/useArticles.js'
 import MarkdownEditor from '~/components/MarkdownEditor.vue'
 
@@ -65,12 +65,41 @@ const tagsString = computed({
 const originalArticle = ref(JSON.parse(JSON.stringify(article.value)))
 const isSaved = ref(false)
 
-// 判断文章是否有修改
+// 判断文章是否修改
 const hasChanges = () => {
   return JSON.stringify(article.value) !== JSON.stringify(originalArticle.value)
 }
 
-// 返回按钮逻辑
+// 页面离开拦截
+onBeforeRouteLeave((to, from, next) => {
+  if (hasChanges() && !isSaved.value) {
+    if (confirm('您有未保存的修改，确定要离开吗？')) {
+      next()
+    } else {
+      next(false) // 阻止导航
+    }
+  } else {
+    next()
+  }
+})
+
+// 页面刷新或关闭时提示
+const beforeUnloadHandler = (e) => {
+  if (hasChanges() && !isSaved.value) {
+    e.preventDefault()
+    e.returnValue = '' // Chrome 需要 returnValue
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('beforeunload', beforeUnloadHandler)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', beforeUnloadHandler)
+})
+
+// 返回按钮
 const goBack = () => {
   if (hasChanges() && !isSaved.value) {
     const confirmLeave = confirm('您有未保存的修改，确定要离开吗？')

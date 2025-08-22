@@ -36,8 +36,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useArticles } from '~/composables/useArticles.js'
 import MarkdownEditor from '~/components/MarkdownEditor.vue'
 
@@ -88,6 +88,35 @@ const isSaved = ref(false)
 const hasChanges = () => {
   return JSON.stringify(article.value) !== JSON.stringify(originalArticle.value)
 }
+
+// 页面离开拦截
+onBeforeRouteLeave((to, from, next) => {
+  if (hasChanges() && !isSaved.value) {
+    if (confirm('您有未保存的修改，确定要离开吗？')) {
+      next()
+    } else {
+      next(false) // 阻止导航
+    }
+  } else {
+    next()
+  }
+})
+
+// 页面刷新或关闭时提示
+const beforeUnloadHandler = (e) => {
+  if (hasChanges() && !isSaved.value) {
+    e.preventDefault()
+    e.returnValue = ''
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('beforeunload', beforeUnloadHandler)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', beforeUnloadHandler)
+})
 
 // 返回按钮
 const goBack = () => {
