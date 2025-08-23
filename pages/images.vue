@@ -58,11 +58,6 @@ function getToken() {
   return token
 }
 
-function clearToken() {
-  token = ''
-  localStorage.removeItem('github_token')
-}
-
 async function fetchImages() {
   const t = getToken()
   if (!t) return

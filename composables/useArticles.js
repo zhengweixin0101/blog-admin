@@ -18,12 +18,6 @@ export function useArticles() {
         return apiKey
     }
 
-    // 可选：清除 API Key
-    function clearApiKey() {
-        apiKey = ''
-        localStorage.removeItem('article_api_key')
-    }
-
     // 获取文章列表
     const getList = async () => {
         const res = await axios.get(`${API_BASE}/list?posts=all`)
@@ -133,5 +127,5 @@ export function useArticles() {
         }
     }
 
-    return { articles, getList, getArticle, addArticle, editArticle, editSlug, deleteArticle, clearApiKey }
+    return { articles, getList, getArticle, addArticle, editArticle, editSlug, deleteArticle }
 }
