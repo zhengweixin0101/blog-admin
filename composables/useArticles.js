@@ -2,11 +2,27 @@ import { ref } from 'vue'
 import axios from 'axios'
 
 export function useArticles() {
-
     const config = useRuntimeConfig()
     const API_BASE = config.public.apiBase
 
     const articles = ref([])
+    let apiKey = ''
+
+    // 获取 API Key（缓存到 localStorage）
+    function getApiKey() {
+        if (!apiKey) apiKey = localStorage.getItem('article_api_key') || ''
+        if (!apiKey) {
+            apiKey = prompt('请输入 API Key：')
+            if (apiKey) localStorage.setItem('article_api_key', apiKey)
+        }
+        return apiKey
+    }
+
+    // 可选：清除 API Key
+    function clearApiKey() {
+        apiKey = ''
+        localStorage.removeItem('article_api_key')
+    }
 
     // 获取文章列表
     const getList = async () => {
@@ -29,12 +45,12 @@ export function useArticles() {
 
     // 新建文章
     const addArticle = async (article) => {
-        const apiKey = prompt('请输入 API Key：')
-        if (!apiKey) return alert('未输入 API Key，操作取消'), null
+        const key = getApiKey()
+        if (!key) return alert('未输入 API Key，操作取消'), null
 
         try {
             const res = await axios.post(`${API_BASE}/add`, article, {
-                headers: { 'x-api-key': apiKey }
+                headers: { 'x-api-key': key }
             })
             return res.data
         } catch (err) {
@@ -50,8 +66,8 @@ export function useArticles() {
     // 更新文章
     const editArticle = async (article) => {
         if (!article.slug) return alert('缺少 slug，无法更新文章'), null
-        const apiKey = prompt('请输入 API Key：')
-        if (!apiKey) return alert('未输入 API Key，操作取消'), null
+        const key = getApiKey()
+        if (!key) return alert('未输入 API Key，操作取消'), null
 
         const payload = { slug: article.slug }
         if (article.title) payload.title = article.title
@@ -63,7 +79,7 @@ export function useArticles() {
 
         try {
             const res = await axios.put(`${API_BASE}/edit`, payload, {
-                headers: { 'x-api-key': apiKey }
+                headers: { 'x-api-key': key }
             })
             return res.data
         } catch (err) {
@@ -78,12 +94,12 @@ export function useArticles() {
     // 修改文章 slug
     const editSlug = async (oldSlug, newSlug) => {
         if (!oldSlug || !newSlug) return alert('旧 slug 或新 slug 不能为空'), null
-        const apiKey = prompt('请输入 API Key：')
-        if (!apiKey) return alert('未输入 API Key，操作取消'), null
+        const key = getApiKey()
+        if (!key) return alert('未输入 API Key，操作取消'), null
 
         try {
             const res = await axios.put(`${API_BASE}/edit-slug`, { oldSlug, newSlug }, {
-                headers: { 'x-api-key': apiKey }
+                headers: { 'x-api-key': key }
             })
             return res.data
         } catch (err) {
@@ -98,12 +114,12 @@ export function useArticles() {
 
     // 删除文章
     const deleteArticle = async (slug) => {
-        const apiKey = prompt('请输入 API Key：')
-        if (!apiKey) return alert('未输入 API Key，操作取消'), null
+        const key = getApiKey()
+        if (!key) return alert('未输入 API Key，操作取消'), null
 
         try {
             await axios.delete(`${API_BASE}/delete`, {
-                headers: { 'x-api-key': apiKey },
+                headers: { 'x-api-key': key },
                 data: { slug }
             })
             return { success: true }
@@ -117,5 +133,5 @@ export function useArticles() {
         }
     }
 
-    return { articles, getList, getArticle, addArticle, editArticle, editSlug, deleteArticle }
+    return { articles, getList, getArticle, addArticle, editArticle, editSlug, deleteArticle, clearApiKey }
 }

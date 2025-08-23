@@ -6,6 +6,7 @@
         <NuxtLink to="/" class="hover:text-blue-500">首页</NuxtLink>
         <NuxtLink to="/list" class="hover:text-blue-500">文章列表</NuxtLink>
         <NuxtLink to="/create" class="hover:text-blue-500">创建文章</NuxtLink>
+        <NuxtLink to="/images" class="hover:text-blue-500">图片管理</NuxtLink>
       </nav>
     </aside>
   </div>
