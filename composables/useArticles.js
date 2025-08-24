@@ -1,21 +1,21 @@
 import { ref } from 'vue'
 import axios from 'axios'
+import { useRouter } from 'vue-router'
 
 export function useArticles() {
     const config = useRuntimeConfig()
     const API_BASE = config.public.apiBase
-
     const articles = ref([])
-    let apiKey = ''
+    const router = useRouter()
 
-    // 获取 API Key（缓存到 localStorage）
-    function getApiKey() {
-        if (!apiKey) apiKey = localStorage.getItem('article_api_key') || ''
-        if (!apiKey) {
-            apiKey = prompt('请输入 API Key：')
-            if (apiKey) localStorage.setItem('article_api_key', apiKey)
+    function ensureKey() {
+        const key = localStorage.getItem('article_api_key')
+        if (!key) {
+            localStorage.removeItem('admin_verified')
+            router.push('/verify')
+            throw new Error('API key missing, redirecting to verify page')
         }
-        return apiKey
+        return key
     }
 
     // 获取文章列表
@@ -39,20 +39,14 @@ export function useArticles() {
 
     // 新建文章
     const addArticle = async (article) => {
-        const key = getApiKey()
-        if (!key) return alert('未输入 API Key，操作取消'), null
-
         try {
+            const key = ensureKey()
             const res = await axios.post(`${API_BASE}/add`, article, {
                 headers: { 'x-api-key': key }
             })
             return res.data
         } catch (err) {
-            if (err.response && err.response.status === 401) alert('API Key 错误，请检查后重试')
-            else if (err.response && err.response.status === 400) alert('slug 是必填项，请检查后重试')
-            else if (err.response && err.response.status === 409) alert('文章已存在，请修改 slug 后重试')
-            else if (err.response && err.response.status === 429) alert('错误次数过多，IP已封禁十年')
-            else alert('新建文章失败，请稍后重试')
+            handleError(err)
             return null
         }
     }
@@ -60,8 +54,6 @@ export function useArticles() {
     // 更新文章
     const editArticle = async (article) => {
         if (!article.slug) return alert('缺少 slug，无法更新文章'), null
-        const key = getApiKey()
-        if (!key) return alert('未输入 API Key，操作取消'), null
 
         const payload = { slug: article.slug }
         if (article.title) payload.title = article.title
@@ -72,15 +64,13 @@ export function useArticles() {
         if (typeof article.published === 'boolean') payload.published = article.published
 
         try {
+            const key = ensureKey()
             const res = await axios.put(`${API_BASE}/edit`, payload, {
                 headers: { 'x-api-key': key }
             })
             return res.data
         } catch (err) {
-            if (err.response && err.response.status === 401) alert('API Key 错误，请检查后重试')
-            else if (err.response && err.response.status === 404) alert('文章不存在，请检查 slug 是否正确')
-            else if (err.response && err.response.status === 429) alert('错误次数过多，IP已封禁十年')
-            else alert('更新文章失败，请稍后重试')
+            handleError(err)
             return null
         }
     }
@@ -88,42 +78,57 @@ export function useArticles() {
     // 修改文章 slug
     const editSlug = async (oldSlug, newSlug) => {
         if (!oldSlug || !newSlug) return alert('旧 slug 或新 slug 不能为空'), null
-        const key = getApiKey()
-        if (!key) return alert('未输入 API Key，操作取消'), null
 
         try {
+            const key = ensureKey()
             const res = await axios.put(`${API_BASE}/edit-slug`, { oldSlug, newSlug }, {
                 headers: { 'x-api-key': key }
             })
             return res.data
         } catch (err) {
-            if (err.response && err.response.status === 401) alert('API Key 错误，请检查后重试')
-            else if (err.response && err.response.status === 404) alert('文章不存在，请检查旧 slug 是否正确')
-            else if (err.response && err.response.status === 409) alert('新 slug 已存在，请更换后重试')
-            else if (err.response && err.response.status === 429) alert('错误次数过多，IP已封禁十年')
-            else alert('修改 slug 失败，请稍后重试')
+            handleError(err)
             return null
         }
     }
 
     // 删除文章
     const deleteArticle = async (slug) => {
-        const key = getApiKey()
-        if (!key) return alert('未输入 API Key，操作取消'), null
-
         try {
+            const key = ensureKey()
             await axios.delete(`${API_BASE}/delete`, {
                 headers: { 'x-api-key': key },
                 data: { slug }
             })
             return { success: true }
         } catch (err) {
-            if (err.response && err.response.status === 401) alert('API Key 错误，请检查后重试')
-            else if (err.response && err.response.status === 404) alert('文章不存在，请检查 slug 是否正确')
-            else if (err.response && err.response.status === 429) alert('错误次数过多，IP已封禁十年')
-            else if (err.response && err.response.status === 400) alert('slug 是必填项，请检查后重试')
-            else alert('删除文章失败，请稍后重试')
+            handleError(err)
             return null
+        }
+    }
+
+    // 通用错误处理
+    function handleError(err) {
+        if (err.response) {
+            const { status } = err.response
+            if (status === 401) {
+                alert('API Key 错误或已过期，请重新验证')
+                localStorage.removeItem('article_api_key')
+                localStorage.removeItem('admin_verified')
+                router.push('/verify')
+            } else if (status === 404) {
+                alert('文章不存在，请检查 slug 是否正确')
+            } else if (status === 409) {
+                alert('slug 已存在，请更换后重试')
+            } else if (status === 429) {
+                alert('错误次数过多，IP 已封禁十年')
+            } else if (status === 400) {
+                alert('slug 是必填项，请检查后重试')
+            } else {
+                alert('操作失败，请稍后重试')
+            }
+        } else {
+            console.error(err)
+            alert('网络错误或服务器异常')
         }
     }
 
