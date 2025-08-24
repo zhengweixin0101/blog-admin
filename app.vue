@@ -14,19 +14,27 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import Sidebar from '~/components/sidebar.vue'
+import { useCookie } from '#app'
+import { useRoute } from 'vue-router'
 
 const showVerifyOverlay = ref(true)
+const route = useRoute()
+const verified = useCookie('admin_verified')
 
-onMounted(() => {
-  const verified = localStorage.getItem('admin_verified')
-  if (verified) {
-    showVerifyOverlay.value = false
-  } else {
-    navigateTo('/verify')
+if (verified.value) showVerifyOverlay.value = false
+
+watch(
+  () => route.fullPath,
+  () => {
+    if (verified.value) {
+      showVerifyOverlay.value = false
+    } else {
+      showVerifyOverlay.value = true
+    }
   }
-})
+)
 </script>
 
 <style>

@@ -53,8 +53,8 @@ async function verifyKey() {
     }
   }
 
-  localStorage.setItem('admin_verified', 'true')
-
+  const verified = useCookie('admin_verified', { path: '/' })
+  verified.value = 'true'
   navigateTo('/')
 }
 
