@@ -22,11 +22,16 @@
     <!-- 图片列表 -->
     <div class="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4">
       <div v-for="img in images" :key="img.name" class="mb-4 break-inside-avoid relative group rounded shadow overflow-hidden">
-        <img :src="img.url" alt="image" class="w-full rounded" />
+        <img
+          :src="img.url"
+          alt="image"
+          class="w-full rounded"
+          @click="copyLink(img.url)"
+        />
         <!-- 删除按钮 -->
         <button
           @click="confirmDelete(img)"
-          class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+          class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
         >
           删除
         </button>
@@ -170,4 +175,14 @@ function handleDrop(event) {
 }
 
 onMounted(fetchImages)
+
+async function copyLink(url) {
+  try {
+    await navigator.clipboard.writeText(url)
+    alert('图片链接已复制到剪贴板:\n' + url)
+  } catch (err) {
+    alert('复制失败: ' + err.message)
+  }
+}
+
 </script>
