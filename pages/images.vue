@@ -43,6 +43,7 @@ const owner = 'zhengweixin0101'
 const repo = 'CDN'
 const branch = 'main'
 const path = 'blog/posts'
+const cdnBaseURL = 'https://cdn.zhengweixin.top/blog/posts/'
 
 const images = ref([])
 const dragOver = ref(false)
@@ -69,11 +70,16 @@ async function fetchImages() {
 
     images.value = res.data
       .filter(item => item.type === 'file' && /\.(png|jpe?g|gif|webp|svg)$/i.test(item.name))
-      .map(item => ({
-        name: item.name,
-        sha: item.sha,
-        url: `https://cdn.zhengweixin.top/blog/posts/${item.name}`
-      }))
+      .map(item => {
+        const ts = parseInt(item.name.split('_')[0]) || 0
+        return {
+          name: item.name,
+          sha: item.sha,
+          url: `${cdnBaseURL}${item.name}`,
+          timestamp: ts
+        }
+      })
+      .sort((a, b) => b.timestamp - a.timestamp)
   } catch (err) {
     alert('获取图片列表失败: ' + err.message)
   }
@@ -120,7 +126,8 @@ async function uploadFile(file) {
     const content = btoa(binary)
 
     const ext = file.name.substring(file.name.lastIndexOf('.')) || ''
-    const newFileName = crypto.randomUUID().replace(/-/g, '') + ext
+    const timestamp = Date.now()
+    const newFileName = `${timestamp}_${crypto.randomUUID().replace(/-/g, '')}${ext}`
 
     try {
       await axios.put(`https://api.github.com/repos/${owner}/${repo}/contents/${path}/${newFileName}`, {
