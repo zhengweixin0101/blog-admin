@@ -98,31 +98,27 @@ async function fetchImages() {
   }
 }
 
-// 根据窗口宽度返回列数
-function getColumns() {
-  const width = window.innerWidth
-  if (width < 640) return 1
-  if (width < 1024) return 2
-  if (width < 1280) return 3
-  return 4
-}
-
-// 初始化或重置 Masonry
+// 初始化 Masonry
 async function initMasonry() {
   if (typeof window === 'undefined' || !masonryContainer.value) return
   const Macy = (await import('macy')).default
 
-  const columns = getColumns()
-
   if (macyInstance) {
-    macyInstance.reInit({ columns })
+    macyInstance.reInit()
   } else {
     macyInstance = Macy({
       container: masonryContainer.value,
       trueOrder: false,
       waitForImages: true,
       margin: 14,
-      columns
+      columns: 5,
+      breakAt: {
+        640: 1,
+        1024: 2,
+        1280: 3,
+        1920: 4,
+        2560: 5
+      }
     })
   }
 }
