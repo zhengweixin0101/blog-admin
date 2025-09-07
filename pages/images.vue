@@ -180,7 +180,7 @@ async function uploadFile(file) {
         headers: { Authorization: `token ${t}` }
       })
 
-      const cdnLink = `https://cdn.zhengweixin.top/blog/posts/${newFileName}`
+      const cdnLink = `${cdnBaseURL}${newFileName}`
       await navigator.clipboard.writeText(cdnLink)
       alert(`${newFileName} 上传成功！链接已复制到剪贴板。`)
       fetchImages()
