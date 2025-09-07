@@ -20,15 +20,18 @@
     </div>
 
     <!-- 图片列表 -->
-    <div class="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4">
-      <div v-for="img in images" :key="img.name" class="mb-4 break-inside-avoid relative group rounded shadow overflow-hidden">
+    <div ref="masonryContainer" class="w-full">
+      <div
+        v-for="img in images"
+        :key="img.name"
+        class="mb-4 relative group rounded-lg overflow-hidden shadow-2xl"
+      >
         <img
           :src="img.url"
           alt="image"
-          class="w-full rounded"
+          class="w-full block"
           @click="copyLink(img.url)"
         />
-        <!-- 删除按钮 -->
         <button
           @click="confirmDelete(img)"
           class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -41,7 +44,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import axios from 'axios'
 
 const owner = 'zhengweixin0101'
@@ -53,7 +56,9 @@ const cdnBaseURL = 'https://cdn.zhengweixin.top/blog/posts/'
 const images = ref([])
 const dragOver = ref(false)
 const fileInput = ref(null)
+const masonryContainer = ref(null)
 let token = ''
+let macyInstance = null
 
 function getToken() {
   if (!token) token = localStorage.getItem('github_token') || ''
@@ -85,8 +90,40 @@ async function fetchImages() {
         }
       })
       .sort((a, b) => b.timestamp - a.timestamp)
+
+    await nextTick()
+    initMasonry()
   } catch (err) {
     alert('获取图片列表失败: ' + err.message)
+  }
+}
+
+// 根据窗口宽度返回列数
+function getColumns() {
+  const width = window.innerWidth
+  if (width < 640) return 1
+  if (width < 1024) return 2
+  if (width < 1280) return 3
+  return 4
+}
+
+// 初始化或重置 Masonry
+async function initMasonry() {
+  if (typeof window === 'undefined' || !masonryContainer.value) return
+  const Macy = (await import('macy')).default
+
+  const columns = getColumns()
+
+  if (macyInstance) {
+    macyInstance.reInit({ columns })
+  } else {
+    macyInstance = Macy({
+      container: masonryContainer.value,
+      trueOrder: false,
+      waitForImages: true,
+      margin: 14,
+      columns
+    })
   }
 }
 
@@ -158,23 +195,15 @@ async function uploadFile(file) {
 function handleFileSelect(event) {
   const files = event.target.files
   if (!files.length) return
-
-  for (const file of files) {
-    uploadFile(file)
-  }
+  for (const file of files) uploadFile(file)
 }
 
 function handleDrop(event) {
   dragOver.value = false
   const files = event.dataTransfer.files
   if (!files.length) return
-
-  for (const file of files) {
-    uploadFile(file)
-  }
+  for (const file of files) uploadFile(file)
 }
-
-onMounted(fetchImages)
 
 async function copyLink(url) {
   try {
@@ -185,4 +214,5 @@ async function copyLink(url) {
   }
 }
 
+onMounted(fetchImages)
 </script>

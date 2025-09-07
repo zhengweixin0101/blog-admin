@@ -11,6 +11,9 @@ importers:
       axios:
         specifier: ^1.11.0
         version: 1.11.0
+      macy:
+        specifier: ^2.5.1
+        version: 2.5.1
       md-editor-v3:
         specifier: ^5.8.4
         version: 5.8.4(vue@3.5.18(typescript@5.9.2))
@@ -2979,6 +2982,10 @@ packages:
   luxon@3.7.1:
     resolution: {integrity: sha512-RkRWjA926cTvz5rAb1BqyWkKbbjzCGchDUIKMCUvNi17j6f6j8uHGDV82Aqcqtzd+icoYpELmG3ksgGiFNNcNg==}
     engines: {node: '>=12'}
+
+  macy@2.5.1:
+    resolution: {integrity: sha512-+y4WYyh3rl4G8UczZP30pXxhLQRZ941QcaDmWoGefzUBXdwNW8TOhjjN1g5i/VG3SmiSsHgpjVXhlnZ84P2QMw==}
+    engines: {node: '>= 0.9'}
 
   magic-regexp@0.10.0:
     resolution: {integrity: sha512-Uly1Bu4lO1hwHUW0CQeSWuRtzCMNO00CmXtS8N6fyvB3B979GOEEeAkiTUDsmbYLAbvpUS/Kt5c4ibosAzVyVg==}
@@ -7770,6 +7777,8 @@ snapshots:
       vue: 3.5.18(typescript@5.9.2)
 
   luxon@3.7.1: {}
+
+  macy@2.5.1: {}
 
   magic-regexp@0.10.0:
     dependencies:
