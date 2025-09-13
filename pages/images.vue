@@ -54,12 +54,13 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import axios from 'axios'
+import { siteConfig } from '@/site.Config.js'
 
-const owner = 'zhengweixin0101'
-const repo = 'CDN'
-const branch = 'main'
-const path = 'blog/posts'
-const cdnBaseURL = 'https://cdn.zhengweixin.top/blog/posts/'
+const owner = siteConfig.image.owner
+const repo = siteConfig.image.repo
+const branch = siteConfig.image.branch
+const path = siteConfig.image.path
+const cdnBaseURL = siteConfig.image.cdnBaseUrl
 
 const images = ref([])
 const dragOver = ref(false)
@@ -69,7 +70,7 @@ let token = ''
 let macyInstance = null
 
 // 缓存有效期
-const CACHE_DURATION = 30 * 60 * 1000
+const CACHE_DURATION = siteConfig.image.cacheDuration || 30 * 60 * 1000
 
 // 保存缓存
 function saveImagesToCache(list) {

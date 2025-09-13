@@ -8,7 +8,7 @@
           
           <p class="text-sm text-gray-500 mb-2 flex items-center">
             {{ article.date }} | 
-            <a :href="`https://zhengweixin.top/posts/${article.slug}`" target="_blank" class="text-gray-500 hover:text-blue-500 transition-color duration-300 ml-1">
+            <a :href="`${siteConfig.blogUrl}/posts/${article.slug}`" target="_blank" class="text-gray-500 hover:text-blue-500 transition-color duration-300 ml-1">
               {{ article.slug }}
             </a>
             <button @click="handleEditSlug(article)" class="ml-0.5 mt-0.5 w-3.5 h-3.5 flex items-center justify-center cursor-pointer bg-transparent border-none p-0">
@@ -49,6 +49,7 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useArticles } from '~/composables/useArticles.js'
+import { siteConfig } from '@/site.Config.js'
 
 const { articles, getList, deleteArticle, editSlug } = useArticles()
 

@@ -13,6 +13,7 @@ import { ref, watch } from 'vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import axios from 'axios'
+import { siteConfig } from '../site.config'
 
 const props = defineProps({
   modelValue: String,
@@ -45,11 +46,11 @@ function loadImagesFromCache() {
 }
 
 // 图片上传
-const owner = 'zhengweixin0101'
-const repo = 'CDN'
-const branch = 'main'
-const path = 'blog/posts'
-const cdnBaseURL = 'https://cdn.zhengweixin.top/blog/posts/'
+const owner = siteConfig.image.owner
+const repo = siteConfig.image.repo
+const branch = siteConfig.image.branch
+const path = siteConfig.image.path
+const cdnBaseURL = siteConfig.image.cdnBaseUrl
 let token = ''
 
 function getToken() {
