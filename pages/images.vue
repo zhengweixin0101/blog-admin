@@ -191,63 +191,71 @@ function selectFile() {
 
 function handleFileSelect(e) {
   const files = e.target.files
-  for (const file of files) uploadFile(file)
+  handleUploadFiles(files)
 }
 
 function handleDrop(e) {
   dragOver.value = false
   const files = e.dataTransfer.files
-  for (const file of files) uploadFile(file)
+  handleUploadFiles(files)
 }
 
-async function uploadFile(file) {
-  const t = getToken()
-  if (!t) return
+async function handleUploadFiles(files) {
+  const uploadedUrls = []
 
-  if (!/\.(png|jpe?g|gif|webp|svg)$/i.test(file.name)) {
-    alert(`文件 ${file.name} 不是图片，已跳过`)
-    return
+  for (const file of files) {
+    const t = getToken()
+    if (!t) break
+
+    if (!/\.(png|jpe?g|gif|webp|svg)$/i.test(file.name)) {
+      alert(`文件 ${file.name} 不是图片，已跳过`)
+      continue
+    }
+
+    try {
+      const arrayBuffer = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = reject
+        reader.readAsArrayBuffer(file)
+      })
+
+      const bytes = new Uint8Array(arrayBuffer)
+      let binary = ''
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+      const content = btoa(binary)
+
+      const ext = file.name.substring(file.name.lastIndexOf('.')) || ''
+      const timestamp = Date.now()
+      const newFileName = `${timestamp}_${crypto.randomUUID().replace(/-/g, '')}${ext}`
+
+      const res = await axios.put(
+        `https://api.github.com/repos/${owner}/${repo}/contents/${path}/${newFileName}`,
+        { message: `Upload ${newFileName}`, content, branch },
+        { headers: { Authorization: `token ${t}` } }
+      )
+
+      const cdnLink = `${cdnBaseURL}${newFileName}`
+      uploadedUrls.push(cdnLink)
+
+      images.value.unshift({
+        name: newFileName,
+        sha: res.data.content.sha,
+        url: cdnLink,
+        timestamp
+      })
+    } catch (err) {
+      alert(`上传 ${file.name} 失败: ${err.message}`)
+    }
   }
 
-  const arrayBuffer = await new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsArrayBuffer(file)
-  })
-
-  const bytes = new Uint8Array(arrayBuffer)
-  let binary = ''
-  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
-  const content = btoa(binary)
-
-  const ext = file.name.substring(file.name.lastIndexOf('.')) || ''
-  const timestamp = Date.now()
-  const newFileName = `${timestamp}_${crypto.randomUUID().replace(/-/g, '')}${ext}`
-
-  try {
-    const res = await axios.put(
-      `https://api.github.com/repos/${owner}/${repo}/contents/${path}/${newFileName}`,
-      { message: `Upload ${newFileName}`, content, branch },
-      { headers: { Authorization: `token ${t}` } }
-    )
-
-    const cdnLink = `${cdnBaseURL}${newFileName}`
-    images.value.unshift({
-      name: newFileName,
-      sha: res.data.content.sha,
-      url: cdnLink,
-      timestamp
-    })
+  if (uploadedUrls.length > 0) {
     saveImagesToCache(images.value)
-
     await nextTick()
     if (macyInstance) macyInstance.reInit()
 
-    alert(`${newFileName}\n上传成功！链接已复制到剪贴板。`)
-    await navigator.clipboard.writeText(cdnLink)
-  } catch (err) {
-    alert('上传失败: ' + err.message)
+    alert(`上传成功！共 ${uploadedUrls.length} 张图片，链接已复制到剪贴板。`)
+    await navigator.clipboard.writeText(uploadedUrls.join('\n'))
   }
 }
 
@@ -282,16 +290,6 @@ async function confirmDelete(img) {
     } else {
       alert('删除失败: ' + err.message)
     }
-  }
-}
-
-// 复制链接
-async function copyLink(url) {
-  try {
-    await navigator.clipboard.writeText(url)
-    alert('图片链接已复制到剪贴板:\n' + url)
-  } catch (err) {
-    alert('复制失败: ' + err.message)
   }
 }
 
