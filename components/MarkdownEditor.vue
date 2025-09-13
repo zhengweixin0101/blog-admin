@@ -86,7 +86,8 @@ async function handleUploadImg(files, callback) {
         )
 
         const cdnLink = `${cdnBaseURL}${newFileName}`
-        console.log('上传成功 URL:', cdnLink)
+        await navigator.clipboard.writeText(cdnLink)
+        alert(`${cdnLink} 上传成功！链接已复制到剪贴板。`)
         uploadedUrls.push(cdnLink)
         break
 
