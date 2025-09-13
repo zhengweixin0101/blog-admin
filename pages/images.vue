@@ -64,19 +64,33 @@ const masonryContainer = ref(null)
 let token = ''
 let macyInstance = null
 
-// 本地缓存
+// 缓存有效期
+const CACHE_DURATION = 30 * 60 * 1000
+
+// 保存缓存
 function saveImagesToCache(list) {
   try {
-    localStorage.setItem('images_cache', JSON.stringify(list))
+    const data = {
+      timestamp: Date.now(),
+      images: list
+    }
+    localStorage.setItem('images_cache', JSON.stringify(data))
   } catch (err) {
     console.warn('缓存保存失败', err)
   }
 }
 
+// 读取本地缓存
 function loadImagesFromCache() {
   try {
     const cached = localStorage.getItem('images_cache')
-    return cached ? JSON.parse(cached) : []
+    if (!cached) return []
+    const data = JSON.parse(cached)
+    if (Date.now() - data.timestamp > CACHE_DURATION) {
+      alert('缓存过期，重新拉取')
+      return []
+    }
+    return data.images || []
   } catch {
     return []
   }
