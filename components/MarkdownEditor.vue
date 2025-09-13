@@ -2,7 +2,7 @@
   <client-only>
     <MdEditor 
       v-model="localValue"
-      :onSave="handleSave"
+      :onSave="props.handleSave"
       :onUploadImg="handleUploadImg"
     />
   </client-only>
@@ -25,6 +25,25 @@ watch(localValue, val => emit('update:modelValue', val))
 watch(() => props.modelValue, val => {
   if (val !== localValue.value) localValue.value = val
 })
+
+// 本地缓存操作
+function saveImagesToCache(list) {
+  try {
+    localStorage.setItem('images_cache', JSON.stringify(list))
+  } catch (err) {
+    alert('保存缓存失败' + err.message)
+  }
+}
+
+function loadImagesFromCache() {
+  try {
+    const cached = localStorage.getItem('images_cache')
+    return cached ? JSON.parse(cached) : []
+  } catch (err) {
+    alert('读取缓存失败' + err.message)
+    return []
+  }
+}
 
 // 图片上传
 const owner = 'zhengweixin0101'
@@ -53,55 +72,62 @@ async function handleUploadImg(files, callback) {
   const uploadedUrls = []
 
   for (const file of files) {
-    while (true) {
-      const t = getToken()
-      if (!t) break
+    const t = getToken()
+    if (!t) break
 
-      if (!/\.(png|jpe?g|gif|webp|svg)$/i.test(file.name)) {
-        alert(`文件 ${file.name} 不是图片，已跳过`)
-        break
-      }
+    if (!/\.(png|jpe?g|gif|webp|svg)$/i.test(file.name)) {
+      alert(`文件 ${file.name} 不是图片，已跳过`)
+      continue
+    }
 
-      try {
-        const arrayBuffer = await new Promise((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => resolve(reader.result)
-          reader.onerror = reject
-          reader.readAsArrayBuffer(file)
-        })
+    try {
+      const arrayBuffer = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = reject
+        reader.readAsArrayBuffer(file)
+      })
 
-        const bytes = new Uint8Array(arrayBuffer)
-        let binary = ''
-        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
-        const content = btoa(binary)
+      const bytes = new Uint8Array(arrayBuffer)
+      let binary = ''
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+      const content = btoa(binary)
 
-        const ext = file.name.substring(file.name.lastIndexOf('.')) || ''
-        const timestamp = Date.now()
-        const newFileName = `${timestamp}_${crypto.randomUUID().replace(/-/g, '')}${ext}`
+      const ext = file.name.substring(file.name.lastIndexOf('.')) || ''
+      const timestamp = Date.now()
+      const newFileName = `${timestamp}_${crypto.randomUUID().replace(/-/g, '')}${ext}`
 
-        await axios.put(
-          `https://api.github.com/repos/${owner}/${repo}/contents/${path}/${newFileName}`,
-          { message: `Upload ${newFileName}`, content, branch },
-          { headers: { Authorization: `token ${t}` } }
-        )
+      const res = await axios.put(
+        `https://api.github.com/repos/${owner}/${repo}/contents/${path}/${newFileName}`,
+        { message: `Upload ${newFileName}`, content, branch },
+        { headers: { Authorization: `token ${t}` } }
+      )
 
-        const cdnLink = `${cdnBaseURL}${newFileName}`
-        await navigator.clipboard.writeText(cdnLink)
-        alert(`${cdnLink}\n上传成功！链接已复制到剪贴板。`)
-        uploadedUrls.push(cdnLink)
-        break
+      const cdnLink = `${cdnBaseURL}${newFileName}`
+      uploadedUrls.push(cdnLink)
 
-      } catch (err) {
-        if (err.response && err.response.status === 401) {
-          alert('GitHub Token 无效，请重新输入')
-          localStorage.removeItem('github_token')
-          token = ''
-        } else {
-          const retry = confirm(`上传 ${file.name} 失败: ${err.message}\n是否重试？`)
-          if (!retry) break
-          localStorage.removeItem('github_token')
-          token = ''
-        }
+      const cachedList = loadImagesFromCache()
+      cachedList.unshift({
+        name: newFileName,
+        sha: res.data.content.sha,
+        url: cdnLink,
+        timestamp
+      })
+      saveImagesToCache(cachedList)
+
+      alert(`${cdnLink}\n上传成功！链接已复制到剪贴板。`)
+      await navigator.clipboard.writeText(cdnLink)
+
+    } catch (err) {
+      if (err.response && err.response.status === 401) {
+        alert('GitHub Token 无效，请重新输入')
+        localStorage.removeItem('github_token')
+        token = ''
+      } else {
+        const retry = confirm(`上传 ${file.name} 失败: ${err.message}\n是否重试？`)
+        if (!retry) break
+        localStorage.removeItem('github_token')
+        token = ''
       }
     }
   }

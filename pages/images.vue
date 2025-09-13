@@ -2,6 +2,10 @@
   <div class="p-8">
     <h1 class="text-2xl font-bold mb-6">图片管理</h1>
 
+    <button @click="refreshImages" class="mb-4 px-4 py-2 bg-blue-500 text-white rounded">
+      刷新缓存
+    </button>
+
     <!-- 上传区域 -->
     <div
       ref="uploadArea"
@@ -23,7 +27,7 @@
     <div ref="masonryContainer" class="w-full">
       <div
         v-for="img in images"
-        :key="img.name"
+        :key="img.sha"
         class="mb-4 relative group rounded-lg overflow-hidden shadow-2xl"
       >
         <img
@@ -60,12 +64,32 @@ const masonryContainer = ref(null)
 let token = ''
 let macyInstance = null
 
+// 本地缓存
+function saveImagesToCache(list) {
+  try {
+    localStorage.setItem('images_cache', JSON.stringify(list))
+  } catch (err) {
+    console.warn('缓存保存失败', err)
+  }
+}
+
+function loadImagesFromCache() {
+  try {
+    const cached = localStorage.getItem('images_cache')
+    return cached ? JSON.parse(cached) : []
+  } catch {
+    return []
+  }
+}
+
+// 获取Token
 function getToken() {
   if (!token) token = localStorage.getItem('github_token') || ''
-  if (!token) {
-    const input = prompt('请输入 GitHub Token')
+  while (!token) {
+    const input = prompt('请输入 GitHub Token')?.trim()
     if (!input) {
-      window.history.back()
+      alert('操作已取消！')
+      localStorage.removeItem('github_token')
       return null
     }
     token = input
@@ -74,47 +98,11 @@ function getToken() {
   return token
 }
 
-async function fetchImages() {
-  const t = getToken()
-  if (!t) return
-
-  try {
-    const res = await axios.get(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {
-      headers: { Authorization: `token ${t}` }
-    })
-
-    images.value = res.data
-      .filter(item => item.type === 'file' && /\.(png|jpe?g|gif|webp|svg)$/i.test(item.name))
-      .map(item => {
-        const ts = parseInt(item.name.split('_')[0]) || 0
-        return {
-          name: item.name,
-          sha: item.sha,
-          url: `${cdnBaseURL}${item.name}`,
-          timestamp: ts
-        }
-      })
-      .sort((a, b) => b.timestamp - a.timestamp)
-
-    await nextTick()
-    initMasonry()
-  } catch (err) {
-    if (err.response && err.response.status === 401) {
-      alert('GitHub Token 无效，请重新输入')
-      localStorage.removeItem('github_token')
-      token = ''
-      fetchImages()
-    } else {
-      alert('获取图片列表失败: ' + err.message)
-    }
-  }
-}
-
-// 初始化 Masonry
+// Masonry
 async function initMasonry() {
   if (typeof window === 'undefined' || !masonryContainer.value) return
   const Macy = (await import('macy')).default
-
+  await nextTick()
   if (macyInstance) {
     macyInstance.reInit()
   } else {
@@ -124,36 +112,61 @@ async function initMasonry() {
       waitForImages: true,
       margin: 14,
       columns: 5,
-      breakAt: {
-        640: 1,
-        1024: 2,
-        1280: 3,
-        1920: 4,
-        2560: 5
-      }
+      breakAt: { 640: 1, 1024: 2, 1280: 3, 1920: 4, 2560: 5 }
     })
   }
 }
 
-async function confirmDelete(img) {
-  if (!confirm(`确定删除 ${img.name} 吗？`)) return
+// 获取列表
+async function fetchImagesFromGitHub() {
   const t = getToken()
-  if (!t) return
-
+  if (!t) return null
   try {
-    await axios.delete(`https://api.github.com/repos/${owner}/${repo}/contents/${path}/${img.name}`, {
-      headers: { Authorization: `token ${t}` },
-      data: { message: `Delete ${img.name}`, sha: img.sha, branch }
+    const res = await axios.get(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {
+      headers: { Authorization: `token ${t}` }
     })
-    alert(`${img.name} 已删除`)
-    fetchImages()
+    const list = res.data
+      .filter(item => item.type === 'file' && /\.(png|jpe?g|gif|webp|svg)$/i.test(item.name))
+      .map(item => ({
+        name: item.name,
+        sha: item.sha,
+        url: `${cdnBaseURL}${item.name}`,
+        timestamp: parseInt(item.name.split('_')[0]) || 0
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+    return list
   } catch (err) {
-    alert('删除失败: ' + err.message)
+    console.warn('获取 GitHub 列表失败', err)
+    return null
   }
 }
 
+// 刷新列表
+async function refreshImages() {
+  const list = await fetchImagesFromGitHub()
+  if (list) {
+    images.value = list
+    saveImagesToCache(list)
+    alert('刷新成功！')
+    await nextTick()
+    initMasonry()
+  }
+}
+
+// 上传
 function selectFile() {
   fileInput.value.click()
+}
+
+function handleFileSelect(e) {
+  const files = e.target.files
+  for (const file of files) uploadFile(file)
+}
+
+function handleDrop(e) {
+  dragOver.value = false
+  const files = e.dataTransfer.files
+  for (const file of files) uploadFile(file)
 }
 
 async function uploadFile(file) {
@@ -165,54 +178,83 @@ async function uploadFile(file) {
     return
   }
 
-  const reader = new FileReader()
-  reader.onload = async () => {
-    const arrayBuffer = reader.result
-    const bytes = new Uint8Array(arrayBuffer)
-    let binary = ''
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i])
-    }
-    const content = btoa(binary)
+  const arrayBuffer = await new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsArrayBuffer(file)
+  })
 
-    const ext = file.name.substring(file.name.lastIndexOf('.')) || ''
-    const timestamp = Date.now()
-    const newFileName = `${timestamp}_${crypto.randomUUID().replace(/-/g, '')}${ext}`
+  const bytes = new Uint8Array(arrayBuffer)
+  let binary = ''
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+  const content = btoa(binary)
 
-    try {
-      await axios.put(`https://api.github.com/repos/${owner}/${repo}/contents/${path}/${newFileName}`, {
-        message: `Upload ${newFileName}`,
-        content,
-        branch
-      }, {
-        headers: { Authorization: `token ${t}` }
-      })
+  const ext = file.name.substring(file.name.lastIndexOf('.')) || ''
+  const timestamp = Date.now()
+  const newFileName = `${timestamp}_${crypto.randomUUID().replace(/-/g, '')}${ext}`
 
-      const cdnLink = `${cdnBaseURL}${newFileName}`
-      await navigator.clipboard.writeText(cdnLink)
-      alert(`${newFileName}\n上传成功！链接已复制到剪贴板。`)
-      fetchImages()
-    } catch (err) {
-      alert('上传失败: ' + err.message)
+  try {
+    const res = await axios.put(
+      `https://api.github.com/repos/${owner}/${repo}/contents/${path}/${newFileName}`,
+      { message: `Upload ${newFileName}`, content, branch },
+      { headers: { Authorization: `token ${t}` } }
+    )
+
+    const cdnLink = `${cdnBaseURL}${newFileName}`
+    images.value.unshift({
+      name: newFileName,
+      sha: res.data.content.sha,
+      url: cdnLink,
+      timestamp
+    })
+    saveImagesToCache(images.value)
+
+    await nextTick()
+    if (macyInstance) macyInstance.reInit()
+
+    alert(`${newFileName}\n上传成功！链接已复制到剪贴板。`)
+    await navigator.clipboard.writeText(cdnLink)
+  } catch (err) {
+    alert('上传失败: ' + err.message)
+  }
+}
+
+// 删除
+async function confirmDelete(img) {
+  if (!confirm(`确定删除 ${img.name} 吗？`)) return
+  const t = getToken()
+  if (!t) return
+
+  try {
+    await axios.delete(`https://api.github.com/repos/${owner}/${repo}/contents/${path}/${img.name}`, {
+      headers: { Authorization: `token ${t}` },
+      data: { message: `Delete ${img.name}`, sha: img.sha, branch }
+    })
+
+    images.value = images.value.filter(i => i.sha !== img.sha)
+    saveImagesToCache(images.value)
+
+    await nextTick()
+    if (macyInstance) macyInstance.reInit()
+
+    alert(`${img.name} 已删除`)
+  } catch (err) {
+    if (err.response && err.response.status === 404) {
+      images.value = images.value.filter(i => i.sha !== img.sha)
+      saveImagesToCache(images.value)
+
+      await nextTick()
+      if (macyInstance) macyInstance.reInit()
+
+      alert(`${img.name} 在 GitHub 上已不存在，本地列表已移除`)
+    } else {
+      alert('删除失败: ' + err.message)
     }
   }
-
-  reader.readAsArrayBuffer(file)
 }
 
-function handleFileSelect(event) {
-  const files = event.target.files
-  if (!files.length) return
-  for (const file of files) uploadFile(file)
-}
-
-function handleDrop(event) {
-  dragOver.value = false
-  const files = event.dataTransfer.files
-  if (!files.length) return
-  for (const file of files) uploadFile(file)
-}
-
+// 复制链接
 async function copyLink(url) {
   try {
     await navigator.clipboard.writeText(url)
@@ -222,5 +264,12 @@ async function copyLink(url) {
   }
 }
 
-onMounted(fetchImages)
+// 初始化
+onMounted(async () => {
+  images.value = loadImagesFromCache()
+  await nextTick()
+  initMasonry()
+
+  if (!images.value.length) refreshImages()
+})
 </script>
