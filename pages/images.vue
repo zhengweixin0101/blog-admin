@@ -63,8 +63,13 @@ let macyInstance = null
 function getToken() {
   if (!token) token = localStorage.getItem('github_token') || ''
   if (!token) {
-    token = prompt('请输入 GitHub Token')
-    if (token) localStorage.setItem('github_token', token)
+    const input = prompt('请输入 GitHub Token')
+    if (!input) {
+      window.history.back()
+      return null
+    }
+    token = input
+    localStorage.setItem('github_token', token)
   }
   return token
 }
@@ -94,7 +99,14 @@ async function fetchImages() {
     await nextTick()
     initMasonry()
   } catch (err) {
-    alert('获取图片列表失败: ' + err.message)
+    if (err.response && err.response.status === 401) {
+      alert('GitHub Token 无效，请重新输入')
+      localStorage.removeItem('github_token')
+      token = ''
+      fetchImages()
+    } else {
+      alert('获取图片列表失败: ' + err.message)
+    }
   }
 }
 
