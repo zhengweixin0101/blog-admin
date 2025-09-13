@@ -8,6 +8,6 @@ export const siteConfig = {
         branch: 'main',
         path: 'blog/posts',
         cdnBaseUrl: 'https://cdn.zhengweixin.top/blog/posts/',
-        cacheDuration: 30 * 60 * 1000,
+        cacheDuration: 0,
     }
 }
