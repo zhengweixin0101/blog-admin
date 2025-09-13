@@ -1,6 +1,9 @@
 <template>
   <client-only>
-    <MdEditor v-model="localValue" />
+    <MdEditor 
+      v-model="localValue"
+      :onSave="handleSave"
+    />
   </client-only>
 </template>
 

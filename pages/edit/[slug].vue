@@ -25,7 +25,10 @@
       </label>
 
       <!-- Markdown 内容 -->
-      <MarkdownEditor v-model="article.content"/>
+      <MarkdownEditor 
+        v-model="article.content"
+        :onSave="handleSave"
+      />
 
       <div class="mt-4 flex gap-2">
         <button @click="save">保存</button>
@@ -136,5 +139,11 @@ const save = async () => {
   isSaved.value = true
   originalArticle.value = JSON.parse(JSON.stringify(article.value))
   alert('保存成功')
+}
+
+//编辑器事件绑定
+// 保存
+function handleSave(val) {
+  save()
 }
 </script>

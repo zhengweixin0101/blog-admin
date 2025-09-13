@@ -25,7 +25,10 @@
       </label>
 
       <!-- Markdown 内容 -->
-      <MarkdownEditor v-model="article.content"/>
+      <MarkdownEditor 
+        v-model="article.content"
+        :onSave="handleSave"
+      />
 
       <div class="mt-4 flex gap-2">
         <button @click="create" class="btn">创建</button>
@@ -117,5 +120,11 @@ const create = async () => {
   isSaved.value = true
   alert('创建成功')
   router.push('/list')
+}
+
+//编辑器事件绑定
+// 保存
+function handleSave(val) {
+  create()
 }
 </script>
