@@ -22,9 +22,7 @@
       @drop.prevent="handleDrop"
       :class="{ 'bg-blue-50 border-blue-400': dragOver }"
     >
-      <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v4a2 2 0 002 2h12a2 2 0 002-2v-4M12 12v8M12 12l-4-4m4 4l4-4M12 4v4" />
-      </svg>
+      <svg t="1757760551745" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5687" width="48" height="48"><path d="M112 928a47.936 47.936 0 0 1-47.936-47.936v-224a48 48 0 1 1 96 0v176.064h704v-176.064a48 48 0 1 1 96 0v224a47.936 47.936 0 0 1-47.936 47.936z m352-263.936v-416L327.744 364.48a48.32 48.32 0 0 1-31.232 11.584 47.296 47.296 0 0 1-36.352-16.896 47.808 47.808 0 0 1 5.312-67.648l215.424-184.128a48.32 48.32 0 0 1 62.336 0l215.232 184.128a48 48 0 0 1-62.336 72.96L559.872 248.064v416a48 48 0 0 1-96 0z" fill="#585858" p-id="5688"></path></svg>
       <p class="text-gray-600 mb-1">点击选择文件或拖拽文件到此区域上传</p>
       <input ref="fileInput" type="file" class="hidden" multiple @change="handleFileSelect" />
     </div>
