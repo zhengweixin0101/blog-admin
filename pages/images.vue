@@ -190,7 +190,7 @@ async function uploadFile(file) {
 
       const cdnLink = `${cdnBaseURL}${newFileName}`
       await navigator.clipboard.writeText(cdnLink)
-      alert(`${newFileName} 上传成功！链接已复制到剪贴板。`)
+      alert(`${newFileName}\n上传成功！链接已复制到剪贴板。`)
       fetchImages()
     } catch (err) {
       alert('上传失败: ' + err.message)
