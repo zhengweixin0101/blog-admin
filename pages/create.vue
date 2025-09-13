@@ -101,10 +101,6 @@ onBeforeUnmount(() => {
 
 // 返回按钮
 const goBack = () => {
-  if (hasChanges() && !isSaved.value) {
-    const confirmLeave = confirm('您有未保存的修改，确定要离开吗？')
-    if (!confirmLeave) return
-  }
   router.push('/list')
 }
 
