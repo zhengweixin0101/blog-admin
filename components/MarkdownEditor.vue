@@ -21,10 +21,8 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const localValue = ref(props.modelValue)
+watch(() => props.modelValue, val => localValue.value = val)
 watch(localValue, val => emit('update:modelValue', val))
-watch(() => props.modelValue, val => {
-  if (val !== localValue.value) localValue.value = val
-})
 
 // 本地缓存操作
 function saveImagesToCache(list) {
@@ -38,9 +36,10 @@ function saveImagesToCache(list) {
 function loadImagesFromCache() {
   try {
     const cached = localStorage.getItem('images_cache')
-    return cached ? JSON.parse(cached) : []
+    const parsed = cached ? JSON.parse(cached) : []
+    return Array.isArray(parsed) ? parsed : []
   } catch (err) {
-    alert('读取缓存失败' + err.message)
+    console.warn('读取缓存失败', err)
     return []
   }
 }
@@ -54,12 +53,12 @@ const cdnBaseURL = 'https://cdn.zhengweixin.top/blog/posts/'
 let token = ''
 
 function getToken() {
-  if (!token) token = localStorage.getItem('github_token') || ''
-  while (!token) {
+  if (token) return token
+  token = localStorage.getItem('github_token') || ''
+  if (!token) {
     const input = prompt('请输入 GitHub Token')?.trim()
     if (!input) {
       alert('操作已取消！')
-      localStorage.removeItem('github_token')
       return null
     }
     token = input
@@ -114,10 +113,6 @@ async function handleUploadImg(files, callback) {
         timestamp
       })
       saveImagesToCache(cachedList)
-
-      alert(`${cdnLink}\n上传成功！链接已复制到剪贴板。`)
-      await navigator.clipboard.writeText(cdnLink)
-
     } catch (err) {
       if (err.response && err.response.status === 401) {
         alert('GitHub Token 无效，请重新输入')
@@ -132,6 +127,10 @@ async function handleUploadImg(files, callback) {
     }
   }
 
-  if (uploadedUrls.length > 0) callback(uploadedUrls)
+  if (uploadedUrls.length > 0) {
+    callback(uploadedUrls)
+    alert(`上传成功！共 ${uploadedUrls.length} 张图片，链接已复制到剪贴板。`)
+    await navigator.clipboard.writeText(uploadedUrls.join('\n'))
+  }
 }
 </script>

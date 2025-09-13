@@ -98,12 +98,12 @@ function loadImagesFromCache() {
 
 // 获取Token
 function getToken() {
-  if (!token) token = localStorage.getItem('github_token') || ''
-  while (!token) {
+  if (token) return token
+  token = localStorage.getItem('github_token') || ''
+  if (!token) {
     const input = prompt('请输入 GitHub Token')?.trim()
     if (!input) {
       alert('操作已取消！')
-      localStorage.removeItem('github_token')
       return null
     }
     token = input
