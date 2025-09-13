@@ -3,10 +3,4 @@ export default defineNuxtConfig({
   modules: [
     '@unocss/nuxt',
   ],
-  runtimeConfig: {
-    apiBase: process.env.API_BASE,
-    public: {
-      apiBase: process.env.API_BASE,
-    }
-  }
 })
