@@ -2,7 +2,7 @@
   <div class="p-8">
     <h1 class="text-2xl font-bold mb-6">图片管理</h1>
 
-    <button @click="refreshImages" class="mb-4 px-4 py-2 bg-blue-500 text-white rounded">
+    <button @click="refreshImages" class="px-4 py-2 mb-4 bg-blue-500 text-white rounded border-none hover:bg-blue-600 cursor-pointer">
       刷新缓存
     </button>
 
@@ -255,7 +255,7 @@ async function confirmDelete(img) {
     alert(`${img.name} 已删除`)
   } catch (err) {
     if (err.response && err.response.status === 404) {
-      images.value = images.value.filter(i => i.sha !== img.sha)
+      images.value = images.value.filter(i => i.name !== img.name || i.sha !== img.sha)
       saveImagesToCache(images.value)
 
       await nextTick()
