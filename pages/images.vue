@@ -53,9 +53,8 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
-import { siteConfig } from '@/site.Config.js'
 import axios from 'axios'
-import imagesLoaded from 'imagesloaded'
+import { siteConfig } from '@/site.Config.js'
 
 const owner = siteConfig.image.owner
 const repo = siteConfig.image.repo
@@ -132,20 +131,18 @@ async function initMasonry() {
   if (typeof window === 'undefined' || !masonryContainer.value) return
   const Macy = (await import('macy')).default
   await nextTick()
-  imagesLoaded(masonryContainer.value, () => {
-    if (macyInstance) {
-      macyInstance.reInit()
-    } else {
-      macyInstance = Macy({
-        container: masonryContainer.value,
-        trueOrder: false,
-        waitForImages: true,
-        margin: 14,
-        columns: 5,
-        breakAt: { 640: 1, 1024: 2, 1280: 3, 1920: 4, 2560: 5 }
-      })
-    }
-  })
+  if (macyInstance) {
+    macyInstance.reInit()
+  } else {
+    macyInstance = Macy({
+      container: masonryContainer.value,
+      trueOrder: false,
+      waitForImages: true,
+      margin: 14,
+      columns: 5,
+      breakAt: { 640: 1, 1024: 2, 1280: 3, 1920: 4, 2560: 5 }
+    })
+  }
 }
 
 // 获取列表
