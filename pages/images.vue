@@ -2,9 +2,15 @@
   <div class="p-8">
     <h1 class="text-2xl font-bold mb-6">图片管理</h1>
 
-    <button @click="refreshImages" class="px-4 py-2 mb-4 bg-blue-500 text-white rounded border-none hover:bg-blue-600 cursor-pointer">
-      刷新缓存
-    </button>
+    <div class="mb-4 flex gap-2">
+      <button @click="refreshImages" class="px-4 py-2 bg-blue-500 text-white rounded border-none hover:bg-blue-600 cursor-pointer">
+        刷新缓存
+      </button>
+
+      <button @click="clearToken" class="px-4 py-2 bg-red-500 text-white rounded border-none hover:bg-red-600 cursor-pointer">
+        删除 Token
+      </button>
+    </div>
 
     <!-- 上传区域 -->
     <div
@@ -110,6 +116,15 @@ function getToken() {
     localStorage.setItem('github_token', token)
   }
   return token
+}
+
+// 删除 Token
+function clearToken() {
+  if (confirm('确定删除已保存的 GitHub Token 吗？')) {
+    localStorage.removeItem('github_token')
+    token = ''
+    alert('GitHub Token 已删除，下次操作将需要重新输入。')
+  }
 }
 
 // Masonry
