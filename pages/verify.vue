@@ -6,7 +6,9 @@
 
 <script setup>
 import { onMounted } from 'vue'
+import { siteConfig } from '@/site.config.js'
 
+const API_BASE = siteConfig.apiUrl
 const KEY_NAME = 'article_api_key'
 
 async function verifyKey() {
@@ -14,7 +16,7 @@ async function verifyKey() {
 
   async function checkKey(key) {
     try {
-      const res = await fetch('/api/article/edit', {
+      const res = await fetch(`${API_BASE}/api/article/edit`, {
         method: 'PUT',
         headers: { 'x-api-key': key, 'Content-Type': 'application/json' },
         body: JSON.stringify({ slug: 'zhadwengwadswdqeixin01asdwqq01@oaasdwutlooawdwak.coawdm-awdzsxiawdlovawdeyou-zhenafreggweiawfdqxinawd.tawdwoqp' })

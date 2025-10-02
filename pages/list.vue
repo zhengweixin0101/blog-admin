@@ -49,7 +49,7 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useArticles } from '~/composables/useArticles.js'
-import { siteConfig } from '@/site.Config.js'
+import { siteConfig } from '@/site.config.js'
 
 const { articles, getList, deleteArticle, editSlug } = useArticles()
 

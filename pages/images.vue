@@ -54,7 +54,7 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import axios from 'axios'
-import { siteConfig } from '@/site.Config.js'
+import { siteConfig } from '@/site.config.js'
 
 const owner = siteConfig.image.owner
 const repo = siteConfig.image.repo

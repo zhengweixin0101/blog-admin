@@ -13,7 +13,7 @@ import { ref, watch } from 'vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import axios from 'axios'
-import { siteConfig } from '../site.config'
+import { siteConfig } from '@/site.config.js'
 
 const props = defineProps({
   modelValue: String,

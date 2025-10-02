@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { siteConfig } from '@/site.config.js'
 
 export function useArticles() {
-    const API_BASE = siteConfig.apiBase
+    const API_BASE = siteConfig.apiUrl
     const articles = ref([])
     const router = useRouter()
 
