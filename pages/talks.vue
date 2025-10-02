@@ -2,7 +2,7 @@
   <div class="flex">
     <main class="p-8 flex-1">
       <h1 class="text-2xl font-bold mb-6">说说管理</h1>
-      <div class="w-full max-w-3xl">
+      <div class="w-full max-w-3xl mx-auto">
         <!-- 添加说说区域 -->
         <div class="mb-6 p-3 rounded shadow">
           <textarea
@@ -34,6 +34,7 @@
               <textarea
                 v-model="editingContent"
                 class="w-full min-h-100px my-1 text-base rounded border-none text-gray-900 resize-none focus:outline-none"
+                @input="autoResize"
               ></textarea>
               <div class="w-full border border-dashed border-gray-300"></div>
               <div class="flex justify-end mt-2 space-x-2">
@@ -54,19 +55,43 @@
 
             <!-- 显示模式 -->
             <div v-else @dblclick="startEdit(talk)">
-              <p class="text-gray-900 dark:text-gray-100">{{ talk.content }}</p>
+              <!-- 内容 -->
+              <p class="text-gray-900 dark:text-gray-100 whitespace-pre-line" v-html="renderContent(talk)"></p>
+              <div
+                v-if="(talk.tags && talk.tags.length > 0) || (talk.links && talk.links.length > 0)"
+                class="flex flex-wrap gap-2 -mb-2 mt-2"
+              >
+                <span
+                  v-for="tag in talk.tags"
+                  :key="tag"
+                  class="px-2 py-0.5 text-xs bg-blue-100 text-blue-600 rounded cursor-pointer"
+                >
+                  #{{ tag }}
+                </span>
+                <a
+                  v-for="(link, index) in talk.links"
+                  :key="index"
+                  :href="link.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="px-2 py-0.5 text-xs bg-red-100 text-red-600 rounded cursor-pointer no-underline"
+                >
+                  {{ link.text }}
+                </a>
+              </div>
               <div class="flex items-center justify-between mt-2 text-sm text-gray-500 dark:text-gray-400">
                 <span>{{ formatDate(talk.created_at) }}</span>
-                <div class="flex space-x-2">
+
+                <div class="flex justify-end mt-2 space-x-2">
                   <button
                     @click="startEdit(talk)"
-                    class="text-blue-500 hover:text-blue-700 text-sm"
+                    class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors duration-300"
                   >
                     编辑
                   </button>
                   <button
                     @click="removeTalk(talk.id)"
-                    class="text-red-500 hover:text-red-700 text-sm"
+                    class="px-3 py-1 bg-red-500 text-white border-none rounded hover:bg-red-600 transition-colors duration-300"
                   >
                     删除
                   </button>
@@ -100,6 +125,68 @@ const autoResize = (event) => {
   el.style.height = el.scrollHeight + 'px'
 }
 
+// 解析标签和 Markdown 链接
+function parseContent(text) {
+  const tagRegex = /#([\u4e00-\u9fa5\w-]+)/g
+  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g
+
+  // 标签
+  const tags = []
+  let match
+  while ((match = tagRegex.exec(text))) {
+    tags.push(match[1])
+  }
+
+  // 链接去重
+  const linksMap = new Map()
+  let contentWithPlaceholders = text
+  while ((match = linkRegex.exec(text))) {
+    const [full, linkText, url] = match
+    const key = `${linkText}|${url}`
+    if (!linksMap.has(key)) {
+      linksMap.set(key, { text: linkText, url })
+      contentWithPlaceholders = contentWithPlaceholders.replace(full, `<talkLink>${linkText}</talkLink>`)
+    } else {
+      contentWithPlaceholders = contentWithPlaceholders.replace(full, `<talkLink>${linkText}</talkLink>`)
+    }
+  }
+
+  const links = Array.from(linksMap.values())
+  const pureContent = contentWithPlaceholders.replace(tagRegex, '').trim()
+  return { pureContent, tags, links }
+}
+
+// 编辑模式还原 Markdown
+function restoreLinksForEdit(content, links) {
+  if (!links || links.length === 0) return content
+  let restored = content
+  links.forEach(link => {
+    const placeholder = new RegExp(`<talkLink>${escapeReg(link.text)}</talkLink>`, 'g')
+    restored = restored.replace(placeholder, `[${link.text}](${link.url})`)
+  })
+  return restored
+}
+
+// 正则安全转义
+function escapeReg(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// 渲染内容
+function renderContent(talk) {
+  let html = talk.content
+  if (talk.links && talk.links.length > 0) {
+    talk.links.forEach(link => {
+      const placeholder = new RegExp(`<talkLink>${escapeReg(link.text)}</talkLink>`, 'g')
+      html = html.replace(
+        placeholder,
+        `<a href="${link.url}" target="_blank" class="text-red-500 underline">${link.text}</a>`
+      )
+    })
+  }
+  return html
+}
+
 // 获取列表
 const loadTalks = async () => {
   await getTalks({ page: 1, pageSize: 20 })
@@ -108,7 +195,9 @@ const loadTalks = async () => {
 // 添加新说说
 const addNewTalk = async () => {
   if (!newContent.value.trim()) return alert('内容不能为空')
-  const res = await addTalk({ content: newContent.value })
+
+  const { pureContent, tags, links } = parseContent(newContent.value)
+  const res = await addTalk({ content: pureContent, tags, links })
   if (res && res.success) {
     newContent.value = ''
     await loadTalks()
@@ -127,7 +216,10 @@ const removeTalk = async (id) => {
 // 开始编辑
 const startEdit = (talk) => {
   editingId.value = talk.id
-  editingContent.value = talk.content
+  const contentWithTags = talk.tags && talk.tags.length > 0
+    ? '\n' + talk.tags.map(t => `#${t}`).join(' ')
+    : ''
+  editingContent.value = restoreLinksForEdit(talk.content + contentWithTags, talk.links)
 }
 
 // 取消编辑
@@ -139,7 +231,9 @@ const cancelEdit = () => {
 // 保存编辑
 const saveEdit = async (id) => {
   if (!editingContent.value.trim()) return alert('内容不能为空')
-  const res = await editTalk({ id, content: editingContent.value })
+
+  const { pureContent, tags, links } = parseContent(editingContent.value)
+  const res = await editTalk({ id, content: pureContent, tags, links })
   if (res && res.success) {
     editingId.value = null
     editingContent.value = ''

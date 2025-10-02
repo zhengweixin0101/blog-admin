@@ -29,6 +29,20 @@ export function useTalks() {
     const addTalk = async (talk) => {
         try {
             const key = ensureKey()
+            if (talk.links) {
+                if (!Array.isArray(talk.links)) {
+                    talk.links = [talk.links]
+                }
+                talk.links = talk.links.map(l => {
+                    if (typeof l === 'string') {
+                        return { text: l, url: l }
+                    }
+                    return l
+                })
+            } else {
+                talk.links = []
+            }
+
             const res = await axios.post(`${API_BASE}/api/talks/add`, talk, {
                 headers: { 'x-api-key': key }
             })
@@ -45,6 +59,18 @@ export function useTalks() {
         if (!talk.id) return alert('缺少 ID，无法更新说说'), null
         try {
             const key = ensureKey()
+            if (talk.links) {
+                if (!Array.isArray(talk.links)) {
+                    talk.links = [talk.links]
+                }
+                talk.links = talk.links.map(l => {
+                    if (typeof l === 'string') {
+                        return { text: l, url: l }
+                    }
+                    return l
+                })
+            }
+
             const res = await axios.put(`${API_BASE}/api/talks/edit`, talk, {
                 headers: { 'x-api-key': key }
             })
