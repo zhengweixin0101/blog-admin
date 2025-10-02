@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
-import { siteConfig } from '@/site.Config.js'
+import { siteConfig } from '@/site.config.js'
 
 export function useArticles() {
     const API_BASE = siteConfig.apiBase
