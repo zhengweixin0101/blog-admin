@@ -14,7 +14,7 @@ async function verifyKey() {
 
   async function checkKey(key) {
     try {
-      const res = await fetch('/api/edit', {
+      const res = await fetch('/api/article/edit', {
         method: 'PUT',
         headers: { 'x-api-key': key, 'Content-Type': 'application/json' },
         body: JSON.stringify({ slug: 'zhadwengwadswdqeixin01asdwqq01@oaasdwutlooawdwak.coawdm-awdzsxiawdlovawdeyou-zhenafreggweiawfdqxinawd.tawdwoqp' })
