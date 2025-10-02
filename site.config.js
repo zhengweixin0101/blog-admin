@@ -1,5 +1,5 @@
 export const siteConfig = {
-    apiBase: 'https://article.api.zhengweixin.top/api',
+    apiBase: 'https://article.api.zhengweixin.top',
     blogUrl: 'https://zhengweixin.top',
 
     image: {
