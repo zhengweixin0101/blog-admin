@@ -21,7 +21,7 @@ export function useArticles() {
 
     // 获取文章列表
     const getList = async () => {
-        const res = await axios.get(`${API_BASE}/list?posts=all`)
+        const res = await axios.get(`${API_BASE}/article/list?posts=all`)
         articles.value = res.data.map(article => ({
             slug: article.slug,
             title: article.title || '无标题',
@@ -34,7 +34,7 @@ export function useArticles() {
 
     // 获取文章内容
     const getArticle = async (slug) => {
-        const res = await axios.get(`${API_BASE}/article`, { params: { slug } })
+        const res = await axios.get(`${API_BASE}/article/get`, { params: { slug } })
         return res.data
     }
 
@@ -42,7 +42,7 @@ export function useArticles() {
     const addArticle = async (article) => {
         try {
             const key = ensureKey()
-            const res = await axios.post(`${API_BASE}/add`, article, {
+            const res = await axios.post(`${API_BASE}/article/add`, article, {
                 headers: { 'x-api-key': key }
             })
             return res.data
@@ -66,7 +66,7 @@ export function useArticles() {
 
         try {
             const key = ensureKey()
-            const res = await axios.put(`${API_BASE}/edit`, payload, {
+            const res = await axios.put(`${API_BASE}/article/edit`, payload, {
                 headers: { 'x-api-key': key }
             })
             return res.data
@@ -82,7 +82,7 @@ export function useArticles() {
 
         try {
             const key = ensureKey()
-            const res = await axios.put(`${API_BASE}/edit-slug`, { oldSlug, newSlug }, {
+            const res = await axios.put(`${API_BASE}/article/edit-slug`, { oldSlug, newSlug }, {
                 headers: { 'x-api-key': key }
             })
             return res.data
@@ -96,7 +96,7 @@ export function useArticles() {
     const deleteArticle = async (slug) => {
         try {
             const key = ensureKey()
-            await axios.delete(`${API_BASE}/delete`, {
+            await axios.delete(`${API_BASE}/article/delete`, {
                 headers: { 'x-api-key': key },
                 data: { slug }
             })

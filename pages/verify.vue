@@ -17,7 +17,7 @@ async function verifyKey() {
       const res = await fetch('/api/edit', {
         method: 'PUT',
         headers: { 'x-api-key': key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug: 'zhengweixin0101@outlook.com-zsxiloveyou-zhengweixin.top' })
+        body: JSON.stringify({ slug: 'zhadwengwadswdqeixin01asdwqq01@oaasdwutlooawdwak.coawdm-awdzsxiawdlovawdeyou-zhenafreggweiawfdqxinawd.tawdwoqp' })
       })
       if (res.status === 401) return false
       if (res.status === 404) return true
