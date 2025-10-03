@@ -221,20 +221,10 @@ function escapeReg(str) {
 function renderContent(talk) {
   let html = talk.content
 
-  // 移除 <talkImg> 标签
+  // 移除 <talkImg> 标签 和 <talkLink> 标签
   html = html.replace(/\n*<talkImg>.*?<\/talkImg>/g, '')
-
-  // 处理 <talkLink> 标签
-  if (talk.links && talk.links.length > 0) {
-    talk.links.forEach(link => {
-      const placeholder = new RegExp(`<talkLink>${escapeReg(link.text)}</talkLink>`, 'g')
-      html = html.replace(
-        placeholder,
-        `<a href="${link.url}" target="_blank" class="text-red-500 underline">${link.text}</a>`
-      )
-    })
-  }
-
+  html = html.replace(/\n*<talkLink>.*?<\/talkLink>/g, '')
+    
   // 处理任务列表
   html = html.replace(/- \[( |x)\] (.+)/g, (_, status, task) => {
     const checked = status === 'x' ? 'checked' : ''
