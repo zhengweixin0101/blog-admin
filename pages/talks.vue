@@ -55,34 +55,39 @@
 
             <!-- 显示模式 -->
             <div v-else @dblclick="startEdit(talk)">
+              <!-- 时间 -->
+              <div class="text-sm text-gray-500 dark:text-gray-400">
+                {{ formatDate(talk.created_at) }}
+              </div>
+
               <!-- 内容 -->
               <p class="text-gray-900 dark:text-gray-100 whitespace-pre-line" v-html="renderContent(talk)"></p>
-              <div
-                v-if="(talk.tags && talk.tags.length > 0) || (talk.links && talk.links.length > 0)"
-                class="flex flex-wrap gap-2 -mb-2 mt-2"
-              >
-                <span
-                  v-for="tag in talk.tags"
-                  :key="tag"
-                  class="px-2 py-0.5 text-xs bg-blue-100 text-blue-600 rounded cursor-pointer"
-                >
-                  #{{ tag }}
-                </span>
-                <a
-                  v-for="(link, index) in talk.links"
-                  :key="index"
-                  :href="link.url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="px-2 py-0.5 text-xs bg-red-100 text-red-600 rounded cursor-pointer no-underline"
-                >
-                  {{ link.text }}
-                </a>
-              </div>
-              <div class="flex items-center justify-between mt-2 text-sm text-gray-500 dark:text-gray-400">
-                <span>{{ formatDate(talk.created_at) }}</span>
 
-                <div class="flex justify-end mt-2 space-x-2">
+              <!-- 操作按钮 -->
+              <div
+                v-if="(talk.tags && talk.tags.length > 0) || (talk.links && talk.links.length > 0) || true"
+                class="flex flex-wrap items-center justify-between mt-2 gap-2"
+              >
+                <div class="flex flex-wrap gap-2">
+                  <span
+                    v-for="tag in talk.tags"
+                    :key="tag"
+                    class="px-2 py-0.5 text-xs bg-blue-100 text-blue-600 rounded cursor-pointer"
+                  >
+                    #{{ tag }}
+                  </span>
+                  <a
+                    v-for="(link, index) in talk.links"
+                    :key="index"
+                    :href="link.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="px-2 py-0.5 text-xs bg-red-100 text-red-600 rounded cursor-pointer no-underline"
+                  >
+                    {{ link.text }}
+                  </a>
+                </div>
+                <div class="flex space-x-2 mt-1 md:mt-0">
                   <button
                     @click="startEdit(talk)"
                     class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors duration-300"
@@ -128,7 +133,8 @@ const autoResize = (event) => {
 // 解析标签和 Markdown 链接
 function parseContent(text) {
   const tagRegex = /#([\u4e00-\u9fa5\w-]+)/g
-  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g
+  const linkRegex = /(?<!\!)\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g
+  const imgRegex = /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g
 
   // 标签
   const tags = []
@@ -145,15 +151,24 @@ function parseContent(text) {
     const key = `${linkText}|${url}`
     if (!linksMap.has(key)) {
       linksMap.set(key, { text: linkText, url })
-      contentWithPlaceholders = contentWithPlaceholders.replace(full, `<talkLink>${linkText}</talkLink>`)
-    } else {
-      contentWithPlaceholders = contentWithPlaceholders.replace(full, `<talkLink>${linkText}</talkLink>`)
     }
+    contentWithPlaceholders = contentWithPlaceholders.replace(full, `<talkLink>${linkText}</talkLink>`)
   }
-
   const links = Array.from(linksMap.values())
+
+  // 图片去重
+  const imgsMap = new Map()
+  while ((match = imgRegex.exec(text))) {
+    const [full, alt, url] = match
+    if (!imgsMap.has(url)) {
+      imgsMap.set(url, { alt, url })
+    }
+    contentWithPlaceholders = contentWithPlaceholders.replace(full, `<talkImg>${alt}</talkImg>`)
+  }
+  const imgs = Array.from(imgsMap.values())
+
   const pureContent = contentWithPlaceholders.replace(tagRegex, '').trim()
-  return { pureContent, tags, links }
+  return { pureContent, tags, links, imgs }
 }
 
 // 编辑模式还原 Markdown
@@ -163,6 +178,16 @@ function restoreLinksForEdit(content, links) {
   links.forEach(link => {
     const placeholder = new RegExp(`<talkLink>${escapeReg(link.text)}</talkLink>`, 'g')
     restored = restored.replace(placeholder, `[${link.text}](${link.url})`)
+  })
+  return restored
+}
+
+function restoreImgsForEdit(content, imgs) {
+  if (!imgs || imgs.length === 0) return content
+  let restored = content
+  imgs.forEach(img => {
+    const placeholder = new RegExp(`<talkImg>${escapeReg(img.alt)}</talkImg>`, 'g')
+    restored = restored.replace(placeholder, `![${img.alt}](${img.url})`)
   })
   return restored
 }
@@ -193,7 +218,24 @@ function renderContent(talk) {
     return `<label><input type="checkbox" disabled ${checked} /><span>${task}</span></label>`
   })
 
+  // 处理代码块
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    const languageClass = lang ? `language-${lang}` : ''
+    return `<pre class="bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto"><code class="${languageClass}">${escapeHtml(code)}</code></pre>`
+  })
+
   return html
+}
+
+// 转义 HTML 防止 XSS
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, function(m) { return ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  })[m]})
 }
 
 // 获取列表
@@ -205,8 +247,8 @@ const loadTalks = async () => {
 const addNewTalk = async () => {
   if (!newContent.value.trim()) return alert('内容不能为空')
 
-  const { pureContent, tags, links } = parseContent(newContent.value)
-  const res = await addTalk({ content: pureContent, tags, links })
+  const { pureContent, tags, links, imgs } = parseContent(newContent.value)
+  const res = await addTalk({ content: pureContent, tags, links, imgs })
   if (res && res.success) {
     newContent.value = ''
     await loadTalks()
@@ -229,6 +271,7 @@ const startEdit = (talk) => {
     ? '\n' + talk.tags.map(t => `#${t}`).join(' ')
     : ''
   editingContent.value = restoreLinksForEdit(talk.content + contentWithTags, talk.links)
+  editingContent.value = restoreImgsForEdit(editingContent.value, talk.imgs)
 }
 
 // 取消编辑
@@ -241,8 +284,8 @@ const cancelEdit = () => {
 const saveEdit = async (id) => {
   if (!editingContent.value.trim()) return alert('内容不能为空')
 
-  const { pureContent, tags, links } = parseContent(editingContent.value)
-  const res = await editTalk({ id, content: pureContent, tags, links })
+  const { pureContent, tags, links, imgs } = parseContent(editingContent.value)
+  const res = await editTalk({ id, content: pureContent, tags, links, imgs })
   if (res && res.success) {
     editingId.value = null
     editingContent.value = ''
