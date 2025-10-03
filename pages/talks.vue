@@ -175,6 +175,8 @@ function escapeReg(str) {
 // 渲染内容
 function renderContent(talk) {
   let html = talk.content
+
+  // 处理 <talkLink> 标签
   if (talk.links && talk.links.length > 0) {
     talk.links.forEach(link => {
       const placeholder = new RegExp(`<talkLink>${escapeReg(link.text)}</talkLink>`, 'g')
@@ -184,6 +186,13 @@ function renderContent(talk) {
       )
     })
   }
+
+  // 处理任务列表
+  html = html.replace(/- \[( |x)\] (.+)/g, (_, status, task) => {
+    const checked = status === 'x' ? 'checked' : ''
+    return `<label><input type="checkbox" disabled ${checked} /><span>${task}</span></label>`
+  })
+
   return html
 }
 
