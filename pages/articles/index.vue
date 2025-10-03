@@ -37,7 +37,7 @@
           </div>
 
           <div class="flex gap-2 mb-4">
-            <NuxtLink :to="`/edit/${article.slug}`" class="no-underline px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">编辑</NuxtLink>
+            <NuxtLink :to="`/articles/edit/${article.slug}`" class="no-underline px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">编辑</NuxtLink>
             <button @click="handleDelete(article.slug)" class="px-3 py-1 bg-red-500 text-white rounded border-none hover:bg-red-600">删除</button>
           </div>
         </div>
