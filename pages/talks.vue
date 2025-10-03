@@ -63,15 +63,21 @@
               <!-- 内容 -->
               <p class="text-gray-900 dark:text-gray-100 whitespace-pre-line" v-html="renderContent(talk)"></p>
 
-              <!-- 图片 -->
+              <!-- 图片部分 -->
               <div v-if="talk.imgs && talk.imgs.length > 0" class="flex flex-wrap gap-2">
-                <img
+                <a
                   v-for="(img, idx) in getImgBlocks(talk)"
                   :key="idx"
-                  :src="img.url"
-                  :alt="img.alt"
-                  class="w-16 h-16 object-cover rounded cursor-pointer"
-                />
+                  :href="img.url"
+                  :data-fancybox="`gallery-${talk.id}`"
+                  :data-caption="img.alt"
+                >
+                  <img
+                    :src="img.url"
+                    :alt="img.alt"
+                    class="w-16 h-16 object-cover rounded cursor-pointer"
+                  />
+                </a>
               </div>
 
               <!-- 操作按钮 -->
@@ -128,6 +134,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useTalks } from '@/composables/useTalks'
+
+import { Fancybox } from '@fancyapps/ui'
+import '@fancyapps/ui/dist/fancybox/fancybox.css'
 
 const { talks, getTalks, addTalk, editTalk, deleteTalk } = useTalks()
 const newContent = ref('')
@@ -326,4 +335,11 @@ const formatDate = (date) => {
   if (!date) return ''
   return new Date(date).toLocaleString()
 }
+
+onMounted(() => {
+  // 初始化 Fancybox
+  Fancybox.bind('[data-fancybox]', {
+    Hash: false
+  })
+})
 </script>

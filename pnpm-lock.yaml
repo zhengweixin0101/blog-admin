@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@fancyapps/ui':
+        specifier: ^6.0.33
+        version: 6.0.33
       axios:
         specifier: ^1.11.0
         version: 1.11.0
@@ -583,6 +586,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fancyapps/ui@6.0.33':
+    resolution: {integrity: sha512-5fEp3cjSv7nbLt8kNLengh/JWFq3rLQlsqsQRL3/RESANrl/AOSlOQSrrIVYj3YkTUh4udwpZZWubp+gF5GPnw==}
 
   '@fastify/busboy@3.2.0':
     resolution: {integrity: sha512-m9FVDXU3GT2ITSe0UaMA5rU3QkfC/UXtCU8y0gSN/GugTqtVldOBWIB5V6V3sbmenVZUIpU6f+mPEO2+m5iTaA==}
@@ -5107,6 +5113,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.25.9':
     optional: true
+
+  '@fancyapps/ui@6.0.33': {}
 
   '@fastify/busboy@3.2.0': {}
 
