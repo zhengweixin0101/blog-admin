@@ -63,6 +63,17 @@
               <!-- 内容 -->
               <p class="text-gray-900 dark:text-gray-100 whitespace-pre-line" v-html="renderContent(talk)"></p>
 
+              <!-- 图片 -->
+              <div v-if="talk.imgs && talk.imgs.length > 0" class="flex flex-wrap gap-2">
+                <img
+                  v-for="(img, idx) in getImgBlocks(talk)"
+                  :key="idx"
+                  :src="img.url"
+                  :alt="img.alt"
+                  class="w-16 h-16 object-cover rounded cursor-pointer"
+                />
+              </div>
+
               <!-- 操作按钮 -->
               <div
                 v-if="(talk.tags && talk.tags.length > 0) || (talk.links && talk.links.length > 0) || true"
@@ -201,6 +212,9 @@ function escapeReg(str) {
 function renderContent(talk) {
   let html = talk.content
 
+  // 移除 <talkImg> 标签
+  html = html.replace(/\n*<talkImg>.*?<\/talkImg>/g, '')
+
   // 处理 <talkLink> 标签
   if (talk.links && talk.links.length > 0) {
     talk.links.forEach(link => {
@@ -225,6 +239,17 @@ function renderContent(talk) {
   })
 
   return html
+}
+
+//获取图片数量
+function getImgBlocks(talk) {
+  if (!talk.content) return []
+  const matches = [...talk.content.matchAll(/<talkImg>(.*?)<\/talkImg>/g)]
+  return matches.map(match => {
+    const alt = match[1]
+    const imgObj = talk.imgs.find(i => i.alt === alt)
+    return imgObj || { url: '', alt }
+  })
 }
 
 // 转义 HTML 防止 XSS
