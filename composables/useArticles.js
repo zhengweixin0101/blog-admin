@@ -9,7 +9,7 @@ export function useArticles() {
     const router = useRouter()
 
     function ensureKey() {
-        const key = localStorage.getItem('article_api_key')
+        const key = localStorage.getItem('api_key')
         if (!key) {
             localStorage.removeItem('admin_verified')
             router.push('/verify')
@@ -112,7 +112,7 @@ export function useArticles() {
             const { status } = err.response
             if (status === 401) {
                 alert('API Key 错误或已过期，请重新验证')
-                localStorage.removeItem('article_api_key')
+                localStorage.removeItem('api_key')
                 localStorage.removeItem('admin_verified')
                 router.push('/verify')
             } else if (status === 404) {

@@ -9,7 +9,7 @@ import { onMounted } from 'vue'
 import { siteConfig } from '@/site.config.js'
 
 const API_BASE = siteConfig.apiUrl
-const KEY_NAME = 'article_api_key'
+const KEY_NAME = 'api_key'
 
 async function verifyKey() {
   let apiKey = localStorage.getItem(KEY_NAME)
