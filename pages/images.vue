@@ -8,12 +8,14 @@
       <p class="text-sm text-center">基于 Cloudflare R2 ，其他存储不保证可用性</p>
 
       <div class="space-y-3">
-        <input v-model="bucket" id="bucket" placeholder="存储桶名称" class="w-full p-2 border rounded" />
-        <input v-model="endpoint" id="endpoint" placeholder="s3 地址" class="w-full p-2 border rounded" />
-        <input v-model="region" id="region" placeholder="区域" class="w-full p-2 border rounded" />
-        <input v-model="accessKeyId" id="accessKeyId" placeholder="Access Key ID" class="w-full p-2 border rounded" />
-        <input v-model="secretAccessKey" id="secretAccessKey" placeholder="Secret Access Key" class="w-full p-2 border rounded" type="password" />
-        <input v-model="customDomain" id="customDomain" placeholder="自定义域名" class="w-full p-2 border rounded" />
+        <form id="s3Config">
+          <input v-model="bucket" id="bucket" placeholder="存储桶名称" class="w-full p-2 border rounded" />
+          <input v-model="endpoint" id="endpoint" placeholder="s3 地址" class="w-full p-2 border rounded" />
+          <input v-model="region" id="region" placeholder="区域" class="w-full p-2 border rounded" />
+          <input v-model="accessKeyId" id="accessKeyId" placeholder="Access Key ID" class="w-full p-2 border rounded" />
+          <input v-model="secretAccessKey" id="secretAccessKey" placeholder="Secret Access Key" class="w-full p-2 border rounded" type="current-password" />
+          <input v-model="customDomain" id="customDomain" placeholder="自定义域名（结尾带“/”）" class="w-full p-2 border rounded" />
+        </form>
       </div>
 
       <button
@@ -52,26 +54,28 @@
       </div>
 
       <!-- 图片列表 -->
-      <div ref="masonryContainer" class="w-full">
-        <div
-          v-for="file in files"
-          :key="file.key"
-          class="mb-4 relative group rounded-lg overflow-hidden shadow-2xl"
-        >
-          <img
-            :src="`${customDomain}/${file.key}`"
-            alt="image"
-            class="w-full block cursor-pointer"
-            @click="copyLink(`${customDomain}/${file.key}`)"
-          />
-          <button
-            @click="deleteFile(file)"
-            class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 border-none rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+      <client-only>
+        <div ref="masonryContainer" class="w-full">
+          <div
+            v-for="file in files"
+            :key="file.key"
+            class="mb-4 relative group rounded-lg overflow-hidden shadow-2xl"
           >
-            删除
-          </button>
+            <img
+              :src="`${customDomain}${file.key}`"
+              alt="image"
+              class="w-full block cursor-pointer"
+              @click="copyLink(`${customDomain}${file.key}`)"
+            />
+            <button
+              @click="deleteFile(file)"
+              class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 border-none rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            >
+              删除
+            </button>
+          </div>
         </div>
-      </div>
+      </client-only>
     </div>
   </div>
 </template>
@@ -79,7 +83,8 @@
 <script setup>
 import CryptoJS from 'crypto-js'
 import { ref, onMounted, nextTick } from 'vue'
-import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3'
+import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { Upload } from "@aws-sdk/lib-storage"
 
 const bucket = ref('')
 const endpoint = ref('')
@@ -93,6 +98,7 @@ const loading = ref(false)
 const error = ref('')
 const files = ref([])
 const masonryContainer = ref(null)
+const uploadProgress = ref({})
 
 let macyInstance = null
 let apiKey = null
@@ -123,6 +129,7 @@ function decryptConfig(cipherText) {
   }
 }
 
+// 初始化
 onMounted(() => {
   if (import.meta.client) {
     const saved = localStorage.getItem('s3_config')
@@ -143,20 +150,24 @@ onMounted(() => {
   }
 })
 
+// 初始化 S3 客户端
+function getS3Client() {
+  return new S3Client({
+    region: region.value || 'auto',
+    endpoint: endpoint.value,
+    credentials: {
+      accessKeyId: accessKeyId.value,
+      secretAccessKey: secretAccessKey.value
+    }
+  })
+}
+
+// 保存配置
 async function saveConfig() {
   error.value = ''
   loading.value = true
-
   try {
-    const client = new S3Client({
-      region: region.value || 'auto',
-      endpoint: endpoint.value,
-      credentials: {
-        accessKeyId: accessKeyId.value,
-        secretAccessKey: secretAccessKey.value
-      }
-    })
-
+    const client = getS3Client()
     await client.send(new ListObjectsV2Command({ Bucket: bucket.value, MaxKeys: 1 }))
 
     const encrypted = encryptConfig({
@@ -169,13 +180,9 @@ async function saveConfig() {
     })
 
     if (!encrypted) throw new Error('缺少 api_key！')
-
     localStorage.setItem('s3_config', encrypted)
 
     window.location.reload()
-
-    isConfigured.value = true
-    await listFiles()
   } catch (e) {
     console.error(e)
     error.value = '配置无效，请检查访问密钥或桶信息！'
@@ -191,15 +198,7 @@ async function listFiles(prefix = 'blog/posts') {
   files.value = []
 
   try {
-    const client = new S3Client({
-      region: region.value || 'auto',
-      endpoint: endpoint.value,
-      credentials: {
-        accessKeyId: accessKeyId.value,
-        secretAccessKey: secretAccessKey.value
-      }
-    })
-
+    const client = getS3Client()
     const res = await client.send(
       new ListObjectsV2Command({
         Bucket: bucket.value,
@@ -207,17 +206,18 @@ async function listFiles(prefix = 'blog/posts') {
       })
     )
 
-    files.value = (res.Contents || []).map(f => ({
+  files.value = (res.Contents || [])
+    .map(f => ({
       key: f.Key,
       size: f.Size,
-      lastModified: f.LastModified
+      lastModified: f.LastModified,
+      timestamp: f.LastModified ? new Date(f.LastModified).getTime() : 0
     }))
+    .sort((a, b) => b.timestamp - a.timestamp)
 
     await nextTick()
-
     await waitForImagesToLoad()
     await initMasonry()
-
   } catch (e) {
     console.error(e)
     error.value = '无法获取文件列表'
@@ -226,27 +226,95 @@ async function listFiles(prefix = 'blog/posts') {
   }
 }
 
-function waitForImagesToLoad() {
-  return new Promise(resolve => {
-    const container = masonryContainer.value
-    if (!container) return resolve()
+// 上传文件
+async function uploadFiles(selectedFiles) {
+  if (!selectedFiles || selectedFiles.length === 0) return
+  const client = getS3Client()
+  const uploadedUrls = []
 
-    const images = container.querySelectorAll('img')
-    if (images.length === 0) return resolve()
+  for (const file of selectedFiles) {
+    uploadProgress.value[file.name] = 0
 
-    let loaded = 0
-    images.forEach(img => {
-      if (img.complete) {
-        loaded++
-      } else {
-        img.onload = img.onerror = () => {
-          loaded++
-          if (loaded === images.length) resolve()
+    const ext = file.name.substring(file.name.lastIndexOf('.')) || ''
+    const timestamp = Date.now()
+    const randomId = crypto.randomUUID().replace(/-/g, '')
+    const key = `blog/posts/${timestamp}_${randomId}${ext}`
+    const url = `${customDomain.value}${key}`
+
+    try {
+      const parallelUpload = new Upload({
+        client: client,
+        params: {
+          Bucket: bucket.value,
+          Key: key,
+          Body: file,
+          ContentType: file.type
         }
-      }
-    })
-    if (loaded === images.length) resolve()
-  })
+      })
+
+      parallelUpload.on("httpUploadProgress", (progress) => {
+        uploadProgress.value[file.name] = Math.round((progress.loaded / progress.total) * 100)
+      })
+
+      await parallelUpload.done()
+      uploadProgress.value[file.name] = 100
+      uploadedUrls.push(url)
+    } catch (e) {
+      console.error(`上传失败: ${file.name}`, e)
+      alert(`${file.name} 上传失败`)
+    }
+  }
+
+  await listFiles()
+
+  if (uploadedUrls.length > 0 && navigator.clipboard) {
+    try {
+      await navigator.clipboard.writeText(uploadedUrls.join('\n'))
+      alert(`上传成功！共 ${uploadedUrls.length} 张图片，链接已复制到剪贴板。`)
+    } catch (err) {
+      console.error('复制链接失败:', err)
+      alert('上传成功，但复制链接失败，请手动复制。')
+    }
+  }
+}
+
+// 处理选择文件
+function handleFileSelect(e) {
+  const selectedFiles = Array.from(e.target.files)
+  uploadFiles(selectedFiles)
+}
+
+// 拖拽上传
+function handleDrop(e) {
+  dragOver.value = false
+  const droppedFiles = Array.from(e.dataTransfer.files)
+  uploadFiles(droppedFiles)
+}
+
+// 点击上传
+function selectFile() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.multiple = true
+  input.onchange = handleFileSelect
+  input.click()
+}
+
+// 删除文件
+async function deleteFile(file) {
+  loading.value = true
+  error.value = ''
+  try {
+    const client = getS3Client()
+    await client.send(new DeleteObjectCommand({ Bucket: bucket.value, Key: file.key }))
+    alert('图片删除成功！')
+    await listFiles()
+  } catch (e) {
+    console.error(e)
+    error.value = '删除失败，请重试！'
+  } finally {
+    loading.value = false
+  }
 }
 
 // 清除配置
@@ -255,6 +323,20 @@ function clearConfig() {
     localStorage.removeItem('s3_config')
     isConfigured.value = false
     files.value = []
+  }
+}
+
+// 复制链接
+function copyLink(link) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(link).then(() => {
+      alert('链接已复制到剪贴板！')
+    }).catch(err => {
+      console.error('复制失败:', err)
+      alert('复制失败，请手动复制链接！')
+    })
+  } else {
+    alert('您的浏览器不支持剪贴板API，请手动复制链接')
   }
 }
 
@@ -270,7 +352,6 @@ async function initMasonry() {
       macyInstance = null
     }
   }
-
   if (!macyInstance) {
     macyInstance = Macy({
       container: masonryContainer.value,
@@ -281,5 +362,24 @@ async function initMasonry() {
       breakAt: { 640: 1, 1024: 2, 1280: 3, 1920: 5 }
     })
   }
+}
+
+// 等待图片加载
+function waitForImagesToLoad() {
+  return new Promise(resolve => {
+    const container = masonryContainer.value
+    if (!container) return resolve()
+    const images = container.querySelectorAll('img')
+    if (images.length === 0) return resolve()
+    let loaded = 0
+    images.forEach(img => {
+      if (img.complete) loaded++
+      else img.onload = img.onerror = () => {
+        loaded++
+        if (loaded === images.length) resolve()
+      }
+    })
+    if (loaded === images.length) resolve()
+  })
 }
 </script>
