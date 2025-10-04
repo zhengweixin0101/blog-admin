@@ -12,8 +12,9 @@
 import { ref, watch } from 'vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
-import axios from 'axios'
-import { siteConfig } from '@/site.config.js'
+import CryptoJS from 'crypto-js'
+import { S3Client } from '@aws-sdk/client-s3'
+import { Upload } from "@aws-sdk/lib-storage"
 
 const props = defineProps({
   modelValue: String,
@@ -25,113 +26,84 @@ const localValue = ref(props.modelValue)
 watch(() => props.modelValue, val => localValue.value = val)
 watch(localValue, val => emit('update:modelValue', val))
 
-// 本地缓存操作
-function saveImagesToCache(list) {
+// S3 配置
+function getApiKey() {
+  return localStorage.getItem('api_key')
+}
+function decryptConfig(cipherText, apiKey) {
   try {
-    localStorage.setItem('images_cache', JSON.stringify(list))
-  } catch (err) {
-    alert('保存缓存失败' + err.message)
+    const bytes = CryptoJS.AES.decrypt(cipherText, apiKey)
+    return JSON.parse(bytes.toString(CryptoJS.enc.Utf8))
+  } catch {
+    return {}
   }
 }
-
-function loadImagesFromCache() {
-  try {
-    const cached = localStorage.getItem('images_cache')
-    const parsed = cached ? JSON.parse(cached) : []
-    return Array.isArray(parsed) ? parsed : []
-  } catch (err) {
-    console.warn('读取缓存失败', err)
-    return []
-  }
+function getS3Config() {
+  const apiKey = getApiKey()
+  const saved = localStorage.getItem('s3_config')
+  if (!saved || !apiKey) return null
+  return decryptConfig(saved, apiKey)
 }
 
-// 图片上传
-const owner = siteConfig.image.owner
-const repo = siteConfig.image.repo
-const branch = siteConfig.image.branch
-const path = siteConfig.image.path
-const cdnBaseURL = siteConfig.image.cdnBaseUrl
-let token = ''
-
-function getToken() {
-  if (token) return token
-  token = localStorage.getItem('github_token') || ''
-  if (!token) {
-    const input = prompt('请输入 GitHub Token')?.trim()
-    if (!input) {
-      alert('操作已取消！')
-      return null
+function getS3Client(config) {
+  return new S3Client({
+    region: config.region || 'auto',
+    endpoint: config.endpoint,
+    credentials: {
+      accessKeyId: config.accessKeyId,
+      secretAccessKey: config.secretAccessKey
     }
-    token = input
-    localStorage.setItem('github_token', token)
-  }
-  return token
+  })
 }
 
+// S3 图片上传
 async function handleUploadImg(files, callback) {
+  const config = getS3Config()
+  if (!config) {
+    alert('S3 配置缺失，请先在图片管理页面填写并保存 S3 配置！')
+    return
+  }
   const uploadedUrls = []
+  const client = getS3Client(config)
+  const bucket = config.bucket
+  const customDomain = config.customDomain
 
   for (const file of files) {
-    const t = getToken()
-    if (!t) break
-
     if (!/\.(png|jpe?g|gif|webp|svg)$/i.test(file.name)) {
       alert(`文件 ${file.name} 不是图片，已跳过`)
       continue
     }
+    const ext = file.name.substring(file.name.lastIndexOf('.')) || ''
+    const timestamp = Date.now()
+    const randomId = crypto.randomUUID().replace(/-/g, '')
+    const key = `blog/posts/${timestamp}_${randomId}${ext}`
+    const url = `${customDomain}${key}`
 
     try {
-      const arrayBuffer = await new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result)
-        reader.onerror = reject
-        reader.readAsArrayBuffer(file)
+      const parallelUpload = new Upload({
+        client,
+        params: {
+          Bucket: bucket,
+          Key: key,
+          Body: file,
+          ContentType: file.type
+        }
       })
+      await parallelUpload.done()
+      uploadedUrls.push(url)
 
-      const bytes = new Uint8Array(arrayBuffer)
-      let binary = ''
-      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
-      const content = btoa(binary)
-
-      const ext = file.name.substring(file.name.lastIndexOf('.')) || ''
-      const timestamp = Date.now()
-      const newFileName = `${timestamp}_${crypto.randomUUID().replace(/-/g, '')}${ext}`
-
-      const res = await axios.put(
-        `https://api.github.com/repos/${owner}/${repo}/contents/${path}/${newFileName}`,
-        { message: `Upload ${newFileName}`, content, branch },
-        { headers: { Authorization: `token ${t}` } }
-      )
-
-      const cdnLink = `${cdnBaseURL}${newFileName}`
-      uploadedUrls.push(cdnLink)
-
-      const cachedList = loadImagesFromCache()
-      cachedList.unshift({
-        name: newFileName,
-        sha: res.data.content.sha,
-        url: cdnLink,
-        timestamp
-      })
-      saveImagesToCache(cachedList)
     } catch (err) {
-      if (err.response && err.response.status === 401) {
-        alert('GitHub Token 无效，请重新输入')
-        localStorage.removeItem('github_token')
-        token = ''
-      } else {
-        const retry = confirm(`上传 ${file.name} 失败: ${err.message}\n是否重试？`)
-        if (!retry) break
-        localStorage.removeItem('github_token')
-        token = ''
-      }
+      alert(`上传 ${file.name} 失败`)
+      break
     }
   }
 
   if (uploadedUrls.length > 0) {
     callback(uploadedUrls)
     alert(`上传成功！共 ${uploadedUrls.length} 张图片，链接已复制到剪贴板。`)
-    await navigator.clipboard.writeText(uploadedUrls.join('\n'))
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(uploadedUrls.join('\n'))
+    }
   }
 }
 </script>
