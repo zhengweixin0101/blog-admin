@@ -8,6 +8,7 @@
           <textarea
             v-model="newContent"
             placeholder="此刻的想法..."
+            id="new-talk-content"
             class="w-full my-1 text-base rounded border-none text-gray-900 resize-none focus:outline-none overflow-hidden"
             @input="autoResize"
           ></textarea>
@@ -33,6 +34,7 @@
             <div v-if="editingId === talk.id">
               <textarea
                 v-model="editingContent"
+                id="edit-talk-content"
                 class="w-full min-h-100px my-1 text-base rounded border-none text-gray-900 resize-none focus:outline-none"
                 @input="autoResize"
               ></textarea>
@@ -225,11 +227,20 @@ function renderContent(talk) {
   html = html.replace(/\n*<talkImg>.*?<\/talkImg>/g, '')
   html = html.replace(/\n*<talkLink>.*?<\/talkLink>/g, '')
     
-  // 处理任务列表
-  html = html.replace(/- \[( |x)\] (.+)/g, (_, status, task) => {
-    const checked = status === 'x' ? 'checked' : ''
-    return `<label><input type="checkbox" disabled ${checked} /><span>${task}</span></label>`
-  })
+  // 任务列表
+  let taskIdCounter = 1;
+  html = html.replace(
+    /((?:- \[(?: |x)\] .+\n?)+)/g,
+    (match) => {
+      const items = match.trim().split('\n').map(line => {
+        const [, status, task] = /- \[( |x)\] (.+)/.exec(line)
+        const checked = status === 'x' ? 'checked' : ''
+        const id = `task-${talk.id}-${taskIdCounter++}`
+        return `<li class="flex items-center gap-1"><label for="${id}" class="leading-snug flex items-center"><input id="${id}" type="checkbox" class="custom-checkbox mr-1 mt-0.5" disabled ${checked} /><span ${checked ? 'class="line-through opacity-70"' : ''}>${task}</span></label></li>`
+      }).join('')
+      return `<ul class="list-none my-1 -ml-10">${items}</ul>`
+    }
+  )
 
   // 处理代码块
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
@@ -333,3 +344,35 @@ onMounted(() => {
   })
 })
 </script>
+
+<style>
+/* 隐藏浏览器默认勾 */
+.custom-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #9ca3af;
+  border-radius: 4px;
+  background-color: transparent;
+  position: relative;
+}
+
+/* 选中状态 */
+.custom-checkbox:checked {
+  background-color: #22c55e;
+  border-color: #22c55e;
+}
+
+/* 勾 */
+.custom-checkbox:checked::after {
+  content: "✔";
+  color: #fff;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  font-size: 12px;
+  line-height: 1;
+}
+</style>

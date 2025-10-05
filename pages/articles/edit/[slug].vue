@@ -4,23 +4,23 @@
       <h1 class="text-2xl font-bold mb-4">编辑文章</h1>
 
       <!-- 标题 -->
-      <input v-model="article.title" placeholder="标题" class="border p-2 w-full mb-4"/>
+      <input v-model="article.title" id="title" placeholder="标题" class="border p-2 w-full mb-4"/>
 
       <!-- Slug (只读) -->
-      <input v-model="article.slug" placeholder="Slug" class="border p-2 w-full mb-4" readonly/>
+      <input v-model="article.slug" id="slug" placeholder="Slug" class="border p-2 w-full mb-4" readonly/>
 
       <!-- 日期 -->
-      <input v-model="article.date" type="date" class="border p-2 w-full mb-4"/>
+      <input v-model="article.date" id="date" type="date" class="border p-2 w-full mb-4"/>
 
       <!-- 描述 -->
-      <input v-model="article.description" placeholder="描述" class="border p-2 w-full mb-4"></input>
+      <input v-model="article.description" id="description" placeholder="描述" class="border p-2 w-full mb-4"></input>
 
       <!-- 标签 -->
-      <input v-model="tagsString" placeholder="标签（逗号分隔）" class="border p-2 w-full mb-4"/>
+      <input v-model="tagsString" id="tags" placeholder="标签（逗号分隔）" class="border p-2 w-full mb-4"/>
 
       <!-- 已发布 -->
       <label class="flex items-center gap-2 mb-4">
-        <input type="checkbox" v-model="article.published"/>
+        <input id="published" type="checkbox" v-model="article.published"/>
         已发布
       </label>
 

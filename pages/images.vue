@@ -11,7 +11,7 @@
         <form id="s3Config" class="space-y-3">
           <input v-model="bucket" id="bucket" placeholder="Bucket" class="w-full p-2 box-border border rounded" />
           <input v-model="endpoint" id="endpoint" placeholder="Endpoint" class="w-full p-2 box-border border rounded" />
-          <input v-model="region" id="region" placeholder="Region" class="w-full p-2 box-border border rounded" />
+          <input v-model="region" id="region" placeholder="Region" autocomplete="off" class="w-full p-2 box-border border rounded" />
           <input v-model="accessKeyId" id="accessKeyId" placeholder="Access Key ID" class="w-full p-2 box-border border rounded" />
           <input v-model="secretAccessKey" id="secretAccessKey" placeholder="Access Key Secret" class="w-full p-2 box-border border rounded" type="current-password" />
           <input v-model="customDomain" id="customDomain" placeholder="Custom Domain" class="w-full p-2 box-border border rounded" />
@@ -153,7 +153,7 @@ onMounted(() => {
 // 初始化 S3 客户端
 function getS3Client() {
   return new S3Client({
-    region: region.value || 'auto',
+    region: region.value,
     endpoint: endpoint.value,
     credentials: {
       accessKeyId: accessKeyId.value,
