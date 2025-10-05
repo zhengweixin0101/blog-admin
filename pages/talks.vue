@@ -204,14 +204,16 @@ const fileInput = ref(null)
 
 // 上传图片
 const handleFileSelect = async (event, prefix = '') => {
-  uploadLoading.value = true
-  uploadError.value = ''
   const files = Array.from(event.target.files)
+  
   if (!s3 || !s3Config.value || !s3Config.value.bucket) {
-    uploadLoading.value = false
-    uploadError.value = "请先配置图片存储信息"
+    alert("请先前往图片管理页面进行配置")
+    event.target.value = ''
     return []
   }
+
+  uploadLoading.value = true
+  uploadError.value = ''
 
   let urls = []
   try {
@@ -219,7 +221,9 @@ const handleFileSelect = async (event, prefix = '') => {
       files,
       cfg: s3Config.value,
       prefix,
-      customDomain: s3Config.value.customDomain,
+      customDomain: s3Config.value.customDomain
+        ? (s3Config.value.customDomain.endsWith('/') ? s3Config.value.customDomain : s3Config.value.customDomain + '/')
+        : ''
     })
 
     urls.forEach(url => {
@@ -227,11 +231,10 @@ const handleFileSelect = async (event, prefix = '') => {
     })
   } catch (e) {
     console.error(e)
-    uploadError.value = "上传失败，请重试"
+    alert("⚠️ 上传失败，请重试")
   }
 
   uploadLoading.value = false
-
   event.target.value = ''
 }
 
