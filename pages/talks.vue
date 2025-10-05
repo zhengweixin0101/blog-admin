@@ -3,8 +3,12 @@
     <main class="p-8 flex-1">
       <h1 class="text-2xl font-bold mb-6">说说管理</h1>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="bg-white rounded shadow p-8">
-          <!-- 添加说说区域 -->
+        <div>
+          <div class="mb-6 p-3 rounded shadow transition-color duration-300">
+            <button @click="exportMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导出说说</button>
+            <button @click="importMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导入说说</button>
+            <button @click="syncFromMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">从 Memos 同步</button>
+          </div>
           <div class="mb-6 p-3 rounded shadow">
             <textarea
               v-model="newContent"
@@ -22,17 +26,6 @@
                 保存
               </button>
             </div>
-          </div>
-          <div class="mb-4 flex gap-2">
-            <button @click="exportMemos" class="px-4 py-2 bg-blue-500 text-white border-none rounded hover:bg-blue-600 cursor-pointer transition-colors duration-300">
-              导出说说
-            </button>
-            <button @click="importMemos" class="px-4 py-2 bg-blue-500 text-white border-none rounded hover:bg-blue-600 cursor-pointer transition-colors duration-300">
-              导入说说
-            </button>
-            <button @click="syncFromMemos" class="px-4 py-2 bg-blue-500 text-white border-none rounded hover:bg-blue-600 cursor-pointer transition-colors duration-300">
-              从 Memos 同步
-            </button>
           </div>
         </div>
         <div class="w-full max-w-3xl">
