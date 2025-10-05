@@ -2,130 +2,137 @@
   <div class="flex">
     <main class="p-8 flex-1">
       <h1 class="text-2xl font-bold mb-6">说说管理</h1>
-      <div class="w-full max-w-3xl mx-auto">
-        <!-- 添加说说区域 -->
-        <div class="mb-6 p-3 rounded shadow">
-          <textarea
-            v-model="newContent"
-            placeholder="此刻的想法..."
-            id="new-talk-content"
-            class="w-full my-1 text-base rounded border-none text-gray-900 resize-none focus:outline-none overflow-hidden"
-            @input="autoResize"
-          ></textarea>
-          <div class="w-full border border-dashed border-gray-300"></div>
-          <div class="flex justify-end mt-2">
-            <button
-              @click="addNewTalk"
-              class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors duration-300"
-            >
-              保存
-            </button>
-          </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-white rounded shadow p-8">
+          <div class="text-2xl font-bold mb-6">工具栏</div>
+          <!-- 工具栏内容待定 -->
+          <div class="text-gray-500">这里是工具栏内容（待补充）</div>
         </div>
-
-        <!-- 说说列表 -->
-        <div class="space-y-4">
-          <div
-            v-for="talk in talks"
-            :key="talk.id"
-            class="p-4 bg-white dark:bg-gray-800 rounded shadow"
-          >
-            <!-- 编辑模式 -->
-            <div v-if="editingId === talk.id">
-              <textarea
-                v-model="editingContent"
-                id="edit-talk-content"
-                class="w-full min-h-100px my-1 text-base rounded border-none text-gray-900 resize-none focus:outline-none"
-                @input="autoResize"
-              ></textarea>
-              <div class="w-full border border-dashed border-gray-300"></div>
-              <div class="flex justify-end mt-2 space-x-2">
-                <button
-                  @click="saveEdit(talk.id)"
-                  class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors duration-300"
-                >
-                  保存
-                </button>
-                <button
-                  @click="cancelEdit"
-                  class="px-3 py-1 bg-gray-300 text-gray-800 border-none rounded hover:bg-gray-400 transition-colors duration-300"
-                >
-                  取消
-                </button>
-              </div>
-            </div>
-
-            <!-- 显示模式 -->
-            <div v-else @dblclick="startEdit(talk)">
-              <!-- 时间 -->
-              <div class="text-sm text-gray-500 dark:text-gray-400">
-                {{ formatDate(talk.created_at) }}
-              </div>
-
-              <!-- 内容 -->
-              <p class="text-gray-900 dark:text-gray-100 whitespace-pre-line" v-html="renderContent(talk)"></p>
-
-              <!-- 图片部分 -->
-              <div v-if="talk.imgs && talk.imgs.length > 0" class="flex flex-wrap gap-2">
-                <a
-                  v-for="(img, idx) in getImgBlocks(talk)"
-                  :key="idx"
-                  :href="img.url"
-                  :data-fancybox="`gallery-${talk.id}`"
-                  :data-caption="img.alt"
-                >
-                  <img
-                    :src="img.url"
-                    :alt="img.alt"
-                    class="w-16 h-16 object-cover rounded cursor-pointer"
-                  />
-                </a>
-              </div>
-
-              <!-- 操作按钮 -->
-              <div
-                v-if="(talk.tags && talk.tags.length > 0) || (talk.links && talk.links.length > 0) || true"
-                class="flex flex-wrap items-center justify-between mt-2 gap-2"
+        <div class="w-full max-w-3xl">
+          <!-- 添加说说区域 -->
+          <div class="mb-6 p-3 rounded shadow">
+            <textarea
+              v-model="newContent"
+              placeholder="此刻的想法..."
+              id="new-talk-content"
+              class="w-full my-1 text-base rounded border-none text-gray-900 resize-none focus:outline-none overflow-hidden"
+              @input="autoResize"
+            ></textarea>
+            <div class="w-full border border-dashed border-gray-300"></div>
+            <div class="flex justify-end mt-2">
+              <button
+                @click="addNewTalk"
+                class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors duration-300"
               >
-                <div class="flex flex-wrap gap-2">
-                  <span
-                    v-for="tag in talk.tags"
-                    :key="tag"
-                    class="px-2 py-0.5 text-xs bg-blue-100 text-blue-600 rounded cursor-pointer"
-                  >
-                    #{{ tag }}
-                  </span>
-                  <a
-                    v-for="(link, index) in talk.links"
-                    :key="index"
-                    :href="link.url"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="px-2 py-0.5 text-xs bg-red-100 text-red-600 rounded cursor-pointer no-underline"
-                  >
-                    {{ link.text }}
-                  </a>
-                </div>
-                <div class="flex space-x-2 mt-1 md:mt-0">
+                保存
+              </button>
+            </div>
+          </div>
+
+          <!-- 说说列表 -->
+          <div class="space-y-4">
+            <div
+              v-for="talk in talks"
+              :key="talk.id"
+              class="p-4 bg-white dark:bg-gray-800 rounded shadow"
+            >
+              <!-- 编辑模式 -->
+              <div v-if="editingId === talk.id">
+                <textarea
+                  v-model="editingContent"
+                  id="edit-talk-content"
+                  class="w-full min-h-100px my-1 text-base rounded border-none text-gray-900 resize-none focus:outline-none"
+                  @input="autoResize"
+                ></textarea>
+                <div class="w-full border border-dashed border-gray-300"></div>
+                <div class="flex justify-end mt-2 space-x-2">
                   <button
-                    @click="startEdit(talk)"
+                    @click="saveEdit(talk.id)"
                     class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors duration-300"
                   >
-                    编辑
+                    保存
                   </button>
                   <button
-                    @click="removeTalk(talk.id)"
-                    class="px-3 py-1 bg-red-500 text-white border-none rounded hover:bg-red-600 transition-colors duration-300"
+                    @click="cancelEdit"
+                    class="px-3 py-1 bg-gray-300 text-gray-800 border-none rounded hover:bg-gray-400 transition-colors duration-300"
                   >
-                    删除
+                    取消
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <div v-if="talks.length === 0" class="text-gray-500 dark:text-gray-400 text-center py-10">
-            暂无说说
+              <!-- 显示模式 -->
+              <div v-else @dblclick="startEdit(talk)">
+                <!-- 时间 -->
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                  {{ formatDate(talk.created_at) }}
+                </div>
+
+                <!-- 内容 -->
+                <p class="text-gray-900 dark:text-gray-100 whitespace-pre-line" v-html="renderContent(talk)"></p>
+
+                <!-- 图片部分 -->
+                <div v-if="talk.imgs && talk.imgs.length > 0" class="flex flex-wrap gap-2">
+                  <a
+                    v-for="(img, idx) in getImgBlocks(talk)"
+                    :key="idx"
+                    :href="img.url"
+                    :data-fancybox="`gallery-${talk.id}`"
+                    :data-caption="img.alt"
+                  >
+                    <img
+                      :src="img.url"
+                      :alt="img.alt"
+                      class="w-16 h-16 object-cover rounded cursor-pointer"
+                    />
+                  </a>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div
+                  v-if="(talk.tags && talk.tags.length > 0) || (talk.links && talk.links.length > 0) || true"
+                  class="flex flex-wrap items-center justify-between mt-2 gap-2"
+                >
+                  <div class="flex flex-wrap gap-2">
+                    <span
+                      v-for="tag in talk.tags"
+                      :key="tag"
+                      class="px-2 py-0.5 text-xs bg-blue-100 text-blue-600 rounded cursor-pointer"
+                    >
+                      #{{ tag }}
+                    </span>
+                    <a
+                      v-for="(link, index) in talk.links"
+                      :key="index"
+                      :href="link.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="px-2 py-0.5 text-xs bg-red-100 text-red-600 rounded cursor-pointer no-underline"
+                    >
+                      {{ link.text }}
+                    </a>
+                  </div>
+                  <div class="flex space-x-2 mt-1 md:mt-0">
+                    <button
+                      @click="startEdit(talk)"
+                      class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors duration-300"
+                    >
+                      编辑
+                    </button>
+                    <button
+                      @click="removeTalk(talk.id)"
+                      class="px-3 py-1 bg-red-500 text-white border-none rounded hover:bg-red-600 transition-colors duration-300"
+                    >
+                      删除
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="talks.length === 0" class="text-gray-500 dark:text-gray-400 text-center py-10">
+              暂无说说
+            </div>
           </div>
         </div>
       </div>
