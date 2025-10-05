@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import CryptoJS from 'crypto-js'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { siteConfig } from '@/site.config.js'
@@ -94,7 +95,14 @@ export function useTalks() {
     // 导出说说
     const exportMemos = () => {
         if (!talks.value || talks.value.length === 0) return alert('暂无说说可导出')
-        const dataStr = JSON.stringify(talks.value, null, 2)
+
+        const password = prompt('请输入导出密码（留空则不加密）', '')?.trim()
+
+        let dataStr = JSON.stringify(talks.value, null, 2)
+        if (password) {
+            dataStr = CryptoJS.AES.encrypt(dataStr, password).toString()
+        }
+
         const blob = new Blob([dataStr], { type: 'application/json' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
@@ -114,9 +122,21 @@ export function useTalks() {
             if (!file) return
 
             try {
-                const text = await file.text()
+                const password = prompt('请输入导入密钥（未加密则留空）', '')?.trim()
+                let text = await file.text()
+
+                if (password) {
+                    try {
+                        const bytes = CryptoJS.AES.decrypt(text, password)
+                        text = bytes.toString(CryptoJS.enc.Utf8)
+                        if (!text) throw new Error('解密失败，请检查密码！')
+                    } catch (err) {
+                        return alert('解密失败，请检查密码！')
+                    }
+                }
+
                 let importedTalks = JSON.parse(text)
-                if (!Array.isArray(importedTalks)) return alert('导入文件格式不正确')
+                if (!Array.isArray(importedTalks)) return alert('密钥错误或导入文件格式不正确！')
 
                 importedTalks.sort((a, b) => a.id - b.id)
 
@@ -136,7 +156,7 @@ export function useTalks() {
                 alert(`导入完成，成功导入 ${successCount} 条说说！`)
             } catch (err) {
                 console.error(err)
-                alert('导入失败，请检查文件格式')
+                alert('导入失败，请检查密钥或文件格式是否正确！')
             }
         }
         input.click()
