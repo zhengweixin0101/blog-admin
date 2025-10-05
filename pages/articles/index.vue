@@ -1,13 +1,19 @@
 <template>
   <div class="flex">
     <main class="p-8 flex-1">
-      <h1 class="text-2xl font-bold mb-4">文章列表</h1>
+      <div class="flex items-center">
+        <h1 class="text-2xl font-bold mb-4">文章列表</h1>
+        <div class="ml-auto transition-color">
+          <button @click="openPanel('export')" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导出文章</button>
+          <button @click="openPanel('import')" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导入文章</button>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div v-for="article in articles" :key="article.slug" class="px-4 order rounded shadow">
           <h2 class="text-lg font-bold mb-2">{{ article.title }}</h2>
-          
           <p class="text-sm text-gray-500 mb-2 flex items-center">
-            {{ article.date }} | 
+            {{ article.date }} |
             <a :href="`${siteConfig.blogUrl}/posts/${article.slug}`" target="_blank" class="text-gray-500 hover:text-blue-500 transition-color duration-300 ml-1">
               {{ article.slug }}
             </a>
@@ -28,9 +34,9 @@
               {{ tag }}
             </span>
           </div>
-          
+
           <div class="text-sm mb-2">
-            <strong>状态:</strong> 
+            <strong>状态:</strong>
             <span class="ml-2" :class="article.published ? 'text-green-500' : 'text-red-500'">
               {{ article.published ? '已发布' : '未发布' }}
             </span>
@@ -43,11 +49,24 @@
         </div>
       </div>
     </main>
+
+    <!-- 操作面板弹窗 -->
+    <div v-if="showPanel" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-96 relative">
+        <h2 class="text-lg font-bold mb-4 text-center">{{ panelType === 'export' ? '导出文章' : '导入文章' }}</h2>
+        <div class="space-y-3">
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition cursor-pointer" @click="selectSource('1')">一个界面而已，没有实际功能。</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition cursor-pointer" @click="selectSource('2')">一个界面而已，没有实际功能。</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition cursor-pointer" @click="selectSource('3')">一个界面而已，没有实际功能。</button>
+        </div>
+        <button @click="closePanel" class="absolute top-2 right-3 bg-transparent border-none text-lg text-gray-400 hover:text-gray-600 cursor-pointer">✕</button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useArticles } from '~/composables/useArticles.js'
 import { siteConfig } from '@/site.config.js'
 
@@ -76,5 +95,27 @@ const handleEditSlug = async (article) => {
   if (!result) return
   alert('修改成功')
   getList()
+}
+
+// 导入导出相关
+const showPanel = ref(false)
+const panelType = ref('export')
+
+const openPanel = (type) => {
+  panelType.value = type
+  showPanel.value = true
+}
+
+const closePanel = () => {
+  showPanel.value = false
+}
+
+const selectSource = (source) => {
+  alert(`都说了没有实际功能，你还想干啥？`)
+  closePanel()
+  alert(`喜欢点是吧？那就一只点吧。`)
+  for (let i = 1; i <= 999999; i++) {
+    alert(`第 ${i} 次`)
+  }
 }
 </script>
