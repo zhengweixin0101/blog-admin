@@ -25,7 +25,18 @@
     </div>
     <div v-else>
       <div class="mb-4 flex gap-2">
-        <button @click="clearConfig" class="px-4 py-2 bg-red-500 text-white border-none rounded hover:bg-red-600 cursor-pointer">
+        <div class="flex gap-2">
+          <button
+            v-for="path in paths"
+            :key="path.prefix"
+            @click="switchPrefix(path.prefix)"
+            class="px-3 py-1 rounded border-none cursor-pointer"
+            :class="currentPrefix === path.prefix ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'"
+          >
+            {{ path.label }}
+          </button>
+        </div>
+        <button @click="clearConfig" class="ml-auto px-4 py-2 bg-red-500 text-white border-none rounded hover:bg-red-600 cursor-pointer">
           删除配置
         </button>
       </div>
@@ -43,6 +54,7 @@
         </svg>
         <p class="text-gray-600 mb-1">点击选择文件或拖拽文件到此区域上传</p>
         <input ref="fileInput" type="file" class="hidden" multiple @change="handleFileSelect" />
+        <p class="text-sm text-gray-400 mt-2">当前路径：{{ currentPrefix === '' ? '/' : currentPrefix }}</p>
       </div>
       <client-only>
         <div ref="masonryContainer" class="w-full">
@@ -89,6 +101,22 @@ const masonryContainer = ref(null)
 const uploadProgress = ref({})
 let macyInstance = null
 let apiKey = null
+
+const paths = [
+  { label: '文章图片', prefix: 'blog/posts/' },
+  { label: '说说图片', prefix: 'talks/' },
+  { label: '全部图片', prefix: '' },
+]
+
+const currentPrefix = ref(paths[0].prefix)
+
+// 切换路径
+function switchPrefix(prefix) {
+  currentPrefix.value = prefix
+  files.value = []
+  uploadProgress.value = {}
+  listFiles().then(() => window.scrollTo({ top: 0, behavior: 'smooth' }))
+}
 
 if (import.meta.client) {
   apiKey = localStorage.getItem('api_key')
@@ -148,7 +176,7 @@ async function listFiles() {
   error.value = ''
   files.value = []
   try {
-    const result = await s3.listFiles({ prefix: 'blog/posts', cfg: s3Config.value })
+    const result = await s3.listFiles({ prefix: currentPrefix.value, cfg: s3Config.value })
     files.value = result
     await nextTick()
     await waitForImagesToLoad()
@@ -180,7 +208,7 @@ function selectFile() {
   input.click()
 }
 
-async function uploadFiles(selectedFiles, prefix = 'blog/posts/') {
+async function uploadFiles(selectedFiles) {
   if (!selectedFiles || selectedFiles.length === 0) return
 
   const imageFiles = Array.from(selectedFiles).filter(
@@ -200,14 +228,14 @@ async function uploadFiles(selectedFiles, prefix = 'blog/posts/') {
     const urls = await s3.uploadFiles({
       files: imageFiles,
       cfg: s3Config.value,
-      prefix,
+      prefix: currentPrefix.value,
       customDomain: customDomain.value,
       onProgressCb: (name, percent) => {
         uploadProgress.value[name] = percent
       }
     })
 
-    await listFiles({ prefix })
+    await listFiles()
 
     if (urls.length > 0 && navigator.clipboard) {
       await navigator.clipboard.writeText(urls.join('\n'))
