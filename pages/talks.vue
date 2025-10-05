@@ -2,23 +2,24 @@
   <div class="flex">
     <main class="p-8 flex-1">
       <h1 class="text-2xl font-bold mb-6">说说管理</h1>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-[2fr_3fr] gap-10">
         <div>
-          <div class="mb-6 p-3 rounded shadow transition-color duration-300">
-            <button @click="exportMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导出说说</button>
-            <button @click="importMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导入说说</button>
-            <button @click="syncFromMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">从 Memos 同步</button>
-          </div>
           <div class="mb-6 p-3 rounded shadow">
             <textarea
               v-model="newContent"
               placeholder="此刻的想法..."
               id="new-talk-content"
-              class="w-full my-1 text-base rounded border-none text-gray-900 resize-none focus:outline-none overflow-hidden"
+              class="w-full my-1 h-20 text-base rounded border-none text-gray-900 resize-none focus:outline-none overflow-hidden"
               @input="autoResize"
             ></textarea>
             <div class="w-full border border-dashed border-gray-300"></div>
-            <div class="flex justify-end mt-2">
+            <div class="flex justify-between mt-2">
+              <div class="mt-1">
+                <input type="file" multiple ref="fileInput" class="hidden" @change="handleFileSelect" />
+                <span @click="fileInput.click()" class="text-gray-500 hover:text-blue-500 cursor-pointer">
+                  <svg t="1759652495857" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2459" width="20" height="20"><path d="M938.666667 553.92V768c0 64.8-52.533333 117.333333-117.333334 117.333333H202.666667c-64.8 0-117.333333-52.533333-117.333334-117.333333V256c0-64.8 52.533333-117.333333 117.333334-117.333333h618.666666c64.8 0 117.333333 52.533333 117.333334 117.333333v297.92z m-64-74.624V256a53.333333 53.333333 0 0 0-53.333334-53.333333H202.666667a53.333333 53.333333 0 0 0-53.333334 53.333333v344.48A290.090667 290.090667 0 0 1 192 597.333333a286.88 286.88 0 0 1 183.296 65.845334C427.029333 528.384 556.906667 437.333333 704 437.333333c65.706667 0 126.997333 16.778667 170.666667 41.962667z m0 82.24c-5.333333-8.32-21.130667-21.653333-43.648-32.917333C796.768 511.488 753.045333 501.333333 704 501.333333c-121.770667 0-229.130667 76.266667-270.432 188.693334-2.730667 7.445333-7.402667 20.32-13.994667 38.581333-7.68 21.301333-34.453333 28.106667-51.370666 13.056-16.437333-14.634667-28.554667-25.066667-36.138667-31.146667A222.890667 222.890667 0 0 0 192 661.333333c-14.464 0-28.725333 1.365333-42.666667 4.053334V768a53.333333 53.333333 0 0 0 53.333334 53.333333h618.666666a53.333333 53.333333 0 0 0 53.333334-53.333333V561.525333zM320 480a96 96 0 1 1 0-192 96 96 0 0 1 0 192z m0-64a32 32 0 1 0 0-64 32 32 0 0 0 0 64z" fill="currentColor" p-id="2460"></path></svg>
+                </span>
+              </div>
               <button
                 @click="addNewTalk"
                 class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors duration-300"
@@ -27,8 +28,13 @@
               </button>
             </div>
           </div>
+          <div class="mb-6 p-3 rounded shadow transition-color duration-300">
+            <button @click="exportMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导出说说</button>
+            <button @click="importMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导入说说</button>
+            <button @click="syncFromMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">从 Memos 同步</button>
+          </div>
         </div>
-        <div class="w-full max-w-3xl">
+        <div class="w-full">
           <!-- 说说列表 -->
           <div class="space-y-4">
             <div
