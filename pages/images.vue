@@ -36,20 +36,31 @@
             {{ path.label }}
           </button>
         </div>
+        <label for="viewModeSelect" class="ml-4 text-sm">显示模式:</label>
+        <select
+          id="viewModeSelect"
+          v-model="viewMode"
+          @change="switchView(viewMode)"
+          class="px-3 py-1 border rounded bg-white text-gray-800"
+        >
+          <option value="masonry">瀑布流</option>
+          <option value="list">列表</option>
+        </select>
         <div class="ml-auto flex gap-2 items-center">
-          <label for="viewModeSelect" class="text-sm">显示模式:</label>
-          <select
-            id="viewModeSelect"
-            v-model="viewMode"
-            @change="switchView(viewMode)"
-            class="px-3 py-1 border rounded bg-white text-gray-800"
+          <input
+            v-model="deleteUrl"
+            placeholder="输入图片链接删除"
+            class="px-3 py-1 border rounded w-60"
+          />
+          <button
+            @click="handleDeleteByUrl(deleteUrl)"
+            class="px-4 py-2 bg-red-500 text-white border-none rounded hover:bg-red-600"
           >
-            <option value="masonry">瀑布流</option>
-            <option value="list">列表</option>
-          </select>
+            删除图片
+          </button>
           <button
             @click="clearConfig"
-            class="ml-4 px-4 py-2 bg-red-500 text-white border-none rounded hover:bg-red-600 cursor-pointer"
+            class="px-4 py-2 bg-red-500 text-white border-none rounded hover:bg-red-600 cursor-pointer"
           >
             删除配置
           </button>
@@ -146,6 +157,7 @@ const error = ref('')
 const files = ref([])
 const masonryContainer = ref(null)
 const uploadProgress = ref({})
+const deleteUrl = ref('');
 let macyInstance = null
 let apiKey = null
 
@@ -317,6 +329,33 @@ async function handleDeleteFile(file) {
   } catch (e) {
     console.error(e)
     error.value = '删除失败，请重试！'
+  } finally {
+    loading.value = false
+  }
+}
+
+function extractKey(url) {
+  try {
+    const u = new URL(url)
+    return u.pathname.startsWith('/') ? u.pathname.slice(1) : u.pathname
+  } catch (e) {
+    return url
+  }
+}
+
+async function handleDeleteByUrl() {
+  if (!deleteUrl.value.trim()) return alert('请输入图片链接')
+
+  const key = extractKey(deleteUrl.value.trim())
+  try {
+    loading.value = true
+    await s3.deleteFile({ fileKey: key, cfg: s3Config.value })
+    alert('已成功执行删除操作，但无法判断文件是否存在，请手动检查！')
+    deleteUrl.value = ''
+    await listFiles()
+  } catch (e) {
+    console.error(e)
+    alert('删除失败，请检查链接或权限是否正确')
   } finally {
     loading.value = false
   }
