@@ -19,10 +19,15 @@ export function useTalks() {
         return key
     }
 
-    // 获取说说列表
     const getTalks = async (params = {}) => {
         const res = await axios.get(`${API_BASE}/api/talks/get`, { params })
-        talks.value = res.data.data
+
+        if (params.page && params.page > 1) {
+            talks.value.push(...res.data.data)
+        } else {
+            talks.value = res.data.data
+        }
+
         return res.data
     }
 
@@ -136,8 +141,20 @@ export function useTalks() {
 
                 importedTalks.sort((a, b) => a.id - b.id)
 
+                // 获取现有说说数据检测重复
+                await getTalks()
+                const existingTalks = talks.value || []
+
+                // 根据 content 和 created_at 判重
+                const existingSet = new Set(existingTalks.map(t => `${t.content?.trim()}_${t.created_at}`))
+
+                const uniqueTalks = importedTalks.filter(t => !existingSet.has(`${t.content?.trim()}_${t.created_at}`))
+                const duplicateTalks = importedTalks.filter(t => existingSet.has(`${t.content?.trim()}_${t.created_at}`))
+
                 let successCount = 0
-                for (const talk of importedTalks) {
+
+                // 先上传不重复的
+                for (const talk of uniqueTalks) {
                     if (talk.content && talk.content.trim()) {
                         try {
                             await addTalkInternal(talk, false)
@@ -148,8 +165,27 @@ export function useTalks() {
                     }
                 }
 
+                let duplicateCount = 0
+
+                // 询问是否导入重复内容
+                if (duplicateTalks.length > 0) {
+                    const confirmDup = confirm(
+                        `检测到 ${duplicateTalks.length} 条重复说说。\n是否继续导入这些重复内容？`
+                    )
+                    if (confirmDup) {
+                        for (const talk of duplicateTalks) {
+                            try {
+                                await addTalkInternal(talk, false)
+                                duplicateCount++
+                            } catch (err) {
+                                console.error('添加失败：', talk, err)
+                            }
+                        }
+                    }
+                }
+
                 await getTalks()
-                alert(`导入完成，成功导入 ${successCount} 条说说！`)
+                alert(`导入完成！\n成功导入：${successCount} 条${duplicateCount ? `\n重复内容：${duplicateCount} 条` : ''}`)
             } catch (err) {
                 console.error(err)
                 alert('导入失败，请检查密钥或文件格式是否正确！')
@@ -157,6 +193,7 @@ export function useTalks() {
         }
         input.click()
     }
+
 
     function handleError(err) {
         if (err.response) {

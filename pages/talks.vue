@@ -140,6 +140,19 @@
             <div v-if="talks.length === 0" class="text-gray-500 dark:text-gray-400 text-center py-10">
               暂无说说
             </div>
+
+            <div v-if="!finished" class="text-center mt-4">
+              <button
+                @click="loadTalks()"
+                :disabled="loading"
+                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 border-none shadow rounded transition disabled:opacity-50"
+              >
+                {{ loading ? '加载中...' : '加载更多' }}
+              </button>
+            </div>
+            <div v-else class="text-gray-400 text-center mt-4">
+              已加载全部！
+            </div>
           </div>
         </div>
       </div>
@@ -159,6 +172,11 @@ const { talks, getTalks, editTalk, deleteTalk, addTalkInternal, importMemos, exp
 const newContent = ref('')
 const editingId = ref(null)
 const editingContent = ref('')
+
+const page = ref(1)
+const pageSize = 2
+const finished = ref(false)
+const loading = ref(false)
 
 // 自动高度调整
 const autoResize = (event) => {
@@ -288,9 +306,26 @@ function escapeHtml(str) {
   })[m]})
 }
 
-// 获取列表
-const loadTalks = async () => {
-  await getTalks({ page: 1, pageSize: 20 })
+// 获取说说
+const loadTalks = async (reset = false) => {
+  if (loading.value || finished.value) return
+  loading.value = true
+
+  if (reset) {
+    page.value = 1
+    finished.value = false
+  }
+
+  const res = await getTalks({ page: page.value, pageSize })
+  const totalPages = res.totalPages || 1
+
+  if (page.value >= totalPages) {
+    finished.value = true
+  } else {
+    page.value++
+  }
+
+  loading.value = false
 }
 
 // 添加新说说
