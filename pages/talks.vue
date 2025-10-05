@@ -149,12 +149,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import axios from 'axios'
 import { useTalks } from '@/composables/useTalks'
 
 import { Fancybox } from '@fancyapps/ui'
 import '@fancyapps/ui/dist/fancybox/fancybox.css'
 
-const { talks, getTalks, addTalk, editTalk, deleteTalk, importMemos, exportMemos } = useTalks()
+const { talks, getTalks, editTalk, deleteTalk, addTalkInternal, importMemos, exportMemos, } = useTalks()
 const newContent = ref('')
 const editingId = ref(null)
 const editingContent = ref('')
@@ -297,6 +298,9 @@ const addNewTalk = async () => {
   if (!newContent.value.trim()) return alert('内容不能为空')
 
   const { pureContent, tags, links, imgs } = parseContent(newContent.value)
+  const addTalk = async (talk) => {
+    return addTalkInternal(talk, true)
+  }
   const res = await addTalk({ content: pureContent, tags, links, imgs })
   if (res && res.success) {
     newContent.value = ''
@@ -340,6 +344,48 @@ const saveEdit = async (id) => {
     editingContent.value = ''
     await loadTalks()
   }
+}
+
+// 从 Memos 同步
+const syncFromMemos = async () => {
+    const apiUrl = prompt('请输入 Memos API 地址（https://example.com/api/v1/memos）')
+    if (!apiUrl) return alert('未输入 API 地址')
+
+    try {
+        const res = await axios.get(apiUrl)
+        if (!res.data || !res.data.memos) return alert('API 返回格式不正确！可能是新版本更改了接口，暂时只适配v1。')
+
+        const memos = res.data.memos
+        let successCount = 0
+
+        for (const memo of memos) {
+            const content = memo.content || memo.snippet || ''
+            if (!content.trim()) continue
+
+            const { pureContent, tags, links, imgs } = parseContent(content)
+
+            const talk = {
+                content: pureContent,
+                tags,
+                links,
+                imgs,
+                created_at: memo.createTime
+            }
+
+            try {
+                await addTalkInternal(talk, false)
+                successCount++
+            } catch (err) {
+                console.error('添加失败：', talk, err)
+            }
+        }
+
+        await getTalks()
+        alert(`同步完成，共导入 ${successCount} 条说说`)
+    } catch (err) {
+        console.error(err)
+        alert('同步失败，请检查 API 地址或网络连接')
+    }
 }
 
 // 页面挂载时获取说说

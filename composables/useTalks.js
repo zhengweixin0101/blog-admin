@@ -27,10 +27,6 @@ export function useTalks() {
     }
 
     // 添加说说
-    const addTalk = async (talk) => {
-        return addTalkInternal(talk, true)
-    }
-
     const addTalkInternal = async (talk, showAlert = false) => {
         try {
             const key = ensureKey()
@@ -183,5 +179,5 @@ export function useTalks() {
         }
     }
 
-    return { talks, getTalks, addTalk, editTalk, deleteTalk, exportMemos, importMemos }
+    return { talks, getTalks, addTalkInternal, editTalk, deleteTalk, exportMemos, importMemos }
 }
