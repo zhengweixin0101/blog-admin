@@ -2,13 +2,8 @@
   <div class="flex">
     <main class="p-8 flex-1">
       <h1 class="text-2xl font-bold mb-6">说说管理</h1>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="bg-white rounded shadow p-8">
-          <div class="text-2xl font-bold mb-6">工具栏</div>
-          <!-- 工具栏内容待定 -->
-          <div class="text-gray-500">这里是工具栏内容（待补充）</div>
-        </div>
-        <div class="w-full max-w-3xl">
           <!-- 添加说说区域 -->
           <div class="mb-6 p-3 rounded shadow">
             <textarea
@@ -28,7 +23,19 @@
               </button>
             </div>
           </div>
-
+          <div class="mb-4 flex gap-2">
+            <button @click="exportMemos" class="px-4 py-2 bg-blue-500 text-white border-none rounded hover:bg-blue-600 cursor-pointer transition-colors duration-300">
+              导出说说
+            </button>
+            <button @click="importMemos" class="px-4 py-2 bg-blue-500 text-white border-none rounded hover:bg-blue-600 cursor-pointer transition-colors duration-300">
+              导入说说
+            </button>
+            <button @click="syncFromMemos" class="px-4 py-2 bg-blue-500 text-white border-none rounded hover:bg-blue-600 cursor-pointer transition-colors duration-300">
+              从 Memos 同步
+            </button>
+          </div>
+        </div>
+        <div class="w-full max-w-3xl">
           <!-- 说说列表 -->
           <div class="space-y-4">
             <div
@@ -147,7 +154,7 @@ import { useTalks } from '@/composables/useTalks'
 import { Fancybox } from '@fancyapps/ui'
 import '@fancyapps/ui/dist/fancybox/fancybox.css'
 
-const { talks, getTalks, addTalk, editTalk, deleteTalk } = useTalks()
+const { talks, getTalks, addTalk, editTalk, deleteTalk, importMemos, exportMemos } = useTalks()
 const newContent = ref('')
 const editingId = ref(null)
 const editingContent = ref('')

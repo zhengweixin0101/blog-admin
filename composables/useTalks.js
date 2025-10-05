@@ -27,26 +27,26 @@ export function useTalks() {
 
     // 添加说说
     const addTalk = async (talk) => {
+        return addTalkInternal(talk, true)
+    }
+
+    const addTalkInternal = async (talk, showAlert = false) => {
         try {
             const key = ensureKey()
             if (talk.links) {
-                if (!Array.isArray(talk.links)) {
-                    talk.links = [talk.links]
-                }
-                talk.links = talk.links.map(l => {
-                    if (typeof l === 'string') {
-                        return { text: l, url: l }
-                    }
-                    return l
-                })
+                if (!Array.isArray(talk.links)) talk.links = [talk.links]
+                talk.links = talk.links.map(l => typeof l === 'string' ? { text: l, url: l } : l)
             } else {
                 talk.links = []
             }
 
-            const res = await axios.post(`${API_BASE}/api/talks/add`, talk, {
+            const payload = { ...talk }
+            if (!payload.created_at) delete payload.created_at
+
+            const res = await axios.post(`${API_BASE}/api/talks/add`, payload, {
                 headers: { 'x-api-key': key }
             })
-            alert('说说添加成功！')
+            if (showAlert) alert('说说添加成功！')
             return res.data
         } catch (err) {
             handleError(err)
@@ -60,15 +60,8 @@ export function useTalks() {
         try {
             const key = ensureKey()
             if (talk.links) {
-                if (!Array.isArray(talk.links)) {
-                    talk.links = [talk.links]
-                }
-                talk.links = talk.links.map(l => {
-                    if (typeof l === 'string') {
-                        return { text: l, url: l }
-                    }
-                    return l
-                })
+                if (!Array.isArray(talk.links)) talk.links = [talk.links]
+                talk.links = talk.links.map(l => typeof l === 'string' ? { text: l, url: l } : l)
             }
 
             const res = await axios.put(`${API_BASE}/api/talks/edit`, talk, {
@@ -98,6 +91,57 @@ export function useTalks() {
         }
     }
 
+    // 导出说说
+    const exportMemos = () => {
+        if (!talks.value || talks.value.length === 0) return alert('暂无说说可导出')
+        const dataStr = JSON.stringify(talks.value, null, 2)
+        const blob = new Blob([dataStr], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `talks_export_${Date.now()}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+    }
+
+    // 导入说说
+    const importMemos = () => {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.accept = '.json,application/json'
+        input.onchange = async (e) => {
+            const file = e.target.files[0]
+            if (!file) return
+
+            try {
+                const text = await file.text()
+                let importedTalks = JSON.parse(text)
+                if (!Array.isArray(importedTalks)) return alert('导入文件格式不正确')
+
+                importedTalks.sort((a, b) => a.id - b.id)
+
+                let successCount = 0
+                for (const talk of importedTalks) {
+                    if (talk.content && talk.content.trim()) {
+                        try {
+                            await addTalkInternal(talk, false)
+                            successCount++
+                        } catch (err) {
+                            console.error('添加失败：', talk, err)
+                        }
+                    }
+                }
+
+                await getTalks()
+                alert(`导入完成，成功导入 ${successCount} 条说说！`)
+            } catch (err) {
+                console.error(err)
+                alert('导入失败，请检查文件格式')
+            }
+        }
+        input.click()
+    }
+
     function handleError(err) {
         if (err.response) {
             const { status } = err.response
@@ -119,5 +163,5 @@ export function useTalks() {
         }
     }
 
-    return { talks, getTalks, addTalk, editTalk, deleteTalk }
+    return { talks, getTalks, addTalk, editTalk, deleteTalk, exportMemos, importMemos }
 }
