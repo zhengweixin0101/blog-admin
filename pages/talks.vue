@@ -205,24 +205,43 @@ const fileInput = ref(null)
 // 上传图片
 const handleFileSelect = async (event, prefix = '') => {
   const files = Array.from(event.target.files)
-  
+
+  event.target.value = ''
+
+  const imageFiles = files.filter(file => {
+    const ext = file.name.toLowerCase().split('.').pop()
+    return (
+      (file.type && file.type.startsWith('image/')) ||
+      ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)
+    )
+  })
+
+  if (imageFiles.length === 0) {
+    alert('请选择图片文件！')
+    return
+  }
+
+  if (imageFiles.length < files.length) {
+    alert(`已自动忽略非图片文件，仅上传 ${imageFiles.length} 张图片`)
+  }
+
   if (!s3 || !s3Config.value || !s3Config.value.bucket) {
-    alert("请先前往图片管理页面进行配置")
-    event.target.value = ''
+    alert('请先前往图片管理页面进行配置')
     return []
   }
 
   uploadLoading.value = true
   uploadError.value = ''
 
-  let urls = []
   try {
-    urls = await s3.uploadFiles({
-      files,
+    const urls = await s3.uploadFiles({
+      files: imageFiles,
       cfg: s3Config.value,
       prefix,
       customDomain: s3Config.value.customDomain
-        ? (s3Config.value.customDomain.endsWith('/') ? s3Config.value.customDomain : s3Config.value.customDomain + '/')
+        ? (s3Config.value.customDomain.endsWith('/')
+            ? s3Config.value.customDomain
+            : s3Config.value.customDomain + '/')
         : ''
     })
 
@@ -231,11 +250,10 @@ const handleFileSelect = async (event, prefix = '') => {
     })
   } catch (e) {
     console.error(e)
-    alert("⚠️ 上传失败，请重试")
+    alert('⚠️ 上传失败，请重试')
+  } finally {
+    uploadLoading.value = false
   }
-
-  uploadLoading.value = false
-  event.target.value = ''
 }
 
 // 自动高度调整

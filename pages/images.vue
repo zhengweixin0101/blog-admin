@@ -182,17 +182,33 @@ function selectFile() {
 
 async function uploadFiles(selectedFiles, prefix = 'blog/posts/') {
   if (!selectedFiles || selectedFiles.length === 0) return
+
+  const imageFiles = Array.from(selectedFiles).filter(
+    file => file.type && file.type.startsWith('image/')
+  )
+
+  if (imageFiles.length === 0) {
+    alert('请选择图片文件！')
+    return
+  }
+
+  if (imageFiles.length < selectedFiles.length) {
+    alert(`已自动忽略非图片文件，共上传 ${imageFiles.length} 张图片`)
+  }
+
   try {
     const urls = await s3.uploadFiles({
-      files: selectedFiles,
+      files: imageFiles,
       cfg: s3Config.value,
       prefix,
       customDomain: customDomain.value,
-      onProgressCb: (name, percent) => { 
-        uploadProgress.value[name] = percent 
+      onProgressCb: (name, percent) => {
+        uploadProgress.value[name] = percent
       }
     })
+
     await listFiles({ prefix })
+
     if (urls.length > 0 && navigator.clipboard) {
       await navigator.clipboard.writeText(urls.join('\n'))
       alert(`上传成功！共 ${urls.length} 张图片，链接已复制到剪贴板。`)
