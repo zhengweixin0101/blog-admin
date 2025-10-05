@@ -381,7 +381,7 @@ const syncFromMemos = async () => {
         }
 
         await getTalks()
-        alert(`同步完成，共导入 ${successCount} 条说说`)
+        alert(`同步完成，共导入 ${successCount} 条说说。附件暂不支持导入！`)
     } catch (err) {
         console.error(err)
         alert('同步失败，请检查 API 地址或网络连接')
