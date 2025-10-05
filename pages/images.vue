@@ -24,21 +24,36 @@
       <p v-if="error" class="text-red-500 mt-3 text-sm">{{ error }}</p>
     </div>
     <div v-else>
-      <div class="mb-4 flex gap-2">
+      <div class="mb-4 flex gap-2 items-center">
         <div class="flex gap-2">
           <button
             v-for="path in paths"
             :key="path.prefix"
             @click="switchPrefix(path.prefix)"
-            class="px-3 py-1 rounded border-none cursor-pointer"
             :class="currentPrefix === path.prefix ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'"
+            class="px-4 py-2 rounded border-none cursor-pointer"
           >
             {{ path.label }}
           </button>
         </div>
-        <button @click="clearConfig" class="ml-auto px-4 py-2 bg-red-500 text-white border-none rounded hover:bg-red-600 cursor-pointer">
-          删除配置
-        </button>
+        <div class="ml-auto flex gap-2 items-center">
+          <label for="viewModeSelect" class="text-sm">显示模式:</label>
+          <select
+            id="viewModeSelect"
+            v-model="viewMode"
+            @change="switchView(viewMode)"
+            class="px-3 py-1 border rounded bg-white text-gray-800"
+          >
+            <option value="masonry">瀑布流</option>
+            <option value="list">列表</option>
+          </select>
+          <button
+            @click="clearConfig"
+            class="ml-4 px-4 py-2 bg-red-500 text-white border-none rounded hover:bg-red-600 cursor-pointer"
+          >
+            删除配置
+          </button>
+        </div>
       </div>
       <div
         ref="uploadArea"
@@ -57,7 +72,7 @@
         <p class="text-sm text-gray-400 mt-2">当前路径：{{ currentPrefix === '' ? '/' : currentPrefix }}</p>
       </div>
       <client-only>
-        <div ref="masonryContainer" class="w-full">
+        <div v-if="viewMode === 'masonry'" ref="masonryContainer" class="w-full">
           <div
             v-for="file in files"
             :key="file.key"
@@ -77,6 +92,36 @@
             </button>
           </div>
         </div>
+
+        <div v-else-if="viewMode === 'list'" class="flex flex-col gap-2">
+          <div
+            v-for="file in files"
+            :key="file.key"
+            class="flex items-center justify-between p-2 border rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            <span class="truncate">{{ file.key }}</span>
+            <div class="flex gap-2">
+              <button
+                @click="previewImage(`${customDomain}${file.key}`)"
+                class="px-2 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600"
+              >
+                预览
+              </button>
+              <button
+                @click="copyLink(`${customDomain}${file.key}`)"
+                class="px-2 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600"
+              >
+                复制链接
+              </button>
+              <button
+                @click="handleDeleteFile(file)"
+                class="px-2 py-1 bg-red-500 text-white border-none rounded hover:bg-red-600"
+              >
+                删除
+              </button>
+            </div>
+          </div>
+        </div>
       </client-only>
     </div>
   </div>
@@ -85,6 +130,8 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import { useS3 } from '@/composables/useS3.js'
+import { Fancybox } from '@fancyapps/ui'
+import '@fancyapps/ui/dist/fancybox/fancybox.css'
 
 const bucket = ref('')
 const endpoint = ref('')
@@ -107,8 +154,9 @@ const paths = [
   { label: '说说图片', prefix: 'talks/' },
   { label: '全部图片', prefix: '' },
 ]
-
 const currentPrefix = ref(paths[0].prefix)
+
+const viewMode = ref(localStorage.getItem('viewMode') || 'list')
 
 // 切换路径
 function switchPrefix(prefix) {
@@ -116,6 +164,15 @@ function switchPrefix(prefix) {
   files.value = []
   uploadProgress.value = {}
   listFiles().then(() => window.scrollTo({ top: 0, behavior: 'smooth' }))
+}
+
+// 切换视图
+function switchView(mode) {
+  viewMode.value = mode
+  localStorage.setItem('viewMode', mode)
+  if (mode === 'masonry') {
+    nextTick(() => initMasonry())
+  }
 }
 
 if (import.meta.client) {
@@ -128,6 +185,9 @@ let s3 = null
 function loadConfig() {
   if (import.meta.client) {
     const saved = localStorage.getItem('s3_config')
+    const savedMode = localStorage.getItem('view_mode')
+    if (savedMode) viewMode.value = savedMode
+
     if (saved && apiKey) {
       s3 = useS3({ apiKey })
       const config = s3.decryptConfig(saved)
@@ -283,30 +343,40 @@ function copyLink(link) {
   }
 }
 
-// Masonry
+// Masonry 初始化
 async function initMasonry() {
-  if (typeof window === 'undefined' || !masonryContainer.value) return
+  if (viewMode.value !== 'masonry') return
+  if (!masonryContainer.value) return
   const Macy = (await import('macy')).default
   await nextTick()
   if (macyInstance) {
     try {
-      macyInstance.reInit()
-    } catch (e) {
-      macyInstance = null
-    }
+      macyInstance.remove()
+    } catch {}
+    macyInstance = null
   }
-  if (!macyInstance) {
-    macyInstance = Macy({
-      container: masonryContainer.value,
-      trueOrder: false,
-      waitForImages: true,
-      margin: 14,
-      columns: 5,
-      breakAt: { 640: 1, 1024: 2, 1280: 3, 1920: 5 }
-    })
-  }
+  macyInstance = Macy({
+    container: masonryContainer.value,
+    trueOrder: false,
+    waitForImages: true,
+    margin: 14,
+    columns: 5,
+    breakAt: { 640: 1, 1024: 2, 1280: 3, 1920: 5 }
+  })
 }
 
+// Fancybox
+function previewImage(url) {
+  Fancybox.show([{ src: url, type: "image" }]);
+}
+
+onMounted(() => {
+  Fancybox.bind('[data-fancybox]', {
+    Hash: false
+  })
+})
+
+// 等待图片加载完成
 function waitForImagesToLoad() {
   return new Promise(resolve => {
     const container = masonryContainer.value
