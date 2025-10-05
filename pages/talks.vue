@@ -386,22 +386,23 @@ function escapeHtml(str) {
 
 // 获取说说
 const loadTalks = async (reset = false) => {
-  if (loading.value || finished.value) return
+  if (loading.value) return
   loading.value = true
 
   if (reset) {
     page.value = 1
     finished.value = false
+    talks.value = []
   }
 
   const res = await getTalks({ page: page.value, pageSize })
-  const totalPages = res.totalPages || 1
-
-  if (page.value >= totalPages) {
-    finished.value = true
-  } else {
-    page.value++
+  if (res.data && Array.isArray(res.data)) {
+    talks.value.push(...res.data)
   }
+
+  const totalPages = res.totalPages || 1
+  if (page.value >= totalPages) finished.value = true
+  else page.value++
 
   loading.value = false
 }
