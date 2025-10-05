@@ -47,17 +47,20 @@
           <option value="list">列表</option>
         </select>
         <div class="ml-auto flex gap-2 items-center">
-          <input
-            v-model="deleteUrl"
-            placeholder="输入图片链接删除"
-            class="px-3 py-1 border rounded w-60"
-          />
-          <button
-            @click="handleDeleteByUrl(deleteUrl)"
-            class="px-4 py-2 bg-red-500 text-white border-none rounded hover:bg-red-600"
-          >
-            删除图片
-          </button>
+          <div class="flex w-64">
+            <input
+              @keydown.enter.prevent="handleDeleteByUrl(deleteUrl)"
+              v-model="deleteUrl"
+              placeholder="输入图片链接删除"
+              class="flex-1 px-4 py-2 border border-gray-300 rounded-l-md outline-none"
+            />
+            <button
+              @click="handleDeleteByUrl(deleteUrl)"
+              class="px-4 py-2 bg-red-500 text-white rounded-r-md hover:bg-red-600 border-none"
+            >
+              删除
+            </button>
+          </div>
           <button
             @click="clearConfig"
             class="px-4 py-2 bg-red-500 text-white border-none rounded hover:bg-red-600 cursor-pointer"
