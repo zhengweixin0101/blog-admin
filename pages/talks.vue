@@ -174,7 +174,7 @@ const editingId = ref(null)
 const editingContent = ref('')
 
 const page = ref(1)
-const pageSize = 2
+const pageSize = 20
 const finished = ref(false)
 const loading = ref(false)
 
