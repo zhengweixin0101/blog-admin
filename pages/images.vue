@@ -7,14 +7,14 @@
       <h2 class="text-xl font-semibold mb-4 text-center">配置 S3 存储信息</h2>
       <p class="text-sm text-center">基于 Cloudflare R2 ，其他存储不保证可用性</p>
 
-      <div class="space-y-3">
-        <form id="s3Config">
-          <input v-model="bucket" id="bucket" placeholder="存储桶名称" class="w-full p-2 border rounded" />
-          <input v-model="endpoint" id="endpoint" placeholder="s3 地址" class="w-full p-2 border rounded" />
-          <input v-model="region" id="region" placeholder="区域" class="w-full p-2 border rounded" />
-          <input v-model="accessKeyId" id="accessKeyId" placeholder="Access Key ID" class="w-full p-2 border rounded" />
-          <input v-model="secretAccessKey" id="secretAccessKey" placeholder="Secret Access Key" class="w-full p-2 border rounded" type="current-password" />
-          <input v-model="customDomain" id="customDomain" placeholder="自定义域名（结尾带“/”）" class="w-full p-2 border rounded" />
+      <div>
+        <form id="s3Config" class="space-y-3">
+          <input v-model="bucket" id="bucket" placeholder="Bucket" class="w-full p-2 box-border border rounded" />
+          <input v-model="endpoint" id="endpoint" placeholder="Endpoint" class="w-full p-2 box-border border rounded" />
+          <input v-model="region" id="region" placeholder="Region" class="w-full p-2 box-border border rounded" />
+          <input v-model="accessKeyId" id="accessKeyId" placeholder="Access Key ID" class="w-full p-2 box-border border rounded" />
+          <input v-model="secretAccessKey" id="secretAccessKey" placeholder="Access Key Secret" class="w-full p-2 box-border border rounded" type="current-password" />
+          <input v-model="customDomain" id="customDomain" placeholder="Custom Domain" class="w-full p-2 box-border border rounded" />
         </form>
       </div>
 
@@ -137,10 +137,10 @@ onMounted(() => {
       const config = decryptConfig(saved)
       bucket.value = config.bucket || ''
       endpoint.value = config.endpoint || ''
-      region.value = config.region || 'auto'
+      region.value = config.region || ''
       accessKeyId.value = config.accessKeyId || ''
       secretAccessKey.value = config.secretAccessKey || ''
-      customDomain.value = config.customDomain || ''
+      customDomain.value = config.customDomain ? (config.customDomain.endsWith('/') ? config.customDomain : config.customDomain + '/') : ''
 
       if (bucket.value && endpoint.value && accessKeyId.value && secretAccessKey.value) {
         isConfigured.value = true
