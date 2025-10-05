@@ -97,7 +97,10 @@ export function useTalks() {
     const exportMemos = () => {
         if (!talks.value || talks.value.length === 0) return alert('暂无说说可导出')
 
-        const password = prompt('请输入导出密码（留空则不加密）', '')?.trim()
+        const password = prompt('设置导入密钥密钥（留空则不加密）', '');
+        if (password === null) {
+            return;
+        }
 
         let dataStr = JSON.stringify(talks.value, null, 2)
         if (password) {
@@ -123,7 +126,11 @@ export function useTalks() {
             if (!file) return
 
             try {
-                const password = prompt('请输入导入密钥（未加密则留空）', '')?.trim()
+                const password = prompt('请输入入密钥密钥（未加密则留空）', '');
+                if (password === null) {
+                    return;
+                }
+
                 let text = await file.text()
 
                 if (password) {
