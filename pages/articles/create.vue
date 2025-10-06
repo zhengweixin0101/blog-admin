@@ -104,7 +104,7 @@ onBeforeUnmount(() => {
 
 // 返回按钮
 const goBack = () => {
-  router.push('/list')
+  router.push('/articles')
 }
 
 // 创建文章
