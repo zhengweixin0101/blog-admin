@@ -11,6 +11,7 @@
               id="new-talk-content"
               class="w-full my-1 h-20 text-base rounded border-none text-gray-900 resize-none focus:outline-none overflow-hidden"
               @input="autoResize"
+              @keydown="handleEditorKeyDown"
             ></textarea>
             <div class="w-full border border-dashed border-gray-300"></div>
             <div class="flex justify-between mt-2">
@@ -119,6 +120,7 @@
                   id="edit-talk-content"
                   class="w-full min-h-100px my-1 text-base rounded border-none text-gray-900 resize-none focus:outline-none"
                   @input="autoResize"
+                  @keydown="handleEditorKeyDown"
                 ></textarea>
                 <div class="w-full border border-dashed border-gray-300"></div>
                 <div class="flex justify-between mt-2">
@@ -709,6 +711,23 @@ onMounted(() => {
     Hash: false
   })
 })
+
+// 快捷键
+const handleEditorKeyDown = (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault()
+
+    if (editingId.value !== null) {
+      if (confirm('确定保存当前编辑吗？')) {
+        saveEdit(editingId.value)
+      }
+    } else if (newContent.value.trim()) {
+      if (confirm('确定添加新的说说吗？')) {
+        addNewTalk()
+      }
+    }
+  }
+}
 </script>
 
 <style>
