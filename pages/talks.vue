@@ -15,12 +15,53 @@
             <div class="w-full border border-dashed border-gray-300"></div>
             <div class="flex justify-between mt-2">
               <div class="mt-1">
-                <button @click.stop="toggleTagPicker" @click="showTagPicker = !showTagPicker" class="border-none bg-transparent text-gray-500 hover:text-blue-500 cursor-pointer transition-colors">
+                <button
+                  ref="tagButton"
+                  @click.stop="toggleDropdown('tag','new')"
+                  :class="[
+                    'border-none bg-transparent cursor-pointer transition-colors',
+                    activeDropdown === 'tag' ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
+                  ]"
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hash size-5"><line x1="4" x2="20" y1="9" y2="9"></line><line x1="4" x2="20" y1="15" y2="15"></line><line x1="10" x2="8" y1="3" y2="21"></line><line x1="16" x2="14" y1="3" y2="21"></line></svg>
                 </button>
+                <transition name="fade-slide">
+                  <div v-if="activeDropdown.type === 'tag' && activeDropdown.target === 'new'" class="dropdown absolute mt-1 p-2 bg-gray-100 rounded shadow z-50 max-w-xs">
+                    <span 
+                      v-for="tag in allTags" 
+                      :key="tag" 
+                      @click="insertTag(tag)"
+                      class="mx-1 text-sm text-blue-500 hover:text-blue-800 rounded cursor-pointer transition-colors"
+                    >
+                      #{{ tag }}
+                    </span>
+                  </div>
+                </transition>
+                <button
+                  ref="markdownButton"
+                  @click.stop="toggleDropdown('markdown','new')"
+                  :class="[
+                    'border-none bg-transparent cursor-pointer transition-colors',
+                    activeDropdown === 'markdown' ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
+                  ]"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square-slash size-5"><rect width="18" height="18" x="3" y="3" rx="2"></rect><line x1="9" x2="15" y1="15" y2="9"></line></svg>
+                </button>
+                <transition name="fade-slide">
+                  <div v-if="activeDropdown.type === 'markdown' && activeDropdown.target === 'new'" class="dropdown absolute mt-1 p-2 bg-gray-100 rounded shadow z-50 max-w-xs">
+                    <span 
+                      v-for="item in mdOptions" 
+                      :key="item.label" 
+                      @click="insertMd(item.syntax)"
+                      class="mx-1 text-sm text-blue-500 hover:text-blue-800 rounded cursor-pointer transition-colors"
+                    >
+                      {{ item.label }}
+                    </span>
+                  </div>
+                </transition>
                 <button @click="() => fileInput.click()" class="border-none bg-transparent text-gray-500 hover:text-blue-500 cursor-pointer transition-colors">
                   <input type="file" multiple ref="fileInput" class="hidden" @change="e => handleFileSelect(e, 'talks')" />
-                  <svg t="1759652495857" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2459" width="20" height="20"><path d="M938.666667 553.92V768c0 64.8-52.533333 117.333333-117.333334 117.333333H202.666667c-64.8 0-117.333333-52.533333-117.333334-117.333333V256c0-64.8 52.533333-117.333333 117.333334-117.333333h618.666666c64.8 0 117.333333 52.533333 117.333334 117.333333v297.92z m-64-74.624V256a53.333333 53.333333 0 0 0-53.333334-53.333333H202.666667a53.333333 53.333333 0 0 0-53.333334 53.333333v344.48A290.090667 290.090667 0 0 1 192 597.333333a286.88 286.88 0 0 1 183.296 65.845334C427.029333 528.384 556.906667 437.333333 704 437.333333c65.706667 0 126.997333 16.778667 170.666667 41.962667z m0 82.24c-5.333333-8.32-21.130667-21.653333-43.648-32.917333C796.768 511.488 753.045333 501.333333 704 501.333333c-121.770667 0-229.130667 76.266667-270.432 188.693334-2.730667 7.445333-7.402667 20.32-13.994667 38.581333-7.68 21.301333-34.453333 28.106667-51.370666 13.056-16.437333-14.634667-28.554667-25.066667-36.138667-31.146667A222.890667 222.890667 0 0 0 192 661.333333c-14.464 0-28.725333 1.365333-42.666667 4.053334V768a53.333333 53.333333 0 0 0 53.333334 53.333333h618.666666a53.333333 53.333333 0 0 0 53.333334-53.333333V561.525333zM320 480a96 96 0 1 1 0-192 96 96 0 0 1 0 192z m0-64a32 32 0 1 0 0-64 32 32 0 0 0 0 64z" fill="currentColor" p-id="2460"></path></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image size-5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
                 </button>
               </div>
               <button
@@ -30,24 +71,8 @@
                 保存
               </button>
             </div>
-            <transition name="fade-slide">
-              <div 
-                v-if="showTagPicker" 
-                class="absolute mt-1 p-2 bg-gray-100 rounded shadow z-50 max-w-xs"
-                ref="tagPicker"
-              >
-                <span 
-                  v-for="tag in allTags" 
-                  :key="tag" 
-                  @click="insertTag(tag)"
-                  class="mx-1 text-sm text-blue-500 hover:text-blue-800 rounded cursor-pointer transition-colors"
-                >
-                  #{{ tag }}
-                </span>
-              </div>
-            </transition>
           </div>
-          <div class="mb-6 p-1 rounded shadow transition-color duration-300 text-gray-500">
+          <div class="mb-6 p-4 rounded shadow transition-color duration-300 text-gray-500">
             <div>Tags:</div>
             <div class="mt-2 border border-dashed border-gray-300 rounded flex flex-wrap items-center gap-2 p-2">
               <template v-if="allTags.length > 0">
@@ -96,19 +121,71 @@
                   @input="autoResize"
                 ></textarea>
                 <div class="w-full border border-dashed border-gray-300"></div>
-                <div class="flex justify-end mt-2 space-x-2">
-                  <button
-                    @click="saveEdit(talk.id)"
-                    class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors duration-300"
-                  >
-                    保存
-                  </button>
-                  <button
-                    @click="cancelEdit"
-                    class="px-3 py-1 bg-gray-300 text-gray-800 border-none rounded hover:bg-gray-400 transition-colors duration-300"
-                  >
-                    取消
-                  </button>
+                <div class="flex justify-between mt-2">
+                  <div class="mt-1">
+                    <button
+                      ref="tagButton"
+                      @click.stop="toggleDropdown('tag','editing')"
+                      :class="[
+                        'border-none bg-transparent cursor-pointer transition-colors',
+                        activeDropdown === 'tag' ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
+                      ]"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hash size-5"><line x1="4" x2="20" y1="9" y2="9"></line><line x1="4" x2="20" y1="15" y2="15"></line><line x1="10" x2="8" y1="3" y2="21"></line><line x1="16" x2="14" y1="3" y2="21"></line></svg>
+                    </button>
+                    <transition name="fade-slide">
+                      <div v-if="activeDropdown.type === 'tag' && activeDropdown.target === 'editing'" class="dropdown absolute mt-1 p-2 bg-gray-100 rounded shadow z-50 max-w-xs">
+                        <span 
+                          v-for="tag in allTags" 
+                          :key="tag" 
+                          @click="insertTag(tag)"
+                          class="mx-1 text-sm text-blue-500 hover:text-blue-800 rounded cursor-pointer transition-colors"
+                        >
+                          #{{ tag }}
+                        </span>
+                      </div>
+                    </transition>
+                    <button
+                      ref="markdownButton"
+                      @click.stop="toggleDropdown('markdown','editing')"
+                      :class="[
+                        'border-none bg-transparent cursor-pointer transition-colors',
+                        activeDropdown === 'markdown' ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
+                      ]"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square-slash size-5"><rect width="18" height="18" x="3" y="3" rx="2"></rect><line x1="9" x2="15" y1="15" y2="9"></line></svg>
+                    </button>
+                    <transition name="fade-slide">
+                      <div v-if="activeDropdown.type === 'markdown' && activeDropdown.target === 'editing'" class="dropdown absolute mt-1 p-2 bg-gray-100 rounded shadow z-50 max-w-xs">
+                        <span 
+                          v-for="item in mdOptions" 
+                          :key="item.label" 
+                          @click="insertMd(item.syntax)"
+                          class="mx-1 text-sm text-blue-500 hover:text-blue-800 rounded cursor-pointer transition-colors"
+                        >
+                          {{ item.label }}
+                        </span>
+                      </div>
+                    </transition>
+                    <button @click="() => fileInput.click()" class="border-none bg-transparent text-gray-500 hover:text-blue-500 cursor-pointer transition-colors">
+                      <input type="file" multiple ref="fileInput" class="hidden" @change="e => handleFileSelect(e, 'talks')" />
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image size-5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+                    </button>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <button
+                      @click="saveEdit(editingId)"
+                      class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors duration-300"
+                    >
+                      保存
+                    </button>
+                    <button
+                      @click="cancelEdit"
+                      class="px-3 py-1 bg-gray-400 text-white border-none rounded hover:bg-gray-500 transition-colors duration-300"
+                    >
+                      取消
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -163,7 +240,7 @@
                       {{ link.text }}
                     </a>
                   </div>
-                  <div class="flex space-x-2 mt-1 md:mt-0">
+                  <div class="flex items-center space-x-2">
                     <button
                       @click="startEdit(talk)"
                       class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors duration-300"
@@ -221,8 +298,6 @@ const editingId = ref(null)
 const editingContent = ref('')
 const currentTag = ref(null)
 const allTags = ref([])
-const showTagPicker = ref(false)
-const tagPicker = ref(null)
 const page = ref(1)
 const pageSize = 20
 const finished = ref(false)
@@ -305,29 +380,43 @@ const handleFileSelect = async (event, prefix = '') => {
     uploadLoading.value = false
   }
 }
+// 编辑器工具栏
+const tagButton = ref(null)
+const markdownButton = ref(null)
+const activeDropdown = ref({ type: null, target: null })
 
-// 插入标签
-const insertTag = (tag) => {
-  const el = document.getElementById('new-talk-content')
-  if (!el) return
+const mdOptions = [
+  { label: '加粗', syntax: '**加粗内容**' },
+  { label: '斜体', syntax: '*斜体内容*' },
+  { label: '链接', syntax: '[链接文字](https://)' },
+  { label: '图片', syntax: '![图片描述](https://)' },
+  { label: '代码', syntax: '```\n代码块\n```' },
+  { label: '任务列表', syntax: '- [ ] 未完成\n- [x] 已完成' },
+]
 
-  const start = el.selectionStart
-  const end = el.selectionEnd
-  const value = el.value
-  const insertText = `#${tag} `
-
-  el.value = value.substring(0, start) + insertText + value.substring(end)
-  el.selectionStart = el.selectionEnd = start + insertText.length
-  el.focus()
-
-  newContent.value = el.value
-  showTagPicker.value = false
+const toggleDropdown = (type, target) => {
+  if (activeDropdown.value.type === type && activeDropdown.value.target === target) {
+    activeDropdown.value = { type: null, target: null }
+  } else {
+    activeDropdown.value = { type, target }
+  }
 }
 
-const handleClickOutside = (event) => {
-  if (tagPicker.value && !tagPicker.value.contains(event.target)) {
-    showTagPicker.value = false
-  }
+const insertTag = (tag) => {
+  if (activeDropdown.value.target === 'new') newContent.value += `#${tag} `
+  else if (activeDropdown.value.target === 'editing') editingContent.value += `#${tag} `
+  activeDropdown.value = { type: null, target: null }
+}
+
+const insertMd = (syntax) => {
+  if (activeDropdown.value.target === 'new') newContent.value += syntax
+  else if (activeDropdown.value.target === 'editing') editingContent.value += syntax
+  activeDropdown.value = { type: null, target: null }
+}
+
+const handleClickOutside = (e) => {
+  if (e.target.closest('.dropdown')) return
+  activeDropdown.value = { type: null, target: null }
 }
 
 onMounted(() => {
