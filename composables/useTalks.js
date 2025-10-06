@@ -44,6 +44,7 @@ export function useTalks() {
 
             const payload = { ...talk }
             if (!payload.created_at) delete payload.created_at
+            if (!payload.location) delete payload.location
 
             const res = await axios.post(`${API_BASE}/api/talks/add`, payload, {
                 headers: { 'x-api-key': key }
