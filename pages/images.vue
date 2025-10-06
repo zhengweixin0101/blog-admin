@@ -171,7 +171,12 @@ const paths = [
 ]
 const currentPrefix = ref(paths[0].prefix)
 
-const viewMode = ref(localStorage.getItem('viewMode') || 'list')
+const viewMode = ref('list')
+onMounted(() => {
+  // 只在客户端执行
+  const savedMode = localStorage.getItem('viewMode')
+  if (savedMode) viewMode.value = savedMode
+})
 
 // 切换路径
 function switchPrefix(prefix) {
