@@ -15,10 +15,13 @@
             <div class="w-full border border-dashed border-gray-300"></div>
             <div class="flex justify-between mt-2">
               <div class="mt-1">
-                <input type="file" multiple ref="fileInput" class="hidden" @change="e => handleFileSelect(e, 'talks')" />
-                <span @click="() => fileInput.click()" class="text-gray-500 hover:text-blue-500 cursor-pointer">
+                <button @click.stop="toggleTagPicker" @click="showTagPicker = !showTagPicker" class="border-none bg-transparent text-gray-500 hover:text-blue-500 cursor-pointer transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hash size-5"><line x1="4" x2="20" y1="9" y2="9"></line><line x1="4" x2="20" y1="15" y2="15"></line><line x1="10" x2="8" y1="3" y2="21"></line><line x1="16" x2="14" y1="3" y2="21"></line></svg>
+                </button>
+                <button @click="() => fileInput.click()" class="border-none bg-transparent text-gray-500 hover:text-blue-500 cursor-pointer transition-colors">
+                  <input type="file" multiple ref="fileInput" class="hidden" @change="e => handleFileSelect(e, 'talks')" />
                   <svg t="1759652495857" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2459" width="20" height="20"><path d="M938.666667 553.92V768c0 64.8-52.533333 117.333333-117.333334 117.333333H202.666667c-64.8 0-117.333333-52.533333-117.333334-117.333333V256c0-64.8 52.533333-117.333333 117.333334-117.333333h618.666666c64.8 0 117.333333 52.533333 117.333334 117.333333v297.92z m-64-74.624V256a53.333333 53.333333 0 0 0-53.333334-53.333333H202.666667a53.333333 53.333333 0 0 0-53.333334 53.333333v344.48A290.090667 290.090667 0 0 1 192 597.333333a286.88 286.88 0 0 1 183.296 65.845334C427.029333 528.384 556.906667 437.333333 704 437.333333c65.706667 0 126.997333 16.778667 170.666667 41.962667z m0 82.24c-5.333333-8.32-21.130667-21.653333-43.648-32.917333C796.768 511.488 753.045333 501.333333 704 501.333333c-121.770667 0-229.130667 76.266667-270.432 188.693334-2.730667 7.445333-7.402667 20.32-13.994667 38.581333-7.68 21.301333-34.453333 28.106667-51.370666 13.056-16.437333-14.634667-28.554667-25.066667-36.138667-31.146667A222.890667 222.890667 0 0 0 192 661.333333c-14.464 0-28.725333 1.365333-42.666667 4.053334V768a53.333333 53.333333 0 0 0 53.333334 53.333333h618.666666a53.333333 53.333333 0 0 0 53.333334-53.333333V561.525333zM320 480a96 96 0 1 1 0-192 96 96 0 0 1 0 192z m0-64a32 32 0 1 0 0-64 32 32 0 0 0 0 64z" fill="currentColor" p-id="2460"></path></svg>
-                </span>
+                </button>
               </div>
               <button
                 @click="addNewTalk"
@@ -27,8 +30,24 @@
                 保存
               </button>
             </div>
+            <transition name="fade-slide">
+              <div 
+                v-if="showTagPicker" 
+                class="absolute mt-1 p-2 bg-gray-100 rounded shadow z-50 max-w-xs"
+                ref="tagPicker"
+              >
+                <span 
+                  v-for="tag in allTags" 
+                  :key="tag" 
+                  @click="insertTag(tag)"
+                  class="mx-1 text-sm text-blue-500 hover:text-blue-800 rounded cursor-pointer transition-colors"
+                >
+                  #{{ tag }}
+                </span>
+              </div>
+            </transition>
           </div>
-          <div class="mb-6 p-3 rounded shadow transition-color duration-300 text-gray-500">
+          <div class="mb-6 p-1 rounded shadow transition-color duration-300 text-gray-500">
             <div>Tags:</div>
             <div class="mt-2 border border-dashed border-gray-300 rounded flex flex-wrap items-center gap-2 p-2">
               <template v-if="allTags.length > 0">
@@ -55,9 +74,9 @@
             </div>
           </div>
           <div class="mb-6 p-3 rounded shadow">
-            <button @click="exportMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导出说说</button>
-            <button @click="importMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导入说说</button>
-            <button @click="syncFromMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">从 Memos 同步</button>
+            <button @click="exportMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer transition-colors">导出说说</button>
+            <button @click="importMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer transition-colors">导入说说</button>
+            <button @click="syncFromMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer transition-colors">从 Memos 同步</button>
           </div>
         </div>
         <div class="w-full">
@@ -188,7 +207,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, onBeforeUnmount, ref } from 'vue'
 import axios from 'axios'
 import { useTalks } from '@/composables/useTalks'
 import { useS3 } from '@/composables/useS3'
@@ -202,6 +221,8 @@ const editingId = ref(null)
 const editingContent = ref('')
 const currentTag = ref(null)
 const allTags = ref([])
+const showTagPicker = ref(false)
+const tagPicker = ref(null)
 const page = ref(1)
 const pageSize = 20
 const finished = ref(false)
@@ -284,6 +305,38 @@ const handleFileSelect = async (event, prefix = '') => {
     uploadLoading.value = false
   }
 }
+
+// 插入标签
+const insertTag = (tag) => {
+  const el = document.getElementById('new-talk-content')
+  if (!el) return
+
+  const start = el.selectionStart
+  const end = el.selectionEnd
+  const value = el.value
+  const insertText = `#${tag} `
+
+  el.value = value.substring(0, start) + insertText + value.substring(end)
+  el.selectionStart = el.selectionEnd = start + insertText.length
+  el.focus()
+
+  newContent.value = el.value
+  showTagPicker.value = false
+}
+
+const handleClickOutside = (event) => {
+  if (tagPicker.value && !tagPicker.value.contains(event.target)) {
+    showTagPicker.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 // 自动高度调整
 const autoResize = (event) => {
@@ -598,5 +651,18 @@ onMounted(() => {
   transform: translate(-50%, -55%);
   font-size: 12px;
   line-height: 1;
+}
+
+/* 选择标签面板动画 */
+.fade-slide-enter-active, .fade-slide-leave-active {
+  transition: all 0.2s ease;
+}
+.fade-slide-enter-from, .fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
+}
+.fade-slide-enter-to, .fade-slide-leave-from {
+  opacity: 1;
+  transform: translateY(0);
 }
 </style>
