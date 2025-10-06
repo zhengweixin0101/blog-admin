@@ -119,7 +119,7 @@ const create = async () => {
 
   isSaved.value = true
   alert('创建成功')
-  router.push('/list')
+  router.push('/articles')
 }
 
 //编辑器事件绑定
