@@ -28,7 +28,33 @@
               </button>
             </div>
           </div>
-          <div class="mb-6 p-3 rounded shadow transition-color duration-300">
+          <div class="mb-6 p-3 rounded shadow transition-color duration-300 text-gray-500">
+            <div>Tags:</div>
+            <div class="mt-2 border border-dashed border-gray-300 rounded flex flex-wrap items-center gap-2 p-2">
+              <template v-if="allTags.length > 0">
+                <span
+                  v-for="tag in allTags"
+                  :key="tag"
+                  @click="selectTag(tag)"
+                  :class="[
+                    'px-2 py-0.5 text-xs rounded cursor-pointer transition-colors duration-300',
+                    currentTag === tag ? 'bg-blue-500 text-white' : 'bg-blue-100 hover:bg-blue-200 text-blue-600'
+                  ]"
+                >
+                  #{{ tag }}
+                </span>
+              </template>
+              <template v-else>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m15 5 6.3 6.3a2.4 2.4 0 0 1 0 3.4L17 19"></path>
+                  <path d="M9.586 5.586A2 2 0 0 0 8.172 5H3a1 1 0 0 0-1 1v5.172a2 2 0 0 0 .586 1.414L8.29 18.29a2.426 2.426 0 0 0 3.42 0l3.58-3.58a2.426 2.426 0 0 0 0-3.42z"></path>
+                  <circle cx="6.5" cy="9.5" r=".5" fill="currentColor"></circle>
+                </svg>
+                <p class="text-sm leading-snug italic">你可以输入 `#tag` 来添加标签。</p>
+              </template>
+            </div>
+          </div>
+          <div class="mb-6 p-3 rounded shadow">
             <button @click="exportMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导出说说</button>
             <button @click="importMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导入说说</button>
             <button @click="syncFromMemos" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">从 Memos 同步</button>
@@ -103,7 +129,7 @@
                     <span
                       v-for="tag in talk.tags"
                       :key="tag"
-                      class="px-2 py-0.5 text-xs bg-blue-100 text-blue-600 rounded cursor-pointer"
+                      class="px-2 py-0.5 text-xs bg-blue-100 text-blue-600 rounded"
                     >
                       #{{ tag }}
                     </span>
@@ -140,17 +166,19 @@
               暂无说说
             </div>
 
-            <div v-if="!finished" class="text-center mt-4">
-              <button
-                @click="loadTalks()"
-                :disabled="loading"
-                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 border-none shadow rounded transition disabled:opacity-50"
-              >
-                {{ loading ? '加载中...' : '加载更多' }}
-              </button>
-            </div>
-            <div v-else class="text-gray-400 text-center mt-4">
-              已加载全部！
+            <div v-else>
+              <div v-if="!finished" class="text-center mt-4">
+                <button
+                  @click="loadTalks()"
+                  :disabled="loading"
+                  class="px-4 py-2 bg-gray-200 hover:bg-gray-300 border-none shadow rounded transition disabled:opacity-50"
+                >
+                  {{ loading ? '加载中...' : '加载更多' }}
+                </button>
+              </div>
+              <div v-else class="text-gray-400 text-center mt-4">
+                已加载全部！
+              </div>
             </div>
           </div>
         </div>
@@ -172,7 +200,8 @@ const { talks, getTalks, editTalk, deleteTalk, addTalkInternal, importMemos, exp
 const newContent = ref('')
 const editingId = ref(null)
 const editingContent = ref('')
-
+const currentTag = ref(null)
+const allTags = ref([])
 const page = ref(1)
 const pageSize = 20
 const finished = ref(false)
@@ -384,6 +413,20 @@ function escapeHtml(str) {
   })[m]})
 }
 
+// 标签筛选
+const selectTag = (tag) => {
+  if (currentTag.value === tag) {
+    currentTag.value = null
+  } else {
+    currentTag.value = tag
+  }
+
+  page.value = 1
+  finished.value = false
+  talks.value = []
+  loadTalks(true)
+}
+
 // 获取说说
 const loadTalks = async (reset = false) => {
   if (loading.value) return
@@ -395,10 +438,17 @@ const loadTalks = async (reset = false) => {
     talks.value = []
   }
 
-  const res = await getTalks({ page: page.value, pageSize })
+  const params = { page: page.value, pageSize }
+  if (currentTag.value) params.tag = currentTag.value
+
+  const res = await getTalks(params)
+
   if (res.data && Array.isArray(res.data)) {
-    talks.value.push(...res.data)
+    if (reset) talks.value = res.data
+    else talks.value.push(...res.data)
   }
+
+  if (res.allTags) allTags.value = res.allTags
 
   const totalPages = res.totalPages || 1
   if (page.value >= totalPages) finished.value = true
