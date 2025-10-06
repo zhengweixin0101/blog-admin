@@ -504,6 +504,7 @@ function escapeReg(str) {
 }
 
 // 渲染内容
+// 渲染内容
 function renderContent(talk) {
   let html = talk.content
 
@@ -531,6 +532,13 @@ function renderContent(talk) {
     const languageClass = lang ? `language-${lang}` : ''
     return `<pre class="bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto"><code class="${languageClass}">${escapeHtml(code)}</code></pre>`
   })
+
+  // 加粗
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  html = html.replace(/__(.+?)__/g, '<strong>$1</strong>')
+  // 斜体
+  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+  html = html.replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '<em>$1</em>')
 
   return html
 }
