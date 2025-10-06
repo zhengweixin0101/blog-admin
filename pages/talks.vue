@@ -60,6 +60,37 @@
                     </span>
                   </div>
                 </transition>
+                <button
+                  ref="locationButton"
+                  @click.stop="toggleDropdown('location','new')"
+                  :class="[
+                    'border-none bg-transparent cursor-pointer transition-colors',
+                    activeDropdown === 'location' ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
+                  ]"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin size-5 shrink-0"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                </button>
+                <transition name="fade-slide">
+                  <div
+                    v-if="activeDropdown.type === 'location' && activeDropdown.target === 'new'"
+                    class="dropdown absolute mt-1 p-2 bg-gray-100 rounded shadow z-50 max-w-xs"
+                  >
+                    <div class="flex w-64">
+                      <input
+                        v-model="locationInput"
+                        placeholder="请输入位置..."
+                        class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md outline-none"
+                        @keydown.enter.prevent="insertLocation('new')"
+                      />
+                      <button
+                        @click="insertLocation('new')"
+                        class="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 border-none transition-colors duration-300"
+                      >
+                        插入
+                      </button>
+                    </div>
+                  </div>
+                </transition>
                 <button @click="() => fileInput.click()" class="border-none bg-transparent text-gray-500 hover:text-blue-500 cursor-pointer transition-colors">
                   <input type="file" multiple ref="fileInput" class="hidden" @change="e => handleFileSelect(e, 'talks')" />
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image size-5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
@@ -167,6 +198,37 @@
                         >
                           {{ item.label }}
                         </span>
+                      </div>
+                    </transition>
+                    <button
+                      ref="locationButton"
+                      @click.stop="toggleDropdown('location','editing')"
+                      :class="[
+                        'border-none bg-transparent cursor-pointer transition-colors',
+                        activeDropdown === 'location' ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
+                      ]"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin size-5 shrink-0"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    </button>
+                    <transition name="fade-slide">
+                      <div
+                        v-if="activeDropdown.type === 'location' && activeDropdown.target === 'editing'"
+                        class="dropdown absolute mt-1 p-2 bg-gray-100 rounded shadow z-50 max-w-xs"
+                      >
+                        <div class="flex w-64">
+                          <input
+                            v-model="locationInput"
+                            placeholder="请输入位置..."
+                            class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md outline-none"
+                            @keydown.enter.prevent="insertLocation('editing')"
+                          />
+                          <button
+                            @click="insertLocation('editing')"
+                            class="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 border-none transition-colors duration-300"
+                          >
+                            插入
+                          </button>
+                        </div>
                       </div>
                     </transition>
                     <button @click="() => fileInput.click()" class="border-none bg-transparent text-gray-500 hover:text-blue-500 cursor-pointer transition-colors">
@@ -391,6 +453,7 @@ const handleFileSelect = async (event, prefix = '') => {
 // 编辑器工具栏
 const tagButton = ref(null)
 const markdownButton = ref(null)
+const locationButton = ref(null)
 const activeDropdown = ref({ type: null, target: null })
 
 const mdOptions = [
@@ -401,6 +464,23 @@ const mdOptions = [
   { label: '代码', syntax: '```\n代码块\n```' },
   { label: '任务列表', syntax: '- [ ] 未完成\n- [x] 已完成' },
 ]
+
+// 插入定位
+const locationInput = ref('')
+const insertLocation = (target) => {
+  const text = locationInput.value.trim()
+  if (!text) return
+
+  const syntax = `<location: ${text}/>`
+  if (target === 'new') {
+    newContent.value += syntax
+  } else if (target === 'editing') {
+    editingContent.value += syntax
+  }
+
+  locationInput.value = ''
+  activeDropdown.value = { type: null, target: null }
+}
 
 const toggleDropdown = (type, target) => {
   if (activeDropdown.value.type === type && activeDropdown.value.target === target) {
