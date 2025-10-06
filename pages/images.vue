@@ -167,6 +167,7 @@ let apiKey = null
 const paths = [
   { label: '文章图片', prefix: 'blog/posts/' },
   { label: '说说图片', prefix: 'talks/' },
+  { label: '评论图片', prefix: 'blog/comments' },
   { label: '全部图片', prefix: '' },
 ]
 const currentPrefix = ref(paths[0].prefix)
