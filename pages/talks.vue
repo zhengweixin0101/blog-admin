@@ -524,42 +524,66 @@ const autoResize = (event) => {
 
 // 解析标签、Markdown 链接、图片和 location
 function parseContent(text) {
-  const tagRegex = /#([\u4e00-\u9fa5\w-]+)/g
+  const tagRegex = /(^|\s)#([\u4e00-\u9fa5\w-]+)/g
   const linkRegex = /(?<!\!)\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g
   const imgRegex = /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g
   const locationRegex = /<location:\s*([^\/>]+)\s*\/>/
-  // 标签
+
+  let placeholderIndex = 0
+  const placeholders = new Map()
+
+  // 临时替换Markdown 链接、图片和 location
+  const protectedText = text
+    .replace(imgRegex, (m) => {
+      const key = `__IMG${placeholderIndex++}__`
+      placeholders.set(key, m)
+      return key
+    })
+    .replace(linkRegex, (m) => {
+      const key = `__LINK${placeholderIndex++}__`
+      placeholders.set(key, m)
+      return key
+    })
+    .replace(locationRegex, (m) => {
+      const key = `__LOC${placeholderIndex++}__`
+      placeholders.set(key, m)
+      return key
+    })
+
+  // 匹配标签
   const tags = []
   let match
-  while ((match = tagRegex.exec(text))) {
-    tags.push(match[1])
+  while ((match = tagRegex.exec(protectedText))) {
+    tags.push(match[2])
   }
 
-  // 链接去重
+  // 还原文本
+  let restoredText = protectedText
+  for (const [key, value] of placeholders.entries()) {
+    restoredText = restoredText.replace(key, value)
+  }
+
+  // 链接提取
   const linksMap = new Map()
-  let contentWithPlaceholders = text
-  while ((match = linkRegex.exec(text))) {
+  let contentWithPlaceholders = restoredText
+  while ((match = linkRegex.exec(restoredText))) {
     const [full, linkText, url] = match
     const key = `${linkText}|${url}`
-    if (!linksMap.has(key)) {
-      linksMap.set(key, { text: linkText, url })
-    }
+    if (!linksMap.has(key)) linksMap.set(key, { text: linkText, url })
     contentWithPlaceholders = contentWithPlaceholders.replace(full, `<talkLink>${linkText}</talkLink>`)
   }
   const links = Array.from(linksMap.values())
 
-  // 图片去重
+  // 图片提取
   const imgsMap = new Map()
-  while ((match = imgRegex.exec(text))) {
+  while ((match = imgRegex.exec(restoredText))) {
     const [full, alt, url] = match
-    if (!imgsMap.has(url)) {
-      imgsMap.set(url, { alt, url })
-    }
+    if (!imgsMap.has(url)) imgsMap.set(url, { alt, url })
     contentWithPlaceholders = contentWithPlaceholders.replace(full, `<talkImg>${alt}</talkImg>`)
   }
   const imgs = Array.from(imgsMap.values())
 
-  // 提取定位
+  // 解析 location
   let location = null
   const locationMatch = contentWithPlaceholders.match(locationRegex)
   if (locationMatch) {
@@ -567,7 +591,9 @@ function parseContent(text) {
     contentWithPlaceholders = contentWithPlaceholders.replace(locationRegex, '')
   }
 
+  // 移除标签文本
   const pureContent = contentWithPlaceholders.replace(tagRegex, '').trim()
+
   return { pureContent, tags, links, imgs, location }
 }
 
