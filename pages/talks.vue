@@ -91,8 +91,8 @@
                     </div>
                   </div>
                 </transition>
-                <button @click="() => fileInput.click()" class="border-none bg-transparent text-gray-500 hover:text-blue-500 cursor-pointer transition-colors">
-                  <input type="file" multiple ref="fileInput" class="hidden" @change="e => handleFileSelect(e, 'talks')" />
+                <button @click="() => newFileInput.click()" class="border-none bg-transparent text-gray-500 hover:text-blue-500 cursor-pointer transition-colors">
+                  <input type="file" multiple ref="newFileInput" class="hidden" @change="e => handleFileSelect(e, 'talks', 'new')" />
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image size-5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
                 </button>
               </div>
@@ -231,8 +231,14 @@
                         </div>
                       </div>
                     </transition>
-                    <button @click="() => fileInput.click()" class="border-none bg-transparent text-gray-500 hover:text-blue-500 cursor-pointer transition-colors">
-                      <input type="file" multiple ref="fileInput" class="hidden" @change="e => handleFileSelect(e, 'talks')" />
+                    <button @click="handleEditFileClick(talk.id)" class="border-none bg-transparent text-gray-500 hover:text-blue-500 cursor-pointer transition-colors">
+                      <input 
+                        type="file" 
+                        multiple 
+                        :ref="el => { if (el) editFileInputs[talk.id] = el }"
+                        class="hidden" 
+                        @change="e => handleFileSelect(e, 'talks', 'editing')" 
+                      />
                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image size-5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
                     </button>
                   </div>
@@ -395,10 +401,16 @@ onMounted(loadS3Config)
 
 const uploadLoading = ref(false)
 const uploadError = ref('')
-const fileInput = ref(null)
+const newFileInput = ref(null)
+const editFileInputs = ref({})
+const handleEditFileClick = (talkId) => {
+  if (editFileInputs.value[talkId]) {
+    editFileInputs.value[talkId].click()
+  }
+}
 
 // 上传图片
-const handleFileSelect = async (event, prefix = '') => {
+const handleFileSelect = async (event, prefix = '', mode = 'new') => {
   const files = Array.from(event.target.files)
 
   event.target.value = ''
@@ -441,7 +453,11 @@ const handleFileSelect = async (event, prefix = '') => {
     })
 
     urls.forEach(url => {
-      newContent.value += `\n![图片](${url})`
+      if (mode === 'new') {
+        newContent.value += `\n![图片](${url})`
+      } else if (mode === 'editing') {
+        editingContent.value += `\n![图片](${url})`
+      }
     })
   } catch (e) {
     console.error(e)
@@ -450,6 +466,7 @@ const handleFileSelect = async (event, prefix = '') => {
     uploadLoading.value = false
   }
 }
+
 // 编辑器工具栏
 const tagButton = ref(null)
 const markdownButton = ref(null)
@@ -718,8 +735,13 @@ const loadTalks = async (reset = false) => {
   const res = await getTalks(params)
 
   if (res.data && Array.isArray(res.data)) {
-    if (reset) talks.value = res.data
-    else talks.value.push(...res.data)
+    if (reset) {
+      talks.value = res.data
+    } else {
+      const existingIds = new Set(talks.value.map(t => t.id))
+      const newTalks = res.data.filter(t => !existingIds.has(t.id))
+      talks.value.push(...newTalks)
+    }
   }
 
   if (res.allTags) allTags.value = res.allTags
