@@ -508,8 +508,8 @@ const toggleDropdown = (type, target) => {
 }
 
 const insertTag = (tag) => {
-  if (activeDropdown.value.target === 'new') newContent.value += `#${tag} `
-  else if (activeDropdown.value.target === 'editing') editingContent.value += `#${tag} `
+  if (activeDropdown.value.target === 'new') newContent.value += `\n#${tag} `
+  else if (activeDropdown.value.target === 'editing') editingContent.value += `\n#${tag} `
   activeDropdown.value = { type: null, target: null }
 }
 
