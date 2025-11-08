@@ -13,7 +13,10 @@
       <input v-model="article.date" id="date" type="date" class="border p-2 w-full mb-4"/>
 
       <!-- 描述 -->
-      <input v-model="article.description" id="description" placeholder="描述" class="border p-2 w-full mb-4"></input>
+      <div class="flex gap-2 mb-4">
+        <input v-model="article.description" id="description" placeholder="描述" class="border p-2 flex-1"/>
+        <button @click="generateSummary" class="-mr-4">AI生成</button>
+      </div>
 
       <!-- 标签 -->
       <input v-model="tagsString" id="tags" placeholder="标签（逗号分隔）" class="border p-2 w-full mb-4"/>
@@ -43,6 +46,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useArticles } from '~/composables/useArticles.js'
 import MarkdownEditor from '~/components/MarkdownEditor.vue'
+import { siteConfig } from '~/site.config.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -139,6 +143,49 @@ const save = async () => {
   isSaved.value = true
   originalArticle.value = JSON.parse(JSON.stringify(article.value))
   alert('保存成功')
+}
+
+// 生成AI摘要
+const generateSummary = async () => {
+  if (!article.value.content.trim()) {
+    alert('请先输入文章内容')
+    return
+  }
+
+  try {
+    const apiKey = localStorage.getItem('api_key')
+    if (!apiKey) {
+      alert('请先设置API密钥')
+      return
+    }
+
+    const response = await fetch(siteConfig.aiSummary, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey
+      },
+      body: JSON.stringify({
+        content: article.value.content
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+    
+    if (result.summary) {
+      article.value.description = result.summary
+      alert('摘要生成成功！')
+    } else {
+      alert('生成摘要失败：未返回有效摘要')
+    }
+  } catch (error) {
+    console.error('生成摘要失败:', error)
+    alert('生成摘要失败，请检查网络连接和API密钥')
+  }
 }
 
 //编辑器事件绑定
