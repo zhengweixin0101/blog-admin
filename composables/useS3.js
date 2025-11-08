@@ -65,15 +65,149 @@ export function useS3({ config, apiKey, onProgress } = {}) {
             .sort((a, b) => b.timestamp - a.timestamp)
     }
 
+    // 压缩图片
+    async function compressImage(file, quality = 0.85, maxWidth = 1920) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                const img = new Image()
+                img.onload = () => {
+                    const canvas = document.createElement('canvas')
+                    const ctx = canvas.getContext('2d')
+                    
+                    // 计算新尺寸
+                    let { width, height } = img
+                    if (width > maxWidth) {
+                        const ratio = maxWidth / width
+                        width = maxWidth
+                        height = height * ratio
+                    }
+                    
+                    canvas.width = width
+                    canvas.height = height
+                    
+                    // 绘制图片
+                    ctx.drawImage(img, 0, 0, width, height)
+                    
+                    // 转换为压缩后的文件
+                    canvas.toBlob((blob) => {
+                        if (!blob) {
+                            reject(new Error('图片压缩失败'))
+                            return
+                        }
+                        
+                        const compressedFile = new File([blob], file.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        })
+                        
+                        resolve({
+                            file: compressedFile,
+                            originalSize: file.size,
+                            compressedSize: blob.size,
+                            compressionRatio: (1 - blob.size / file.size) * 100
+                        })
+                    }, 'image/jpeg', quality)
+                }
+                img.onerror = () => reject(new Error('图片加载失败'))
+                img.src = e.target.result
+            }
+            reader.onerror = () => reject(new Error('文件读取失败'))
+            reader.readAsDataURL(file)
+        })
+    }
+    
+    // 格式化文件大小
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes'
+        const k = 1024
+        const sizes = ['Bytes', 'KB', 'MB', 'GB']
+        const i = Math.floor(Math.log(bytes) / Math.log(k))
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    }
+    
+    // 处理单个文件的压缩流程
+    async function processFileCompression(file) {
+        // 只对图片文件进行压缩
+        if (!file.type.startsWith('image/')) {
+            return { action: 'skip', file }
+        }
+        
+        // 小文件不压缩
+        if (file.size < 80 * 1024) {
+            return { action: 'skip', file }
+        }
+        
+        try {
+            // 询问用否要压缩
+            const shouldCompress = confirm(`文件 "${file.name}" 大小为 ${formatFileSize(file.size)}，是否进行压缩？
+
+压缩可以减小文件大小，但可能会降低图片质量。`)
+            
+            if (!shouldCompress) {
+                return { action: 'skip', file }
+            }
+            
+            // 进行压缩
+            const compressedResult = await compressImage(file)
+            
+            // 显示压缩结果并询问用户
+            const message = `文件 "${file.name}" 压缩完成：
+原文件大小: ${formatFileSize(compressedResult.originalSize)}
+压缩后大小: ${formatFileSize(compressedResult.compressedSize)}
+压缩率: ${compressedResult.compressionRatio.toFixed(1)}%
+
+请选择操作：`
+            const userChoice = confirm(`${message}
+点击"确定"使用压缩版本，点击"取消"取消上传该文件`)
+            
+            if (userChoice) {
+                return { action: 'compress', file: compressedResult.file }
+            } else {
+                return { action: 'cancel', file }
+            }
+            
+        } catch (error) {
+            console.error('压缩失败:', error)
+            const useOriginal = confirm(`文件 "${file.name}" 压缩失败，是否使用原文件上传？
+
+点击"确定"使用原文件上传，点击"取消"取消上传该文件`)
+            
+            if (useOriginal) {
+                return { action: 'skip', file }
+            } else {
+                return { action: 'cancel', file }
+            }
+        }
+    }
+
     // 上传文件
     async function uploadFiles({ files, cfg = config, prefix = '', customDomain = '', onProgressCb = onProgress }) {
         if (!files || files.length === 0) return []
+        
+        // 处理文件压缩
+        const processedFiles = []
+        
+        for (const file of files) {
+            const result = await processFileCompression(file)
+            if (result.action === 'cancel') {
+                throw new Error('上传已取消')
+            }
+            if (result.action !== 'cancel') {
+                processedFiles.push(result.file)
+            }
+        }
+        
+        if (processedFiles.length === 0) {
+            return []
+        }
+        
         const client = getS3Client(cfg)
         const uploadedUrls = []
 
         if (prefix && !prefix.endsWith('/')) prefix += '/'
 
-        for (const file of files) {
+        for (const file of processedFiles) {
             const ext = file.name.substring(file.name.lastIndexOf('.')) || ''
             const timestamp = Date.now()
             const randomId = crypto.randomUUID().replace(/-/g, '')
