@@ -3,6 +3,7 @@ import CryptoJS from 'crypto-js'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { siteConfig } from '@/site.config.js'
+import { withLoading } from './useLoading.js'
 import { alert, confirm } from '@/composables/useModal'
 
 export function useTalks() {
@@ -21,7 +22,10 @@ export function useTalks() {
     }
 
     const getTalks = async (params = {}) => {
-        const res = await axios.get(`${API_BASE}/api/talks/get`, { params })
+        const res = await withLoading(
+            () => axios.get(`${API_BASE}/api/talks/get`, { params }),
+            '加载说说中...'
+        )()
 
         if (params.page && params.page > 1) {
             talks.value.push(...res.data.data)
@@ -47,9 +51,12 @@ export function useTalks() {
             if (!payload.created_at) delete payload.created_at
             if (!payload.location) delete payload.location
 
-            const res = await axios.post(`${API_BASE}/api/talks/add`, payload, {
-                headers: { 'x-api-key': key }
-            })
+            const res = await withLoading(
+                () => axios.post(`${API_BASE}/api/talks/add`, payload, {
+                    headers: { 'x-api-key': key }
+                }),
+                '添加说说中...'
+            )()
             if (showAlert) await alert('说说添加成功！')
             return res.data
         } catch (err) {
@@ -71,9 +78,12 @@ export function useTalks() {
                 talk.links = talk.links.map(l => typeof l === 'string' ? { text: l, url: l } : l)
             }
 
-            const res = await axios.put(`${API_BASE}/api/talks/edit`, talk, {
-                headers: { 'x-api-key': key }
-            })
+            const res = await withLoading(
+                () => axios.put(`${API_BASE}/api/talks/edit`, talk, {
+                    headers: { 'x-api-key': key }
+                }),
+                '编辑说说中...'
+            )()
             await alert('说说修改成功！')
             return res.data
         } catch (err) {
@@ -86,10 +96,13 @@ export function useTalks() {
     const deleteTalk = async (id) => {
         try {
             const key = ensureKey()
-            await axios.delete(`${API_BASE}/api/talks/delete`, {
-                headers: { 'x-api-key': key },
-                data: { id }
-            })
+            await withLoading(
+                () => axios.delete(`${API_BASE}/api/talks/delete`, {
+                    headers: { 'x-api-key': key },
+                    data: { id }
+                }),
+                '删除说说中...'
+            )()
             await alert('说说删除成功！')
             return { success: true }
         } catch (err) {

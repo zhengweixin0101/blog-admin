@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { siteConfig } from '@/site.config.js'
+import { withLoading } from './useLoading.js'
 
 export function useArticles() {
     const API_BASE = siteConfig.apiUrl
@@ -20,7 +21,10 @@ export function useArticles() {
 
     // 获取文章列表
     const getList = async () => {
-        const res = await axios.get(`${API_BASE}/api/article/list?posts=all`)
+        const res = await withLoading(
+            () => axios.get(`${API_BASE}/api/article/list?posts=all`),
+            '加载文章列表中...'
+        )()
         articles.value = res.data.map(article => ({
             slug: article.slug,
             title: article.title || '无标题',
@@ -33,7 +37,10 @@ export function useArticles() {
 
     // 获取文章内容
     const getArticle = async (slug) => {
-        const res = await axios.get(`${API_BASE}/api/article/get`, { params: { slug } })
+        const res = await withLoading(
+            () => axios.get(`${API_BASE}/api/article/get`, { params: { slug } }),
+            '加载文章内容中...'
+        )()
         return res.data
     }
 
@@ -41,9 +48,12 @@ export function useArticles() {
     const addArticle = async (article) => {
         try {
             const key = ensureKey()
-            const res = await axios.post(`${API_BASE}/api/article/add`, article, {
-                headers: { 'x-api-key': key }
-            })
+            const res = await withLoading(
+                () => axios.post(`${API_BASE}/api/article/add`, article, {
+                    headers: { 'x-api-key': key }
+                }),
+                '创建文章中...'
+            )()
             return res.data
         } catch (err) {
             handleError(err)
@@ -65,9 +75,12 @@ export function useArticles() {
 
         try {
             const key = ensureKey()
-            const res = await axios.put(`${API_BASE}/api/article/edit`, payload, {
-                headers: { 'x-api-key': key }
-            })
+            const res = await withLoading(
+                () => axios.put(`${API_BASE}/api/article/edit`, payload, {
+                    headers: { 'x-api-key': key }
+                }),
+                '更新文章中...'
+            )()
             return res.data
         } catch (err) {
             handleError(err)
@@ -81,9 +94,12 @@ export function useArticles() {
 
         try {
             const key = ensureKey()
-            const res = await axios.put(`${API_BASE}/api/article/edit-slug`, { oldSlug, newSlug }, {
-                headers: { 'x-api-key': key }
-            })
+            const res = await withLoading(
+                () => axios.put(`${API_BASE}/api/article/edit-slug`, { oldSlug, newSlug }, {
+                    headers: { 'x-api-key': key }
+                }),
+                '修改文章链接中...'
+            )()
             return res.data
         } catch (err) {
             handleError(err)
@@ -95,10 +111,13 @@ export function useArticles() {
     const deleteArticle = async (slug) => {
         try {
             const key = ensureKey()
-            await axios.delete(`${API_BASE}/api/article/delete`, {
-                headers: { 'x-api-key': key },
-                data: { slug }
-            })
+            await withLoading(
+                () => axios.delete(`${API_BASE}/api/article/delete`, {
+                    headers: { 'x-api-key': key },
+                    data: { slug }
+                }),
+                '删除文章中...'
+            )()
             return { success: true }
         } catch (err) {
             handleError(err)

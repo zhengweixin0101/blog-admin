@@ -8,6 +8,7 @@
       <NuxtPage />
     </div>
     <ModalDialog ref="modalRef" />
+    <LoadingSpinner ref="loadingRef" />
     <div
       v-if="showVerifyOverlay"
       class="fixed inset-0 z-50 bg-white dark:bg-black flex items-center justify-center"
@@ -21,12 +22,15 @@
 import { ref, watch, onMounted } from 'vue'
 import Sidebar from '~/components/sidebar.vue'
 import ModalDialog from '~/components/ModalDialog.vue'
+import LoadingSpinner from '~/components/LoadingSpinner.vue'
 import { setModal } from '~/composables/useModal'
+import { setLoading } from '~/composables/useLoading'
 import { useCookie } from '#app'
 import { useRoute } from 'vue-router'
 
 const showVerifyOverlay = ref(true)
 const modalRef = ref(null)
+const loadingRef = ref(null)
 const route = useRoute()
 const verified = useCookie('admin_verified')
 
@@ -35,6 +39,9 @@ if (verified.value) showVerifyOverlay.value = false
 onMounted(() => {
   if (modalRef.value) {
     setModal(modalRef.value)
+  }
+  if (loadingRef.value) {
+    setLoading(loadingRef.value)
   }
 })
 

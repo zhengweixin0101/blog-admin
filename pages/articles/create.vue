@@ -47,6 +47,7 @@ import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useArticles } from '~/composables/useArticles.js'
 import MarkdownEditor from '~/components/MarkdownEditor.vue'
 import { siteConfig } from '~/site.config.js'
+import { withLoading } from '~/composables/useLoading.js'
 
 const router = useRouter()
 const { addArticle } = useArticles()
@@ -141,16 +142,19 @@ const generateSummary = async () => {
       return
     }
 
-    const response = await fetch(siteConfig.aiSummary, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey
-      },
-      body: JSON.stringify({
-        content: article.value.content
-      })
-    })
+    const response = await withLoading(
+      () => fetch(siteConfig.aiSummary, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey
+        },
+        body: JSON.stringify({
+          content: article.value.content
+        })
+      }),
+      'AI生成摘要中...'
+    )()
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
