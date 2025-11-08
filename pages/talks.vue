@@ -364,6 +364,7 @@ import { onMounted, onBeforeUnmount, ref } from 'vue'
 import axios from 'axios'
 import { useTalks } from '@/composables/useTalks'
 import { useS3 } from '@/composables/useS3'
+import { alert, confirm } from '@/composables/useModal'
 
 import { Fancybox } from '@fancyapps/ui'
 import '@fancyapps/ui/dist/fancybox/fancybox.css'
@@ -424,16 +425,16 @@ const handleFileSelect = async (event, prefix = '', mode = 'new') => {
   })
 
   if (imageFiles.length === 0) {
-    alert('请选择图片文件！')
+    await alert('请选择图片文件！')
     return
   }
 
   if (imageFiles.length < files.length) {
-    alert(`已自动忽略非图片文件，仅上传 ${imageFiles.length} 张图片`)
+    await alert(`已自动忽略非图片文件，仅上传 ${imageFiles.length} 张图片`)
   }
 
   if (!s3 || !s3Config.value || !s3Config.value.bucket) {
-    alert('请先前往图片管理页面进行配置')
+    await alert('请先前往图片管理页面进行配置')
     return []
   }
 
@@ -461,7 +462,7 @@ const handleFileSelect = async (event, prefix = '', mode = 'new') => {
     })
   } catch (e) {
     console.error(e)
-    alert('⚠️ 上传失败，请重试')
+    await alert('⚠️ 上传失败，请重试')
   } finally {
     uploadLoading.value = false
   }
@@ -755,7 +756,10 @@ const loadTalks = async (reset = false) => {
 
 // 添加新说说
 const addNewTalk = async () => {
-  if (!newContent.value.trim()) return alert('内容不能为空')
+  if (!newContent.value.trim()) {
+    await alert('内容不能为空')
+    return
+  }
 
   const { pureContent, location, tags, links, imgs } = parseContent(newContent.value)
   const addTalk = async (talk) => {
@@ -770,7 +774,8 @@ const addNewTalk = async () => {
 
 // 删除说说
 const removeTalk = async (id) => {
-  if (!confirm('确定删除这条说说吗？')) return
+  const confirmed = await confirm('确定删除这条说说吗？')
+  if (!confirmed) return
   const res = await deleteTalk(id)
   if (res && res.success) {
     await loadTalks()
@@ -803,7 +808,10 @@ const cancelEdit = () => {
 
 // 保存编辑
 const saveEdit = async (id) => {
-  if (!editingContent.value.trim()) return alert('内容不能为空')
+  if (!editingContent.value.trim()) {
+    await alert('内容不能为空')
+    return
+  }
 
   const { pureContent, location, tags, links, imgs } = parseContent(editingContent.value)
   const res = await editTalk({ id, content: pureContent, location, tags, links, imgs })
@@ -816,12 +824,12 @@ const saveEdit = async (id) => {
 
 // 从 Memos 同步
 const syncFromMemos = async () => {
-    const apiUrl = prompt('请输入 Memos API 地址（https://example.com/api/v1/memos）')
-    if (!apiUrl) return alert('未输入 API 地址')
+    const apiUrl = await prompt('请输入 Memos API 地址（https://example.com/api/v1/memos）')
+    if (!apiUrl) return await alert('未输入 API 地址')
 
     try {
         const res = await axios.get(apiUrl)
-        if (!res.data || !res.data.memos) return alert('API 返回格式不正确！可能是新版本更改了接口，暂时只适配v1。')
+        if (!res.data || !res.data.memos) return await alert('API 返回格式不正确！可能是新版本更改了接口，暂时只适配v1。')
 
         const memos = res.data.memos
         let successCount = 0
@@ -849,10 +857,10 @@ const syncFromMemos = async () => {
         }
 
         await getTalks()
-        alert(`同步完成，共导入 ${successCount} 条说说。附件暂不支持导入！`)
+        await alert(`同步完成，共导入 ${successCount} 条说说。附件暂不支持导入！`)
     } catch (err) {
         console.error(err)
-        alert('同步失败，请检查 API 地址或网络连接')
+        await alert('同步失败，请检查 API 地址或网络连接')
     }
 }
 
@@ -873,16 +881,18 @@ onMounted(() => {
 })
 
 // 快捷键
-const handleEditorKeyDown = (e) => {
+const handleEditorKeyDown = async (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
     e.preventDefault()
 
     if (editingId.value !== null) {
-      if (confirm('确定保存当前编辑吗？')) {
+      const confirmed = await confirm('确定保存当前编辑吗？')
+      if (confirmed) {
         saveEdit(editingId.value)
       }
     } else if (newContent.value.trim()) {
-      if (confirm('确定添加新的说说吗？')) {
+      const confirmed = await confirm('确定添加新的说说吗？')
+      if (confirmed) {
         addNewTalk()
       }
     }

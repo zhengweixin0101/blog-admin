@@ -1,9 +1,13 @@
 <template>
-  <div class="flex h-screen">
+  <div v-if="route.path === '/verify'" class="h-screen">
+    <NuxtPage />
+  </div>
+  <div v-else class="flex h-screen">
     <Sidebar />
     <div class="flex-1 overflow-x ml-20 md:ml-40 pl-8">
       <NuxtPage />
     </div>
+    <ModalDialog ref="modalRef" />
     <div
       v-if="showVerifyOverlay"
       class="fixed inset-0 z-50 bg-white dark:bg-black flex items-center justify-center"
@@ -14,16 +18,25 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import Sidebar from '~/components/sidebar.vue'
+import ModalDialog from '~/components/ModalDialog.vue'
+import { setModal } from '~/composables/useModal'
 import { useCookie } from '#app'
 import { useRoute } from 'vue-router'
 
 const showVerifyOverlay = ref(true)
+const modalRef = ref(null)
 const route = useRoute()
 const verified = useCookie('admin_verified')
 
 if (verified.value) showVerifyOverlay.value = false
+
+onMounted(() => {
+  if (modalRef.value) {
+    setModal(modalRef.value)
+  }
+})
 
 watch(
   () => route.fullPath,

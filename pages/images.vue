@@ -144,6 +144,7 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import { useS3 } from '@/composables/useS3.js'
+import { alert, confirm } from '@/composables/useModal'
 import { Fancybox } from '@fancyapps/ui'
 import '@fancyapps/ui/dist/fancybox/fancybox.css'
 
@@ -297,12 +298,12 @@ async function uploadFiles(selectedFiles) {
   )
 
   if (imageFiles.length === 0) {
-    alert('请选择图片文件！')
+    await alert('请选择图片文件！')
     return
   }
 
   if (imageFiles.length < selectedFiles.length) {
-    alert(`已自动忽略非图片文件，共上传 ${imageFiles.length} 张图片`)
+    await alert(`已自动忽略非图片文件，共上传 ${imageFiles.length} 张图片`)
   }
 
   try {
@@ -320,11 +321,11 @@ async function uploadFiles(selectedFiles) {
 
     if (urls.length > 0 && navigator.clipboard) {
       await navigator.clipboard.writeText(urls.join('\n'))
-      alert(`上传成功！共 ${urls.length} 张图片，链接已复制到剪贴板。`)
+      await alert(`上传成功！共 ${urls.length} 张图片，链接已复制到剪贴板。`)
     }
   } catch (e) {
     console.error(e)
-    alert('上传失败，请重试')
+    await alert('上传失败，请重试')
   }
 }
 
@@ -333,7 +334,7 @@ async function handleDeleteFile(file) {
   error.value = ''
   try {
     await s3.deleteFile({ fileKey: file.key, cfg: s3Config.value })
-    alert('图片删除成功！')
+    await alert('图片删除成功！')
     await listFiles()
   } catch (e) {
     console.error(e)
@@ -353,41 +354,45 @@ function extractKey(url) {
 }
 
 async function handleDeleteByUrl() {
-  if (!deleteUrl.value.trim()) return alert('请输入图片链接')
+  if (!deleteUrl.value.trim()) {
+    await alert('请输入图片链接')
+    return
+  }
 
   const key = extractKey(deleteUrl.value.trim())
   try {
     loading.value = true
     await s3.deleteFile({ fileKey: key, cfg: s3Config.value })
-    alert('已成功执行删除操作，但无法判断文件是否存在，请手动检查！')
+    await alert('已成功执行删除操作，但无法判断文件是否存在，请手动检查！')
     deleteUrl.value = ''
     await listFiles()
   } catch (e) {
     console.error(e)
-    alert('删除失败，请检查链接或权限是否正确')
+    await alert('删除失败，请检查链接或权限是否正确')
   } finally {
     loading.value = false
   }
 }
 
-function clearConfig() {
-  if (confirm('确定要删除配置吗？此操作不可逆，清除后需重新填写！')) {
+async function clearConfig() {
+  const confirmed = await confirm('确定要删除配置吗？此操作不可逆，清除后需重新填写！')
+  if (confirmed) {
     localStorage.removeItem('s3_config')
     isConfigured.value = false
     files.value = []
   }
 }
 
-function copyLink(link) {
+async function copyLink(link) {
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(link).then(() => {
-      alert('链接已复制到剪贴板！')
-    }).catch(err => {
+    navigator.clipboard.writeText(link).then(async () => {
+      await alert('链接已复制到剪贴板！')
+    }).catch(async (err) => {
       console.error('复制失败:', err)
-      alert('复制失败，请手动复制链接！')
+      await alert('复制失败，请手动复制链接！')
     })
   } else {
-    alert('您的浏览器不支持剪贴板API，请手动复制链接')
+    await alert('您的浏览器不支持剪贴板API，请手动复制链接')
   }
 }
 

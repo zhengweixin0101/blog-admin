@@ -2,6 +2,7 @@ import CryptoJS from 'crypto-js'
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { Upload } from "@aws-sdk/lib-storage"
 import { siteConfig } from '@/site.config.js'
+import { confirm } from '@/composables/useModal'
 
 export function useS3({ config, apiKey, onProgress } = {}) {
     // 获取压缩配置
@@ -154,7 +155,7 @@ export function useS3({ config, apiKey, onProgress } = {}) {
         
         try {
             // 询问用否要压缩
-            const shouldCompress = confirm(`文件 "${file.name}" 大小为 ${formatFileSize(file.size)}，是否进行压缩？
+            const shouldCompress = await confirm(`文件 "${file.name}" 大小为 ${formatFileSize(file.size)}，是否进行压缩？
 
 压缩可以减小文件大小，但可能会降低图片质量。（取消则上传原图）`)
             
@@ -172,7 +173,7 @@ export function useS3({ config, apiKey, onProgress } = {}) {
 压缩率: ${compressedResult.compressionRatio.toFixed(1)}%
 
 请选择操作：`
-            const userChoice = confirm(`${message}
+            const userChoice = await confirm(`${message}
 点击"确定"使用压缩版本，点击"取消"取消上传该文件`)
             
             if (userChoice) {
@@ -183,7 +184,7 @@ export function useS3({ config, apiKey, onProgress } = {}) {
             
         } catch (error) {
             console.error('压缩失败:', error)
-            const useOriginal = confirm(`文件 "${file.name}" 压缩失败，是否使用原文件上传？
+            const useOriginal = await confirm(`文件 "${file.name}" 压缩失败，是否使用原文件上传？
 
 点击"确定"使用原文件上传，点击"取消"取消上传该文件`)
             

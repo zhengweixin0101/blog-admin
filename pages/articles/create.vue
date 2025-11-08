@@ -78,9 +78,10 @@ const hasChanges = () => {
 }
 
 // 页面离开拦截
-onBeforeRouteLeave((to, from, next) => {
+onBeforeRouteLeave(async (to, from, next) => {
   if (hasChanges() && !isSaved.value) {
-    if (confirm('您有未保存的修改，确定要离开吗？')) {
+    const confirmed = await confirm('您有未保存的修改，确定要离开吗？')
+    if (confirmed) {
       next()
     } else {
       next(false) // 阻止导航
@@ -114,7 +115,7 @@ const goBack = () => {
 // 创建文章
 const create = async () => {
   if (!article.value.title || !article.value.slug) {
-    alert('标题和 Slug 不能为空')
+    await alert('标题和 Slug 不能为空')
     return
   }
 
@@ -122,21 +123,21 @@ const create = async () => {
   if (!result) return
 
   isSaved.value = true
-  alert('创建成功')
+  await alert('创建成功')
   router.push('/articles')
 }
 
 // 生成AI摘要
 const generateSummary = async () => {
   if (!article.value.content.trim()) {
-    alert('请先输入文章内容')
+    await alert('请先输入文章内容')
     return
   }
 
   try {
     const apiKey = localStorage.getItem('api_key')
     if (!apiKey) {
-      alert('请先设置API密钥')
+      await alert('请先设置API密钥')
       return
     }
 
@@ -159,13 +160,13 @@ const generateSummary = async () => {
     
     if (result.summary) {
       article.value.description = result.summary
-      alert('摘要生成成功！')
+      await alert('摘要生成成功！')
     } else {
-      alert('生成摘要失败：未返回有效摘要')
+      await alert('生成摘要失败：未返回有效摘要')
     }
   } catch (error) {
     console.error('生成摘要失败:', error)
-    alert('生成摘要失败，请检查网络连接和API密钥')
+    await alert('生成摘要失败，请检查网络连接和API密钥')
   }
 }
 

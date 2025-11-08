@@ -3,6 +3,7 @@ import CryptoJS from 'crypto-js'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { siteConfig } from '@/site.config.js'
+import { alert, confirm } from '@/composables/useModal'
 
 export function useTalks() {
     const API_BASE = siteConfig.apiUrl
@@ -49,7 +50,7 @@ export function useTalks() {
             const res = await axios.post(`${API_BASE}/api/talks/add`, payload, {
                 headers: { 'x-api-key': key }
             })
-            if (showAlert) alert('说说添加成功！')
+            if (showAlert) await alert('说说添加成功！')
             return res.data
         } catch (err) {
             handleError(err)
@@ -59,7 +60,10 @@ export function useTalks() {
 
     // 编辑说说
     const editTalk = async (talk) => {
-        if (!talk.id) return alert('缺少 ID，无法更新说说'), null
+        if (!talk.id) {
+            await alert('缺少 ID，无法更新说说')
+            return null
+        }
         try {
             const key = ensureKey()
             if (talk.links) {
@@ -70,7 +74,7 @@ export function useTalks() {
             const res = await axios.put(`${API_BASE}/api/talks/edit`, talk, {
                 headers: { 'x-api-key': key }
             })
-            alert('说说修改成功！')
+            await alert('说说修改成功！')
             return res.data
         } catch (err) {
             handleError(err)
@@ -86,7 +90,7 @@ export function useTalks() {
                 headers: { 'x-api-key': key },
                 data: { id }
             })
-            alert('说说删除成功！')
+            await alert('说说删除成功！')
             return { success: true }
         } catch (err) {
             handleError(err)
@@ -95,10 +99,13 @@ export function useTalks() {
     }
 
     // 导出说说
-    const exportMemos = () => {
-        if (!talks.value || talks.value.length === 0) return alert('暂无说说可导出')
+    const exportMemos = async () => {
+        if (!talks.value || talks.value.length === 0) {
+            await alert('暂无说说可导出')
+            return
+        }
 
-        const password = prompt('设置导入密钥密钥（留空则不加密）', '');
+        const password = await prompt('设置导入密钥密钥（留空则不加密）', '');
         if (password === null) {
             return;
         }
@@ -127,7 +134,7 @@ export function useTalks() {
             if (!file) return
 
             try {
-                const password = prompt('请输入入密钥密钥（未加密则留空）', '');
+                const password = await prompt('请输入入密钥密钥（未加密则留空）', '');
                 if (password === null) {
                     return;
                 }
@@ -140,12 +147,16 @@ export function useTalks() {
                         text = bytes.toString(CryptoJS.enc.Utf8)
                         if (!text) throw new Error('解密失败，请检查密码！')
                     } catch (err) {
-                        return alert('解密失败，请检查密码！')
+                        await alert('解密失败，请检查密码！')
+                        return
                     }
                 }
 
                 let importedTalks = JSON.parse(text)
-                if (!Array.isArray(importedTalks)) return alert('密钥错误或导入文件格式不正确！')
+                if (!Array.isArray(importedTalks)) {
+                    await alert('密钥错误或导入文件格式不正确！')
+                    return
+                }
 
                 importedTalks.sort((a, b) => a.id - b.id)
 
@@ -177,7 +188,7 @@ export function useTalks() {
 
                 // 询问是否导入重复内容
                 if (duplicateTalks.length > 0) {
-                    const confirmDup = confirm(
+                    const confirmDup = await confirm(
                         `检测到 ${duplicateTalks.length} 条重复说说。\n是否继续导入这些重复内容？`
                     )
                     if (confirmDup) {
@@ -193,34 +204,34 @@ export function useTalks() {
                 }
 
                 await getTalks()
-                alert(`导入完成！\n成功导入：${successCount} 条${duplicateCount ? `\n重复内容：${duplicateCount} 条` : ''}`)
+                await alert(`导入完成！\n成功导入：${successCount} 条${duplicateCount ? `\n重复内容：${duplicateCount} 条` : ''}`)
             } catch (err) {
                 console.error(err)
-                alert('导入失败，请检查密钥或文件格式是否正确！')
+                await alert('导入失败，请检查密钥或文件格式是否正确！')
             }
         }
         input.click()
     }
 
 
-    function handleError(err) {
+    async function handleError(err) {
         if (err.response) {
             const { status } = err.response
             if (status === 401) {
-                alert('API Key 错误或已过期，请重新验证')
+                await alert('API Key 错误或已过期，请重新验证')
                 localStorage.removeItem('api_key')
                 localStorage.removeItem('admin_verified')
                 router.push('/verify')
             } else if (status === 404) {
-                alert('说说不存在，请检查 ID 是否正确')
+                await alert('说说不存在，请检查 ID 是否正确')
             } else if (status === 429) {
-                alert('错误次数过多，IP 已封禁十年')
+                await alert('错误次数过多，IP 已封禁十年')
             } else {
-                alert('操作失败，请稍后重试')
+                await alert('操作失败，请稍后重试')
             }
         } else {
             console.error(err)
-            alert('网络错误或服务器异常')
+            await alert('网络错误或服务器异常')
         }
     }
 

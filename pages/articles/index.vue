@@ -42,9 +42,9 @@
             </span>
           </div>
 
-          <div class="flex gap-2 mb-4">
-            <NuxtLink :to="`/articles/edit/${article.slug}`" class="no-underline px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">编辑</NuxtLink>
-            <button @click="handleDelete(article.slug)" class="px-3 py-1 bg-red-500 text-white rounded border-none hover:bg-red-600">删除</button>
+          <div class="flex gap-2 mb-4 justify-end">
+            <NuxtLink :to="`/articles/edit/${article.slug}`" class="text-14px no-underline px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">编辑</NuxtLink>
+            <button @click="handleDelete(article.slug)" class="cursor-pointer px-3 py-1 bg-red-500 text-white rounded border-none hover:bg-red-600">删除</button>
           </div>
         </div>
       </div>
@@ -68,6 +68,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useArticles } from '~/composables/useArticles.js'
+import { alert, confirm } from '@/composables/useModal'
 import { siteConfig } from '@/site.config.js'
 
 const { articles, getList, deleteArticle, editSlug } = useArticles()
@@ -78,22 +79,24 @@ onMounted(() => {
 
 // 删除文章
 const handleDelete = async (slug) => {
-  if (!confirm('确定删除吗？')) return
+  const confirmed = await confirm('确定删除吗？')
+  if (!confirmed) return
   const result = await deleteArticle(slug)
   if (!result) return
-  alert('删除成功')
+  await alert('删除成功')
   getList()
 }
 
 // 修改 slug
 const handleEditSlug = async (article) => {
-  const newSlug = prompt('请输入新的 slug:', article.slug)
+  const newSlug = await prompt('请输入新的 slug:', article.slug)
   if (!newSlug || newSlug === article.slug) return
-  if (!confirm(`确认将 slug "${article.slug}" 修改为 "${newSlug}" 吗？`)) return
+  const confirmed = await confirm(`确认将 slug "${article.slug}" 修改为 "${newSlug}" 吗？`)
+  if (!confirmed) return
 
   const result = await editSlug(article.slug, newSlug)
   if (!result) return
-  alert('修改成功')
+  await alert('修改成功')
   getList()
 }
 
@@ -110,12 +113,12 @@ const closePanel = () => {
   showPanel.value = false
 }
 
-const selectSource = (source) => {
-  alert(`都说了没有实际功能，你还想干啥？`)
+const selectSource = async (source) => {
+  await alert(`都说了没有实际功能，你还想干啥？`)
   closePanel()
-  alert(`喜欢点是吧？那就一只点吧。`)
+  await alert(`喜欢点是吧？那就一只点吧。`)
   for (let i = 1; i <= 999999; i++) {
-    alert(`第 ${i} 次`)
+    await alert(`第 ${i} 次`)
   }
 }
 </script>

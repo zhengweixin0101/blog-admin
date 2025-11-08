@@ -60,7 +60,7 @@ function getS3Client(config) {
 async function handleUploadImg(files, callback) {
   const config = getS3Config()
   if (!config) {
-    alert('S3 配置缺失，请先在图片管理页面填写并保存 S3 配置！')
+    await alert('S3 配置缺失，请先在图片管理页面填写并保存 S3 配置！')
     return
   }
   const uploadedUrls = []
@@ -70,7 +70,7 @@ async function handleUploadImg(files, callback) {
 
   for (const file of files) {
     if (!/\.(png|jpe?g|gif|webp|svg)$/i.test(file.name)) {
-      alert(`文件 ${file.name} 不是图片，已跳过`)
+      await alert(`文件 ${file.name} 不是图片，已跳过`)
       continue
     }
     const ext = file.name.substring(file.name.lastIndexOf('.')) || ''
@@ -93,14 +93,14 @@ async function handleUploadImg(files, callback) {
       uploadedUrls.push(url)
 
     } catch (err) {
-      alert(`上传 ${file.name} 失败`)
+      await alert(`上传 ${file.name} 失败`)
       break
     }
   }
 
   if (uploadedUrls.length > 0) {
     callback(uploadedUrls)
-    alert(`上传成功！共 ${uploadedUrls.length} 张图片，链接已复制到剪贴板。`)
+    await alert(`上传成功！共 ${uploadedUrls.length} 张图片，链接已复制到剪贴板。`)
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(uploadedUrls.join('\n'))
     }
