@@ -1,8 +1,17 @@
 import CryptoJS from 'crypto-js'
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { Upload } from "@aws-sdk/lib-storage"
+import { siteConfig } from '@/site.config.js'
 
 export function useS3({ config, apiKey, onProgress } = {}) {
+    // 获取压缩配置
+    const compressionConfig = siteConfig.imageCompression || {
+        enabled: false,
+        quality: 0.85,
+        maxWidth: 1920,
+        minSize: 80 * 1024
+    }
+
     // 加密配置
     function encryptConfig(configObj) {
         if (!apiKey) {
@@ -66,7 +75,8 @@ export function useS3({ config, apiKey, onProgress } = {}) {
     }
 
     // 压缩图片
-    async function compressImage(file, quality = 0.85, maxWidth = 1920) {
+    async function compressImage(file) {
+        const { quality, maxWidth } = compressionConfig
         return new Promise((resolve, reject) => {
             const reader = new FileReader()
             reader.onload = (e) => {
@@ -128,13 +138,17 @@ export function useS3({ config, apiKey, onProgress } = {}) {
     
     // 处理单个文件的压缩流程
     async function processFileCompression(file) {
+        if (!compressionConfig.enabled) {
+            return { action: 'skip', file }
+        }
+        
         // 只对图片文件进行压缩
         if (!file.type.startsWith('image/')) {
             return { action: 'skip', file }
         }
         
         // 小文件不压缩
-        if (file.size < 80 * 1024) {
+        if (file.size < compressionConfig.minSize) {
             return { action: 'skip', file }
         }
         
@@ -142,7 +156,7 @@ export function useS3({ config, apiKey, onProgress } = {}) {
             // 询问用否要压缩
             const shouldCompress = confirm(`文件 "${file.name}" 大小为 ${formatFileSize(file.size)}，是否进行压缩？
 
-压缩可以减小文件大小，但可能会降低图片质量。`)
+压缩可以减小文件大小，但可能会降低图片质量。（取消则上传原图）`)
             
             if (!shouldCompress) {
                 return { action: 'skip', file }
@@ -191,7 +205,8 @@ export function useS3({ config, apiKey, onProgress } = {}) {
         for (const file of files) {
             const result = await processFileCompression(file)
             if (result.action === 'cancel') {
-                throw new Error('上传已取消')
+                // 用户取消单个文件，跳过该文件继续处理其他文件
+                continue
             }
             if (result.action !== 'cancel') {
                 processedFiles.push(result.file)
