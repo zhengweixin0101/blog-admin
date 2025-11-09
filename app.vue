@@ -1,5 +1,5 @@
 <template>
-  <div v-if="route.path === '/verify'" class="h-screen">
+  <div v-if="route.path === '/verify'">
     <NuxtPage />
   </div>
   <div v-else class="flex h-screen">

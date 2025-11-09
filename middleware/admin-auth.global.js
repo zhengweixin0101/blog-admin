@@ -5,6 +5,6 @@ export default defineNuxtRouteMiddleware((to) => {
 
     const verified = useCookie('admin_verified')
     if (!verified.value) {
-        return navigateTo('/verify')
+        window.location.href = '/verify' 
     }
 })
