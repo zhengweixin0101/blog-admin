@@ -142,7 +142,7 @@
             <div
               v-for="talk in talks"
               :key="talk.id"
-              class="p-4 bg-white dark:bg-gray-800 rounded shadow"
+              class="p-4 bg-white rounded shadow"
             >
               <!-- 编辑模式 -->
               <div v-if="editingId === talk.id">
@@ -262,12 +262,12 @@
               <!-- 显示模式 -->
               <div v-else @dblclick="startEdit(talk)">
                 <!-- 时间 -->
-                <div class="text-sm text-gray-500 dark:text-gray-400">
+                <div class="text-sm text-gray-500">
                   {{ formatDate(talk.created_at) }}
                 </div>
 
                 <!-- 内容 -->
-                <p class="text-gray-900 dark:text-gray-100 whitespace-pre-line" v-html="renderContent(talk)"></p>
+                <p class="text-gray-900 whitespace-pre-line" v-html="renderContent(talk)"></p>
 
                 <!-- 图片部分 -->
                 <div v-if="talk.imgs && talk.imgs.length > 0" class="flex flex-wrap gap-2">
@@ -334,7 +334,7 @@
               </div>
             </div>
 
-            <div v-if="talks.length === 0" class="text-gray-500 dark:text-gray-400 text-center py-10">
+            <div v-if="talks.length === 0" class="text-gray-500 text-center py-10">
               暂无说说
             </div>
 
@@ -670,7 +670,7 @@ function renderContent(talk) {
   // 处理代码块
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
     const languageClass = lang ? `language-${lang}` : ''
-    return `<pre class="bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto"><code class="${languageClass}">${escapeHtml(code)}</code></pre>`
+    return `<pre class="bg-gray-100 p-2 rounded overflow-auto"><code class="${languageClass}">${escapeHtml(code)}</code></pre>`
   })
 
   // 加粗

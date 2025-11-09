@@ -11,7 +11,7 @@
     <LoadingSpinner ref="loadingRef" />
     <div
       v-if="showVerifyOverlay"
-      class="fixed inset-0 z-50 bg-white dark:bg-black flex items-center justify-center"
+      class="fixed inset-0 z-50 bg-white flex items-center justify-center"
     >
       <p>输入访问验证密钥后才能继续访问......</p>
     </div>

@@ -7,7 +7,7 @@
       
       <form @submit.prevent="handleSubmit" class="space-y-6">
         <div>
-          <label for="apiKey" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label for="apiKey" class="block text-sm font-medium text-gray-700 mb-2">
             请输入访问密钥以继续：
           </label>
           <input
@@ -21,8 +21,8 @@
           />
         </div>
         
-        <div v-if="errorMessage" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3">
-          <p class="text-sm text-red-600 dark:text-red-400">{{ errorMessage }}</p>
+        <div v-if="errorMessage" class="bg-red-50 border border-red-200 rounded-md p-3">
+          <p class="text-sm text-red-600">{{ errorMessage }}</p>
         </div>
         
         <button

@@ -1,7 +1,7 @@
 <template>
   <div class="p-8">
     <h1 class="text-2xl font-bold mb-6">图片管理</h1>
-    <div v-if="!isConfigured" class="max-w-md mx-auto bg-gray-100 dark:bg-gray-800 p-6 rounded shadow">
+    <div v-if="!isConfigured" class="max-w-md mx-auto bg-gray-100 p-6 rounded shadow">
       <h2 class="text-xl font-semibold mb-4 text-center">配置 S3 存储信息</h2>
       <p class="text-sm text-center">基于 Cloudflare R2 ，其他存储不保证可用性</p>
       <div>
@@ -71,7 +71,7 @@
       </div>
       <div
         ref="uploadArea"
-        class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg mb-6 p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+        class="border-2 border-dashed border-gray-300 rounded-lg mb-6 p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
         @click="selectFile"
         @dragover.prevent="dragOver = true"
         @dragleave.prevent="dragOver = false"
@@ -111,7 +111,7 @@
           <div
             v-for="file in files"
             :key="file.key"
-            class="flex items-center justify-between p-2 border rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+            class="flex items-center justify-between p-2 border rounded hover:bg-gray-50"
           >
             <span class="truncate">{{ file.key }}</span>
             <div class="flex gap-2">

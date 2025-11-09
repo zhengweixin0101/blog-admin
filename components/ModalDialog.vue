@@ -1,8 +1,8 @@
 <template>
   <div v-if="visible" class="fixed inset-0 bg-black/40 flex items-center justify-center z-10001">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-96 relative">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-96 relative">
       <h2 class="text-lg font-bold mb-4 text-center">{{ title }}</h2>
-      <p class="text-gray-600 dark:text-gray-300 mb-4 whitespace-pre-line">{{ message }}</p>
+      <p class="text-gray-600 mb-4 whitespace-pre-line">{{ message }}</p>
 
       <input
         v-if="type === 'prompt'"

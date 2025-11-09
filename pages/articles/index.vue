@@ -52,12 +52,12 @@
 
     <!-- 操作面板弹窗 -->
     <div v-if="showPanel" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-96 relative">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-96 relative">
         <h2 class="text-lg font-bold mb-4 text-center">{{ panelType === 'export' ? '导出文章' : '导入文章' }}</h2>
         <div class="space-y-3">
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition cursor-pointer" @click="selectSource('1')">一个界面而已，没有实际功能。</button>
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition cursor-pointer" @click="selectSource('2')">一个界面而已，没有实际功能。</button>
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition cursor-pointer" @click="selectSource('3')">一个界面而已，没有实际功能。</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer" @click="selectSource('1')">一个界面而已，没有实际功能。</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer" @click="selectSource('2')">一个界面而已，没有实际功能。</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer" @click="selectSource('3')">一个界面而已，没有实际功能。</button>
         </div>
         <button @click="closePanel" class="absolute top-2 right-3 bg-transparent border-none text-lg text-gray-400 hover:text-gray-600 cursor-pointer">✕</button>
       </div>
