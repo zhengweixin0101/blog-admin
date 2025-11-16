@@ -5,7 +5,7 @@ export const siteConfig = {
     // AI 摘要服务地址
     // 我使用的是n8n调用gemini的接口
     // 你可以自行修改源代码或参考我的流程部署n8n
-    aiSummary: 'https://n8n-etxwjkxu.us-east-1.clawcloudrun.com/webhook/f748fe8f-4be2-439c-8e45-c42bfd298dc9',
+    aiSummary: 'https://workflow.zhengweixin.top/webhook/dd978489-1e8d-42ad-b957-813e37cad0dc',
     
     // 图片压缩配置
     imageCompression: {
