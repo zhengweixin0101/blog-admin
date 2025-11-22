@@ -77,9 +77,9 @@
           <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="handleExportEncrypted">导出为加密文件</button>
         </div>
         <div v-if="panelType === 'import'" class="space-y-3">
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="">从 Markdown 导入</button>
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="">从 Json 导入</button>
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="">从加密文件导入</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="handleImportMarkdown">从 Markdown 导入</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="handleImportJSON">从 Json 导入</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="handleImportEncrypted">从加密文件导入</button>
         </div>
         <button @click="closePanel" class="absolute top-2 right-3 bg-transparent border-none text-lg text-gray-400 hover:text-gray-600 cursor-pointer">✕</button>
       </div>
@@ -96,7 +96,7 @@ import { siteConfig } from '@/site.config.js'
 import { useRouter } from 'vue-router'
 
 const { articles, getList, deleteArticle, editSlug } = useArticles()
-const { exportToMarkdown, exportToJSON, exportToEncrypted } = useArticleImportExport()
+const { exportToMarkdown, exportToJSON, exportToEncrypted, importFromMarkdown, importFromMarkdownZip, importFromJSON, importFromEncrypted } = useArticleImportExport()
 
 const router = useRouter()
 const goCreate = () => {
@@ -115,6 +115,32 @@ const handleDelete = async (slug) => {
   if (!result) return
   await alert('删除成功')
   getList()
+}
+
+// 删除全部文章
+const deleteAll = async () => {
+  // 获取文章数组
+  const arr = Array.isArray(articles) ? articles : (articles?.value || [])
+  if (!arr.length) {
+    await alert('当前没有文章可删除。')
+    return
+  }
+
+  const confirmed = await confirm('确定删除全部文章？此操作不可撤销。')
+  if (!confirmed) return
+
+  // 逐条删除
+  for (const item of arr) {
+    const slug = item?.slug ?? item
+    try {
+      await deleteArticle(slug)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  await alert('全部文章已删除。')
+  await getList()
 }
 
 // 修改 slug
@@ -185,29 +211,98 @@ const handleExportEncrypted = async () => {
   }
 }
 
-// 删除全部文章
-const deleteAll = async () => {
-  // 获取文章数组
-  const arr = Array.isArray(articles) ? articles : (articles?.value || [])
-  if (!arr.length) {
-    await alert('当前没有文章可删除。')
-    return
+// 从 Markdown 导入
+const handleImportMarkdown = async () => {
+  closePanel()
+
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.zip,.md,.markdown'
+  input.multiple = false
+  
+  input.onchange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    
+    let successCount = 0
+    let failCount = 0
+    
+    // 检查文件类型
+    if (file.name.endsWith('.zip')) {
+      // 处理压缩包
+      const result = await importFromMarkdownZip(file)
+      if (result) {
+        successCount = result.successCount
+        failCount = result.failCount
+      } else {
+        failCount = 1
+      }
+    } else if (file.name.endsWith('.md') || file.name.endsWith('.markdown')) {
+      // 处理单个 MD 文件
+      const result = await importFromMarkdown(file)
+      if (result) {
+        successCount = 1
+      } else {
+        failCount = 1
+      }
+    } else {
+      await alert('不支持的文件类型，请选择 .md/.markdown 文件或 .zip 压缩包')
+      return
+    }
+    
+    if (failCount > 0) {
+      await alert(`导入完成！成功 ${successCount} 篇文章，失败 ${failCount} 篇文章。`)
+    } else {
+      await alert(`导入成功！共导入 ${successCount} 篇文章。`)
+    }
+
+    getList()
   }
+  
+  input.click()
+}
 
-  const confirmed = await confirm('确定删除全部文章？此操作不可撤销。')
-  if (!confirmed) return
-
-  // 逐条删除
-  for (const item of arr) {
-    const slug = item?.slug ?? item
-    try {
-      await deleteArticle(slug)
-    } catch (e) {
-      console.error(e)
+// 从 JSON 导入
+const handleImportJSON = async () => {
+  closePanel()
+  
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.json'
+  
+  input.onchange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    
+    const result = await importFromJSON(file)
+    if (result) {
+      getList()
     }
   }
+  
+  input.click()
+}
 
-  await alert('全部文章已删除。')
-  await getList()
+// 从加密文件导入
+const handleImportEncrypted = async () => {
+  closePanel()
+  
+  await alert('将使用本站的API密钥进行解密，请确保密钥与导出时一致！')
+  
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '*'
+  
+  input.onchange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    
+    const result = await importFromEncrypted(file)
+    if (result) {
+      getList()
+    }
+  }
+  
+  input.click()
 }
 </script>

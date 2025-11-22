@@ -225,10 +225,315 @@ published: ${article.published !== undefined ? article.published : false}
         return btoa(String.fromCharCode(...encryptedBytes))
     }
 
+    // XOR解密函数
+    const xorDecrypt = (encryptedData, key) => {
+        try {
+            // 从Base64转换回字节数组
+            const encryptedBytes = new Uint8Array(
+                atob(encryptedData).split('').map(char => char.charCodeAt(0))
+            )
+            
+            const keyBytes = new TextEncoder().encode(key)
+            
+            // 解密
+            const decryptedBytes = encryptedBytes.map((byte, i) => byte ^ keyBytes[i % keyBytes.length])
+            
+            // 转换回字符串
+            return new TextDecoder().decode(decryptedBytes)
+        } catch (err) {
+            console.error('解密失败:', err)
+            return null
+        }
+    }
+
+    // 解析 Markdown frontmatter
+    const parseFrontmatter = (content) => {
+        const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/
+        const match = content.match(frontmatterRegex)
+        
+        if (!match) {
+            return null
+        }
+        
+        const frontmatterText = match[1]
+        const articleContent = match[2]
+        
+        // 解析 frontmatter
+        const frontmatter = {}
+        const lines = frontmatterText.split('\n')
+        
+        for (const line of lines) {
+            const colonIndex = line.indexOf(':')
+            if (colonIndex > 0) {
+                const key = line.substring(0, colonIndex).trim()
+                let value = line.substring(colonIndex + 1).trim()
+                
+                // 移除引号
+                if ((value.startsWith('"') && value.endsWith('"')) || 
+                    (value.startsWith("'") && value.endsWith("'"))) {
+                    value = value.slice(1, -1)
+                }
+                
+                // 处理布尔值
+                if (value === 'true') value = true
+                if (value === 'false') value = false
+                
+                // 处理数组（tags）
+                if (key === 'tags' && value.startsWith('-')) {
+                    const tags = []
+                    const tagLines = frontmatterText.split('\n').filter(l => l.trim().startsWith('-'))
+                    for (const tagLine of tagLines) {
+                        const tag = tagLine.trim().substring(1).trim()
+                        if (tag) tags.push(tag)
+                    }
+                    frontmatter[key] = tags
+                } else {
+                    frontmatter[key] = value
+                }
+            }
+        }
+        
+        return {
+            ...frontmatter,
+            content: articleContent.trim()
+        }
+    }
+
+    // 从 Markdown ZIP 压缩包导入
+    const importFromMarkdownZip = async (zipFile) => {
+        try {
+            // 导入 JSZip
+            const JSZip = (await import('jszip')).default
+            const zip = await JSZip.loadAsync(zipFile)
+            
+            let successCount = 0
+            let failCount = 0
+            const results = []
+            
+            // 遍历 ZIP 中的所有文件
+            for (const [filename, file] of Object.entries(zip.files)) {
+                // 只处理 .md 和 .markdown 文件
+                if (filename.endsWith('.md') || filename.endsWith('.markdown')) {
+                    if (file.dir) continue // 跳过目录
+                    
+                    try {
+                        const text = await file.async('text')
+                        const parsed = parseFrontmatter(text)
+                        
+                        if (!parsed) {
+                            console.warn(`无法解析 ${filename} 的 frontmatter`)
+                            failCount++
+                            results.push({ success: false, error: '无法解析 frontmatter', filename })
+                            continue
+                        }
+                        
+                        // 验证必填字段
+                        if (!parsed.slug) {
+                            console.warn(`${filename} 缺少 slug 字段`)
+                            failCount++
+                            results.push({ success: false, error: '缺少 slug 字段', filename })
+                            continue
+                        }
+                        
+                        // 调用 API 创建文章
+                        const key = ensureKey()
+                        const res = await withLoading(
+                            () => axios.post(`${API_BASE}/api/article/add`, parsed, {
+                                headers: { 'x-api-key': key }
+                            }),
+                            `导入文章: ${filename}...`
+                        )()
+                        
+                        successCount++
+                        results.push({ success: true, data: res.data, filename })
+                    } catch (err) {
+                        console.error(`导入 ${filename} 失败:`, err)
+                        failCount++
+                        results.push({ success: false, error: err.message, filename })
+                    }
+                }
+            }
+            
+            if (successCount === 0 && failCount === 0) {
+                alert('压缩包中没有找到 Markdown 文件')
+                return null
+            }
+            
+            return { success: true, successCount, failCount, results }
+        } catch (err) {
+            console.error('解压 ZIP 文件失败:', err)
+            alert('无法解压 ZIP 文件，请检查文件是否损坏')
+            return null
+        }
+    }
+
+    // 从 Markdown 文件导入
+    const importFromMarkdown = async (file) => {
+        try {
+            const text = await file.text()
+            const parsed = parseFrontmatter(text)
+            
+            if (!parsed) {
+                alert('无法解析 Markdown 文件的 frontmatter')
+                return null
+            }
+            
+            // 验证必填字段
+            if (!parsed.slug) {
+                alert('Markdown 文件缺少 slug 字段')
+                return null
+            }
+            
+            // 调用 API 创建文章
+            const key = ensureKey()
+            const res = await withLoading(
+                () => axios.post(`${API_BASE}/api/article/add`, parsed, {
+                    headers: { 'x-api-key': key }
+                }),
+                '导入 Markdown 文章中...'
+            )()
+            
+            return { success: true, data: res.data }
+        } catch (err) {
+            handleError(err)
+            return null
+        }
+    }
+
+    // 从 JSON 文件导入
+    const importFromJSON = async (file) => {
+        try {
+            const text = await file.text()
+            const articles = JSON.parse(text)
+            
+            // 确保是数组
+            const articlesArray = Array.isArray(articles) ? articles : [articles]
+            
+            if (articlesArray.length === 0) {
+                alert('JSON 文件中没有文章数据')
+                return null
+            }
+            
+            const key = ensureKey()
+            const results = []
+            
+            for (const article of articlesArray) {
+                try {
+                    // 验证必填字段
+                    if (!article.slug) {
+                        console.warn('跳过没有 slug 的文章:', article.title || '无标题')
+                        continue
+                    }
+                    
+                    const res = await withLoading(
+                        () => axios.post(`${API_BASE}/api/article/add`, article, {
+                            headers: { 'x-api-key': key }
+                        }),
+                        `导入文章: ${article.title || article.slug}...`
+                    )()
+                    
+                    results.push({ success: true, data: res.data, slug: article.slug })
+                } catch (err) {
+                    console.error(`导入文章 ${article.slug} 失败:`, err)
+                    results.push({ success: false, error: err.message, slug: article.slug })
+                }
+            }
+            
+            const successCount = results.filter(r => r.success).length
+            const failCount = results.length - successCount
+            
+            if (failCount > 0) {
+                alert(`导入完成！成功 ${successCount} 篇，失败 ${failCount} 篇。请查看控制台了解详情。`)
+            } else {
+                alert(`导入成功！共导入 ${successCount} 篇文章。`)
+            }
+            
+            return { success: true, results }
+        } catch (err) {
+            if (err instanceof SyntaxError) {
+                alert('JSON 文件格式错误，请检查文件内容')
+            } else {
+                handleError(err)
+            }
+            return null
+        }
+    }
+
+    // 从加密文件导入
+    const importFromEncrypted = async (file) => {
+        try {
+            const encryptedData = await file.text()
+            const key = ensureKey()
+            
+            // 解密数据
+            const decryptedData = xorDecrypt(encryptedData, key)
+            
+            if (!decryptedData) {
+                alert('解密失败，请检查文件是否正确或 API 密钥是否匹配')
+                return null
+            }
+            
+            // 解析为 JSON 并导入
+            const articles = JSON.parse(decryptedData)
+            const articlesArray = Array.isArray(articles) ? articles : [articles]
+            
+            if (articlesArray.length === 0) {
+                alert('加密文件中没有文章数据')
+                return null
+            }
+            
+            const results = []
+            
+            for (const article of articlesArray) {
+                try {
+                    if (!article.slug) {
+                        console.warn('跳过没有 slug 的文章:', article.title || '无标题')
+                        continue
+                    }
+                    
+                    const res = await withLoading(
+                        () => axios.post(`${API_BASE}/api/article/add`, article, {
+                            headers: { 'x-api-key': key }
+                        }),
+                        `导入加密文章: ${article.title || article.slug}...`
+                    )()
+                    
+                    results.push({ success: true, data: res.data, slug: article.slug })
+                } catch (err) {
+                    console.error(`导入文章 ${article.slug} 失败:`, err)
+                    results.push({ success: false, error: err.message, slug: article.slug })
+                }
+            }
+            
+            const successCount = results.filter(r => r.success).length
+            const failCount = results.length - successCount
+            
+            if (failCount > 0) {
+                alert(`导入完成！成功 ${successCount} 篇，失败 ${failCount} 篇。请查看控制台了解详情。`)
+            } else {
+                alert(`导入成功！共导入 ${successCount} 篇文章。`)
+            }
+            
+            return { success: true, results }
+        } catch (err) {
+            if (err instanceof SyntaxError) {
+                alert('解密后的数据格式错误，请检查文件是否损坏')
+            } else {
+                alert('导入加密文件失败，请检查文件是否正确或 API 密钥是否匹配')
+                console.error(err)
+            }
+            return null
+        }
+    }
+
     return {
         exportAllArticles,
         exportToMarkdown,
         exportToJSON,
-        exportToEncrypted
+        exportToEncrypted,
+        importFromMarkdown,
+        importFromMarkdownZip,
+        importFromJSON,
+        importFromEncrypted
     }
 }
