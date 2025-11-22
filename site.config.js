@@ -1,5 +1,5 @@
 export const siteConfig = {
-    apiUrl: 'http://localhost:8000',
+    apiUrl: 'https://blog.api.zhengweixin.top',
     blogUrl: 'https://zhengweixin.top',
 
     // AI 摘要服务地址
