@@ -73,10 +73,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useArticles } from '~/composables/useArticles.js'
+import { useArticleImportExport } from '~/composables/useArticleImportExport.js'
 import { alert, confirm } from '@/composables/useModal'
 import { siteConfig } from '@/site.config.js'
 
-const { articles, getList, deleteArticle, editSlug, exportToMarkdown, exportToJSON, exportToEncrypted } = useArticles()
+const { articles, getList, deleteArticle, editSlug } = useArticles()
+const { exportToMarkdown, exportToJSON, exportToEncrypted } = useArticleImportExport()
 
 onMounted(() => {
   getList()
