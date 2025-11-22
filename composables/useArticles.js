@@ -173,7 +173,33 @@ export function useArticles() {
         }
     }
 
-    // 导出为 Markdown 文件
+    // 通用错误处理
+    function handleError(err) {
+        if (err.response) {
+            const { status } = err.response
+            if (status === 401) {
+                alert('API Key 错误或已过期，请重新验证')
+                localStorage.removeItem('api_key')
+                localStorage.removeItem('admin_verified')
+                router.push('/verify')
+            } else if (status === 404) {
+                alert('文章不存在，请检查 slug 是否正确')
+            } else if (status === 409) {
+                alert('slug 已存在，请更换后重试')
+            } else if (status === 429) {
+                alert('错误次数过多，IP 已封禁十年')
+            } else if (status === 400) {
+                alert('slug 是必填项，请检查后重试')
+            } else {
+                alert('操作失败，请稍后重试')
+            }
+        } else {
+            console.error(err)
+            alert('网络错误或服务器异常')
+        }
+    }
+
+        // 导出为 Markdown 文件
     const exportToMarkdown = async () => {
         try {
             const result = await exportAllArticles(10)
@@ -208,7 +234,7 @@ published: ${article.published !== undefined ? article.published : false}
 
                 const content = frontmatter + (article.content || '')
                 
-                zip.file(`${article.slug || Math.random().toString(36).substring(2, 8)}}.md`, content)
+                zip.file(`${article.slug || Math.random().toString(36).substring(2, 8)}.md`, content)
             })
 
             // 生成zip并下载
@@ -216,7 +242,7 @@ published: ${article.published !== undefined ? article.published : false}
             const url = URL.createObjectURL(zipBlob)
             const link = document.createElement('a')
             link.href = url
-            link.download = `articles-${new Date().toISOString().split('T')[0]}.zip`
+            link.download = `exportArticles-${Date.now()}.zip`
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
@@ -230,31 +256,81 @@ published: ${article.published !== undefined ? article.published : false}
         }
     }
 
-    // 通用错误处理
-    function handleError(err) {
-        if (err.response) {
-            const { status } = err.response
-            if (status === 401) {
-                alert('API Key 错误或已过期，请重新验证')
-                localStorage.removeItem('api_key')
-                localStorage.removeItem('admin_verified')
-                router.push('/verify')
-            } else if (status === 404) {
-                alert('文章不存在，请检查 slug 是否正确')
-            } else if (status === 409) {
-                alert('slug 已存在，请更换后重试')
-            } else if (status === 429) {
-                alert('错误次数过多，IP 已封禁十年')
-            } else if (status === 400) {
-                alert('slug 是必填项，请检查后重试')
-            } else {
-                alert('操作失败，请稍后重试')
+    // 导出为 JSON 文件
+    const exportToJSON = async () => {
+        try {
+            const result = await exportAllArticles(10)
+            if (!result || !result.data || result.data.length === 0) {
+                alert('没有文章可以导出')
+                return
             }
-        } else {
-            console.error(err)
-            alert('网络错误或服务器异常')
+
+            const jsonData = JSON.stringify(result.data, null, 2)
+            const blob = new Blob([jsonData], { type: 'application/json' })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `exportArticles-${Date.now()}.json`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+
+            return { success: true }
+        } catch (err) {
+            console.error('导出JSON失败:', err)
+            alert('导出JSON失败，请稍后重试')
+            return null
         }
     }
 
-    return { articles, getList, getArticle, addArticle, editArticle, editSlug, deleteArticle, exportAllArticles, exportToMarkdown }
+    // 导出为加密文件
+    const exportToEncrypted = async () => {
+        try {
+            const result = await exportAllArticles(10)
+            if (!result || !result.data || result.data.length === 0) {
+                alert('没有文章可以导出')
+                return
+            }
+
+            // 使用key进行加密
+            const key = ensureKey()
+
+            const jsonData = JSON.stringify(result.data)
+
+            const encryptedData = xorEncrypt(jsonData, key)
+            
+            // 创建加密文件
+            const blob = new Blob([encryptedData], { type: 'application/octet-stream' })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `exportArticles-${Date.now()}`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+
+            return { success: true }
+        } catch (err) {
+            console.error('导出加密文件失败:', err)
+            alert('导出加密文件失败，请稍后重试')
+            return null
+        }
+    }
+
+    // XOR加密函数
+    const xorEncrypt = (text, key) => {
+        // 将字符串转换为UTF-8字节数组
+        const textBytes = new TextEncoder().encode(text)
+        const keyBytes = new TextEncoder().encode(key)
+        
+        // 加密
+        const encryptedBytes = textBytes.map((byte, i) => byte ^ keyBytes[i % keyBytes.length])
+        
+        // 转换为Base64
+        return btoa(String.fromCharCode(...encryptedBytes))
+    }
+
+    return { articles, getList, getArticle, addArticle, editArticle, editSlug, deleteArticle, exportAllArticles, exportToMarkdown, exportToJSON, exportToEncrypted }
 }

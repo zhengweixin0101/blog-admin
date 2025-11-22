@@ -56,13 +56,13 @@
         <h2 class="text-lg font-bold mb-4 text-center">{{ panelType === 'export' ? '导出文章' : '导入文章' }}</h2>
         <div v-if="panelType === 'export'" class="space-y-3">
           <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="handleExportMarkdown">导出为 Markdown</button>
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="selectSource">暂不添加</button>
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="selectSource">暂不添加</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="handleExportJSON">导出为 Json</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="handleExportEncrypted">导出为加密文件</button>
         </div>
         <div v-if="panelType === 'import'" class="space-y-3">
           <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="">从 Markdown 导入</button>
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="">暂不添加</button>
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="">暂不添加</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="">从 Json 导入</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="">从加密文件导入</button>
         </div>
         <button @click="closePanel" class="absolute top-2 right-3 bg-transparent border-none text-lg text-gray-400 hover:text-gray-600 cursor-pointer">✕</button>
       </div>
@@ -76,7 +76,7 @@ import { useArticles } from '~/composables/useArticles.js'
 import { alert, confirm } from '@/composables/useModal'
 import { siteConfig } from '@/site.config.js'
 
-const { articles, getList, deleteArticle, editSlug, exportToMarkdown } = useArticles()
+const { articles, getList, deleteArticle, editSlug, exportToMarkdown, exportToJSON, exportToEncrypted } = useArticles()
 
 onMounted(() => {
   getList()
@@ -136,6 +136,25 @@ const closePanel = () => {
 const handleExportMarkdown = async () => {
   closePanel()
   const result = await exportToMarkdown()
+  if (result) {
+    await alert('导出成功！')
+  }
+}
+
+// 导出为 JSON
+const handleExportJSON = async () => {
+  closePanel()
+  const result = await exportToJSON()
+  if (result) {
+    await alert('导出成功！')
+  }
+}
+
+// 导出为加密文件
+const handleExportEncrypted = async () => {
+  closePanel()
+  await alert('将使用本站的API密钥进行加解密，若密钥被修改将无法导入！')
+  const result = await exportToEncrypted()
   if (result) {
     await alert('导出成功！')
   }
