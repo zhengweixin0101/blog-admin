@@ -1,4 +1,5 @@
 export const siteConfig = {
+    // 请确保结尾不带'/'
     apiUrl: 'https://blog.api.zhengweixin.top',
     blogUrl: 'https://zhengweixin.top',
 
