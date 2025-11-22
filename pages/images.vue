@@ -86,7 +86,13 @@
         <p class="text-sm text-gray-400 mt-2">当前路径：{{ currentPrefix === '' ? '/' : currentPrefix }}</p>
       </div>
       <client-only>
-        <div v-if="viewMode === 'masonry'" ref="masonryContainer" class="w-full">
+        <div v-if="files.length === 0 && !loading" class="py-16">
+            <p class="text-gray-400 mb-6 max-w-sm mx-auto">
+              {{ currentPrefix === '' ? '开始上传您的第一张图片吧' : `当前路径 "${currentPrefix === '' ? '/' : currentPrefix}" 下暂无图片` }}
+            </p>
+        </div>
+
+        <div v-else-if="viewMode === 'masonry'" ref="masonryContainer" class="w-full">
           <div
             v-for="file in files"
             :key="file.key"
@@ -145,6 +151,7 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { useS3 } from '@/composables/useS3.js'
 import { alert, confirm } from '@/composables/useModal'
+import { showLoading, hideLoading } from '@/composables/useLoading.js'
 import { Fancybox } from '@fancyapps/ui'
 import '@fancyapps/ui/dist/fancybox/fancybox.css'
 
@@ -181,11 +188,12 @@ onMounted(() => {
 })
 
 // 切换路径
-function switchPrefix(prefix) {
+async function switchPrefix(prefix) {
   currentPrefix.value = prefix
   files.value = []
   uploadProgress.value = {}
-  listFiles().then(() => window.scrollTo({ top: 0, behavior: 'smooth' }))
+  await listFiles()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 // 切换视图
@@ -257,6 +265,7 @@ async function listFiles() {
   loading.value = true
   error.value = ''
   files.value = []
+  showLoading('正在加载图片列表...')
   try {
     const result = await s3.listFiles({ prefix: currentPrefix.value, cfg: s3Config.value })
     files.value = result
@@ -268,6 +277,7 @@ async function listFiles() {
     error.value = '无法获取文件列表'
   } finally {
     loading.value = false
+    hideLoading()
   }
 }
 
