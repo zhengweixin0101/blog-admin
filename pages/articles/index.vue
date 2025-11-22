@@ -129,18 +129,59 @@ const deleteAll = async () => {
   const confirmed = await confirm('确定删除全部文章？此操作不可撤销。')
   if (!confirmed) return
 
-  // 逐条删除
-  for (const item of arr) {
-    const slug = item?.slug ?? item
-    try {
-      await deleteArticle(slug)
-    } catch (e) {
-      console.error(e)
-    }
+  // 输入Yes确认
+  const inputYes = await prompt('请输入 "Yes" 以确认删除全部文章：','No')
+  if (inputYes !== 'Yes') {
+    await alert('操作已取消。')
+    return
   }
 
-  await alert('全部文章已删除。')
-  await getList()
+  try {
+    // 导出全部文章
+    await alert('需要先导出文章才能删除')
+    const backupResult = await exportToJSON()
+    
+    if (!backupResult) {
+      const continueWithoutBackup = await confirm('导出失败，是否继续删除操作？')
+      if (!continueWithoutBackup) {
+        await alert('操作已取消。')
+        return
+      }
+    } else {
+      const backupConfirmed = await confirm('文章已导出，请检查备份文件。确认无误后点击"确定"继续删除。')
+      if (!backupConfirmed) {
+        await alert('操作已取消。')
+        return
+      }
+    }
+
+    // 逐条删除
+    let deletedCount = 0
+    let failedCount = 0
+    
+    for (const item of arr) {
+      const slug = item?.slug ?? item
+      try {
+        await deleteArticle(slug)
+        deletedCount++
+      } catch (e) {
+        console.error(`删除文章 ${slug} 失败:`, e)
+        failedCount++
+      }
+    }
+
+    let message = `删除完成！成功删除 ${deletedCount} 篇文章。`
+    if (failedCount > 0) {
+      message += `失败 ${failedCount} 篇文章。`
+    }
+    
+    await alert(message)
+    await getList()
+    
+  } catch (e) {
+    console.error('删除全部文章时发生错误:', e)
+    await alert('删除过程中发生错误，操作已中止。请检查控制台了解详情。')
+  }
 }
 
 // 修改 slug
