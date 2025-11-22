@@ -16,7 +16,7 @@
       </div>
       <button
         @click="handleSaveConfig"
-        class="mt-4 w-full bg-blue-600 text-white py-2 rounded border-none hover:bg-blue-700"
+        class="mt-4 w-full bg-blue-600 text-white py-2 rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
         :disabled="loading"
       >
         {{ loading ? '验证中...' : '保存配置' }}
@@ -30,7 +30,7 @@
             v-for="path in paths"
             :key="path.prefix"
             @click="switchPrefix(path.prefix)"
-            :class="currentPrefix === path.prefix ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'"
+            :class="currentPrefix === path.prefix ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300 transition-colors'"
             class="px-4 py-2 rounded border-none cursor-pointer"
           >
             {{ path.label }}
@@ -56,14 +56,14 @@
             />
             <button
               @click="handleDeleteByUrl(deleteUrl)"
-              class="px-4 py-2 bg-red-500 text-white rounded-r-md hover:bg-red-600 border-none"
+              class="px-4 py-2 bg-red-500 text-white rounded-r-md hover:bg-red-600 border-none transition-colors"
             >
               删除
             </button>
           </div>
           <button
             @click="clearConfig"
-            class="px-4 py-2 bg-red-500 text-white border-none rounded hover:bg-red-600 cursor-pointer"
+            class="px-4 py-2 bg-red-500 text-white border-none rounded hover:bg-red-600 transition-colors cursor-pointer"
           >
             删除配置
           </button>
@@ -113,13 +113,13 @@
             <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 @click="previewImage(`${customDomain}${file.key}`)"
-                class="bg-blue-500 text-white px-2 py-1 border-none rounded cursor-pointer hover:bg-blue-600"
+                class="bg-blue-500 text-white px-2 py-1 border-none rounded cursor-pointer hover:bg-blue-600 transition-colors"
               >
                 预览
               </button>
               <button
                 @click="handleDeleteFile(file)"
-                class="bg-red-500 text-white px-2 py-1 border-none rounded cursor-pointer hover:bg-red-600"
+                class="bg-red-500 text-white px-2 py-1 border-none rounded cursor-pointer hover:bg-red-600 transition-colors"
               >
                 删除
               </button>
@@ -131,7 +131,7 @@
           <div
             v-for="file in files"
             :key="file.key"
-            class="flex items-center justify-between p-2 border rounded hover:bg-gray-50"
+            class="flex items-center justify-between p-2 border rounded hover:bg-gray-50 transition-colors"
           >
             <div class="flex-1 min-w-0">
               <div class="truncate font-medium">{{ file.key }}</div>
@@ -141,19 +141,19 @@
               <div class="flex gap-2">
                 <button
                   @click="previewImage(`${customDomain}${file.key}`)"
-                  class="px-2 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600"
+                  class="px-2 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors"
                 >
                   预览
                 </button>
                 <button
                   @click="copyLink(`${customDomain}${file.key}`)"
-                  class="px-2 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600"
+                  class="px-2 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors"
                 >
                   复制链接
                 </button>
                 <button
                   @click="handleDeleteFile(file)"
-                  class="px-2 py-1 bg-red-500 text-white border-none rounded hover:bg-red-600"
+                  class="px-2 py-1 bg-red-500 text-white border-none rounded hover:bg-red-600 transition-colors"
                 >
                   删除
                 </button>

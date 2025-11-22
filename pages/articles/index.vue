@@ -14,7 +14,7 @@
           <h2 class="text-lg font-bold mb-2">{{ article.title }}</h2>
           <p class="text-sm text-gray-500 mb-2 flex items-center">
             {{ article.date }} |
-            <a :href="`${siteConfig.blogUrl}/posts/${article.slug}`" target="_blank" class="text-gray-500 hover:text-blue-500 transition-color duration-300 ml-1">
+            <a :href="`${siteConfig.blogUrl}/posts/${article.slug}`" target="_blank" class="text-gray-500 hover:text-blue-500 transition-color ml-1">
               {{ article.slug }}
             </a>
             <button @click="handleEditSlug(article)" class="ml-0.5 mt-0.5 w-3.5 h-3.5 flex items-center justify-center cursor-pointer bg-transparent border-none p-0">
@@ -43,8 +43,8 @@
           </div>
 
           <div class="flex gap-2 mb-4 justify-end">
-            <NuxtLink :to="`/articles/edit/${article.slug}`" class="text-14px no-underline px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">编辑</NuxtLink>
-            <button @click="handleDelete(article.slug)" class="cursor-pointer px-3 py-1 bg-red-500 text-white rounded border-none hover:bg-red-600">删除</button>
+            <NuxtLink :to="`/articles/edit/${article.slug}`" class="text-14px no-underline px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">编辑</NuxtLink>
+            <button @click="handleDelete(article.slug)" class="cursor-pointer px-3 py-1 bg-red-500 text-white rounded border-none hover:bg-red-600 transition-colors">删除</button>
           </div>
         </div>
       </div>

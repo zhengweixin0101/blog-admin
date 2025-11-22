@@ -84,7 +84,7 @@
                       />
                       <button
                         @click="insertLocation('new')"
-                        class="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 border-none transition-colors duration-300"
+                        class="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 border-none transition-colors"
                       >
                         插入
                       </button>
@@ -98,13 +98,13 @@
               </div>
               <button
                 @click="addNewTalk"
-                class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors duration-300"
+                class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors"
               >
                 保存
               </button>
             </div>
           </div>
-          <div class="mb-6 p-4 rounded shadow transition-color duration-300 text-gray-500">
+          <div class="mb-6 p-4 rounded shadow transition-color text-gray-500">
             <div>Tags:</div>
             <div class="mt-2 border border-dashed border-gray-300 rounded flex flex-wrap items-center gap-2 p-2">
               <template v-if="allTags.length > 0">
@@ -113,7 +113,7 @@
                   :key="tag"
                   @click="selectTag(tag)"
                   :class="[
-                    'px-2 py-0.5 text-xs rounded cursor-pointer transition-colors duration-300',
+                    'px-2 py-0.5 text-xs rounded cursor-pointer transition-colors',
                     currentTag === tag ? 'bg-blue-500 text-white' : 'bg-blue-100 hover:bg-blue-200 text-blue-600'
                   ]"
                 >
@@ -224,7 +224,7 @@
                           />
                           <button
                             @click="insertLocation('editing')"
-                            class="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 border-none transition-colors duration-300"
+                            class="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 border-none transition-colors"
                           >
                             插入
                           </button>
@@ -246,13 +246,13 @@
                   <div class="flex items-center space-x-2">
                     <button
                       @click="saveEdit(editingId)"
-                      class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors duration-300"
+                      class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors"
                     >
                       保存
                     </button>
                     <button
                       @click="cancelEdit"
-                      class="px-3 py-1 bg-gray-400 text-white border-none rounded hover:bg-gray-500 transition-colors duration-300"
+                      class="px-3 py-1 bg-gray-400 text-white border-none rounded hover:bg-gray-500 transition-colors"
                     >
                       取消
                     </button>
@@ -320,13 +320,13 @@
                   <div class="flex items-center space-x-2">
                     <button
                       @click="startEdit(talk)"
-                      class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors duration-300"
+                      class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors"
                     >
                       编辑
                     </button>
                     <button
                       @click="removeTalk(talk.id)"
-                      class="px-3 py-1 bg-red-500 text-white border-none rounded hover:bg-red-600 transition-colors duration-300"
+                      class="px-3 py-1 bg-red-500 text-white border-none rounded hover:bg-red-600 transition-colors"
                     >
                       删除
                     </button>
