@@ -91,7 +91,7 @@ async function handleSubmit() {
     localStorage.setItem(KEY_NAME, apiKeyInput.value.trim())
     const verified = useCookie('admin_verified', { path: '/' })
     verified.value = 'true'
-    navigateTo('/')
+    window.location.href = '/'
   } else if (!errorMessage.value) {
     errorMessage.value = '密钥错误，请检查后重试'
   }
