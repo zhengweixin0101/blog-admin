@@ -14,6 +14,7 @@ import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import CryptoJS from 'crypto-js'
 import { useS3 } from '@/composables/useS3'
+import { showLoading, hideLoading } from '@/composables/useLoading'
 
 const props = defineProps({
   modelValue: String,
@@ -65,6 +66,8 @@ async function handleUploadImg(files, callback) {
   }
 
   try {
+    showLoading(`正在上传 ${imageFiles.length} 张图片...`)
+    
     const apiKey = localStorage.getItem('api_key')
     const s3 = useS3({ apiKey, config })
     
@@ -77,13 +80,17 @@ async function handleUploadImg(files, callback) {
 
     if (urls.length > 0) {
       callback(urls)
+      hideLoading()
       await alert(`上传成功！共 ${urls.length} 张图片，链接已复制到剪贴板。`)
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(urls.join('\n'))
       }
+    } else {
+      hideLoading()
     }
   } catch (err) {
     console.error('上传失败:', err)
+    hideLoading()
     await alert('上传失败，请重试')
   }
 }

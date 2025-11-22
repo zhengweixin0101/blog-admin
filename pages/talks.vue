@@ -365,6 +365,7 @@ import axios from 'axios'
 import { useTalks } from '@/composables/useTalks'
 import { useS3 } from '@/composables/useS3'
 import { alert, confirm } from '@/composables/useModal'
+import { showLoading, hideLoading } from '@/composables/useLoading'
 
 import { Fancybox } from '@fancyapps/ui'
 import '@fancyapps/ui/dist/fancybox/fancybox.css'
@@ -438,8 +439,7 @@ const handleFileSelect = async (event, prefix = '', mode = 'new') => {
     return []
   }
 
-  uploadLoading.value = true
-  uploadError.value = ''
+  showLoading(`正在上传 ${imageFiles.length} 张图片...`)
 
   try {
     const urls = await s3.uploadFiles({
@@ -460,11 +460,12 @@ const handleFileSelect = async (event, prefix = '', mode = 'new') => {
         editingContent.value += `\n![图片](${url})`
       }
     })
+    
+    hideLoading()
   } catch (e) {
     console.error(e)
+    hideLoading()
     await alert('⚠️ 上传失败，请重试')
-  } finally {
-    uploadLoading.value = false
   }
 }
 

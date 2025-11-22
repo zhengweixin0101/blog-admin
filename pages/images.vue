@@ -316,6 +316,7 @@ async function uploadFiles(selectedFiles) {
     await alert(`已自动忽略非图片文件，共上传 ${imageFiles.length} 张图片`)
   }
 
+  showLoading('正在上传图片...')
   try {
     const urls = await s3.uploadFiles({
       files: imageFiles,
@@ -336,6 +337,8 @@ async function uploadFiles(selectedFiles) {
   } catch (e) {
     console.error(e)
     await alert('上传失败，请重试')
+  } finally {
+    hideLoading()
   }
 }
 
