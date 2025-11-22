@@ -279,7 +279,7 @@ published: ${article.published !== undefined ? article.published : false}
                 if (value === 'false') value = false
                 
                 // 处理数组（tags）
-                if (key === 'tags' && value.startsWith('-')) {
+                if (key === 'tags') {
                     const tags = []
                     const tagLines = frontmatterText.split('\n').filter(l => l.trim().startsWith('-'))
                     for (const tagLine of tagLines) {
@@ -314,7 +314,7 @@ published: ${article.published !== undefined ? article.published : false}
             for (const [filename, file] of Object.entries(zip.files)) {
                 // 只处理 .md 和 .markdown 文件
                 if (filename.endsWith('.md') || filename.endsWith('.markdown')) {
-                    if (file.dir) continue // 跳过目录
+                    if (file.dir) continue
                     
                     try {
                         const text = await file.async('text')
@@ -341,7 +341,7 @@ published: ${article.published !== undefined ? article.published : false}
                             () => axios.post(`${API_BASE}/api/article/add`, parsed, {
                                 headers: { 'x-api-key': key }
                             }),
-                            `导入文章: ${filename}...`
+                            `正在导入: ${filename}...`
                         )()
                         
                         successCount++
@@ -495,7 +495,7 @@ published: ${article.published !== undefined ? article.published : false}
                         () => axios.post(`${API_BASE}/api/article/add`, article, {
                             headers: { 'x-api-key': key }
                         }),
-                        `导入加密文章: ${article.title || article.slug}...`
+                        `正在导入: ${article.title || article.slug}...`
                     )()
                     
                     results.push({ success: true, data: res.data, slug: article.slug })
