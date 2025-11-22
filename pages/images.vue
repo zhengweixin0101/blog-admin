@@ -343,17 +343,17 @@ async function uploadFiles(selectedFiles) {
 }
 
 async function handleDeleteFile(file) {
-  loading.value = true
+  showLoading('正在删除图片...')
   error.value = ''
   try {
     await s3.deleteFile({ fileKey: file.key, cfg: s3Config.value })
+    hideLoading()
     await alert('图片删除成功！')
     await listFiles()
   } catch (e) {
     console.error(e)
+    hideLoading()
     error.value = '删除失败，请重试！'
-  } finally {
-    loading.value = false
   }
 }
 
@@ -374,16 +374,16 @@ async function handleDeleteByUrl() {
 
   const key = extractKey(deleteUrl.value.trim())
   try {
-    loading.value = true
+    showLoading('正在删除图片...')
     await s3.deleteFile({ fileKey: key, cfg: s3Config.value })
+    hideLoading()
     await alert('已成功执行删除操作，但无法判断文件是否存在，请手动检查！')
     deleteUrl.value = ''
     await listFiles()
   } catch (e) {
     console.error(e)
+    hideLoading()
     await alert('删除失败，请检查链接或权限是否正确')
-  } finally {
-    loading.value = false
   }
 }
 
