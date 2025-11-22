@@ -4,6 +4,7 @@
       <div class="flex items-center">
         <h1 class="text-2xl font-bold mb-4">文章列表</h1>
         <div v-if="articles && articles.length" class="ml-auto transition-color">
+          <button @click="deleteAll" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">全部删除</button>
           <button @click="openPanel('export')" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导出文章</button>
           <button @click="openPanel('import')" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导入文章</button>
         </div>
@@ -182,5 +183,31 @@ const handleExportEncrypted = async () => {
   if (result) {
     await alert('导出成功！')
   }
+}
+
+// 删除全部文章
+const deleteAll = async () => {
+  // 获取文章数组
+  const arr = Array.isArray(articles) ? articles : (articles?.value || [])
+  if (!arr.length) {
+    await alert('当前没有文章可删除。')
+    return
+  }
+
+  const confirmed = await confirm('确定删除全部文章？此操作不可撤销。')
+  if (!confirmed) return
+
+  // 逐条删除
+  for (const item of arr) {
+    const slug = item?.slug ?? item
+    try {
+      await deleteArticle(slug)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  await alert('全部文章已删除。')
+  await getList()
 }
 </script>
