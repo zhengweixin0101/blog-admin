@@ -3,13 +3,13 @@
     <main class="p-8 flex-1">
       <div class="flex items-center">
         <h1 class="text-2xl font-bold mb-4">文章列表</h1>
-        <div class="ml-auto transition-color">
+        <div v-if="articles && articles.length" class="ml-auto transition-color">
           <button @click="openPanel('export')" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导出文章</button>
           <button @click="openPanel('import')" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导入文章</button>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div v-if="articles && articles.length" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div v-for="article in articles" :key="article.slug" class="px-4 order rounded shadow">
           <h2 class="text-lg font-bold mb-2">{{ article.title }}</h2>
           <p class="text-sm text-gray-500 mb-2 flex items-center">
@@ -48,6 +48,22 @@
           </div>
         </div>
       </div>
+
+      <div v-else class="flex flex-col items-center justify-center w-full my-60">
+        <div class="text-center text-gray-500">
+          <svg class="mx-auto mb-4" width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 6H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 12H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 18H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p class="text-lg font-medium">暂无文章</p>
+          <p class="text-sm mt-2">您可以导入或创建第一篇文章。</p>
+        </div>
+        <div class="mt-4 flex items-center gap-3">
+          <button @click="goCreate" class="px-4 py-2 bg-gray-100 text-gray-700 rounded border-1 hover:bg-gray-200 transition-colors cursor-pointer">创建文章</button>
+          <button @click="openPanel('import')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded border-1 hover:bg-gray-200 transition-colors cursor-pointer">导入文章</button>
+        </div>
+      </div>
     </main>
 
     <!-- 操作面板弹窗 -->
@@ -76,9 +92,15 @@ import { useArticles } from '~/composables/useArticles.js'
 import { useArticleImportExport } from '~/composables/useArticleImportExport.js'
 import { alert, confirm } from '@/composables/useModal'
 import { siteConfig } from '@/site.config.js'
+import { useRouter } from 'vue-router'
 
 const { articles, getList, deleteArticle, editSlug } = useArticles()
 const { exportToMarkdown, exportToJSON, exportToEncrypted } = useArticleImportExport()
+
+const router = useRouter()
+const goCreate = () => {
+  router.push('/articles/create')
+}
 
 onMounted(() => {
   getList()
