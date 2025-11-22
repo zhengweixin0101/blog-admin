@@ -107,10 +107,24 @@ const panelType = ref('export')
 const openPanel = (type) => {
   panelType.value = type
   showPanel.value = true
+  // 禁用页面滚动
+  document.body.style.overflow = 'hidden'
+  document.body.style.position = 'fixed'
+  document.body.style.top = `-${window.scrollY}px`
+  document.body.style.width = '100%'
 }
 
 const closePanel = () => {
   showPanel.value = false
+  // 恢复页面滚动
+  const scrollY = document.body.style.top
+  document.body.style.overflow = ''
+  document.body.style.position = ''
+  document.body.style.top = ''
+  document.body.style.width = ''
+  if (scrollY) {
+    window.scrollTo(0, parseInt(scrollY || '0') * -1)
+  }
 }
 
 const selectSource = async (source) => {
