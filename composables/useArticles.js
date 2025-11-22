@@ -125,6 +125,111 @@ export function useArticles() {
         }
     }
 
+    // 导出全部文章
+    const exportAllArticles = async (pageSize = 5) => {
+        try {
+            const key = ensureKey()
+
+            // 先请求第一页
+            const firstRes = await withLoading(
+                () => axios.get(`${API_BASE}/api/article/all`, {
+                    params: { page: 1, pageSize },
+                    headers: { 'x-api-key': key }
+                }),
+                '正在加载第 1 页...'
+            )()
+            const firstBody = firstRes.data
+            if (!firstBody || !Array.isArray(firstBody.data)) return { data: [], page: 1, pageSize, total: 0, totalPages: 0 }
+
+            const all = [...firstBody.data]
+            const total = firstBody.total ?? all.length
+            const totalPages = firstBody.totalPages ?? Math.ceil(total / pageSize)
+
+            if (totalPages <= 1) {
+                return { data: all, page: 1, pageSize, total, totalPages }
+            }
+
+            // 请求剩余页
+            for (let p = 2; p <= totalPages; p++) {
+                const res = await withLoading(
+                    () => axios.get(`${API_BASE}/api/article/all`, {
+                        params: { page: p, pageSize },
+                        headers: { 'x-api-key': key }
+                    }),
+                    `正在加载第 ${p} 页...`
+                )()
+                const body = res.data
+                if (body && Array.isArray(body.data) && body.data.length > 0) {
+                    all.push(...body.data)
+                } else {
+                    break
+                }
+            }
+
+            return { data: all, page: 1, pageSize, total, totalPages }
+        } catch (err) {
+            handleError(err)
+            return null
+        }
+    }
+
+    // 导出为 Markdown 文件
+    const exportToMarkdown = async () => {
+        try {
+            const result = await exportAllArticles(10)
+            if (!result || !result.data || result.data.length === 0) {
+                alert('没有文章可以导出')
+                return
+            }
+
+            const JSZip = await import('jszip')
+            const zip = new JSZip.default()
+
+            result.data.forEach(article => {
+                // 生成 tags 的 YAML 列表
+                const tagsArray = article.tags || []
+                let tagsYaml = 'tags:\n'
+                if (tagsArray.length === 0) {
+                    tagsYaml += '  - 未指定标签\n'
+                } else {
+                    tagsYaml += tagsArray.map(tag => `  - ${tag}`).join('\n')
+                }
+
+                const frontmatter = `---
+title: "${article.title || '无标题'}"
+slug: "${article.slug || Math.random().toString(36).substring(2, 8)}"
+date: ${article.date || new Date().toISOString().split('T')[0]}
+description: "${article.description || '暂无描述'}"
+${tagsYaml}
+published: ${article.published !== undefined ? article.published : false}
+---
+
+`
+
+                const content = frontmatter + (article.content || '')
+                
+                zip.file(`${article.slug || Math.random().toString(36).substring(2, 8)}}.md`, content)
+            })
+
+            // 生成zip并下载
+            const zipBlob = await zip.generateAsync({ type: 'blob' })
+            const url = URL.createObjectURL(zipBlob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `articles-${new Date().toISOString().split('T')[0]}.zip`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+
+            return { success: true }
+        } catch (err) {
+            console.error('导出失败:', err)
+            alert('导出失败，请稍后重试')
+            return null
+        }
+    }
+
     // 通用错误处理
     function handleError(err) {
         if (err.response) {
@@ -151,5 +256,5 @@ export function useArticles() {
         }
     }
 
-    return { articles, getList, getArticle, addArticle, editArticle, editSlug, deleteArticle }
+    return { articles, getList, getArticle, addArticle, editArticle, editSlug, deleteArticle, exportAllArticles, exportToMarkdown }
 }

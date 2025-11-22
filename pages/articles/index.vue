@@ -54,10 +54,15 @@
     <div v-if="showPanel" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg shadow-lg p-6 w-96 relative">
         <h2 class="text-lg font-bold mb-4 text-center">{{ panelType === 'export' ? '导出文章' : '导入文章' }}</h2>
-        <div class="space-y-3">
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer" @click="selectSource('1')">一个界面而已，没有实际功能。</button>
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer" @click="selectSource('2')">一个界面而已，没有实际功能。</button>
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer" @click="selectSource('3')">一个界面而已，没有实际功能。</button>
+        <div v-if="panelType === 'export'" class="space-y-3">
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="handleExportMarkdown">导出为 Markdown</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="selectSource">暂不添加</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="selectSource">暂不添加</button>
+        </div>
+        <div v-if="panelType === 'import'" class="space-y-3">
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="">从 Markdown 导入</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="">暂不添加</button>
+          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="">暂不添加</button>
         </div>
         <button @click="closePanel" class="absolute top-2 right-3 bg-transparent border-none text-lg text-gray-400 hover:text-gray-600 cursor-pointer">✕</button>
       </div>
@@ -71,7 +76,7 @@ import { useArticles } from '~/composables/useArticles.js'
 import { alert, confirm } from '@/composables/useModal'
 import { siteConfig } from '@/site.config.js'
 
-const { articles, getList, deleteArticle, editSlug } = useArticles()
+const { articles, getList, deleteArticle, editSlug, exportToMarkdown } = useArticles()
 
 onMounted(() => {
   getList()
@@ -127,12 +132,12 @@ const closePanel = () => {
   }
 }
 
-const selectSource = async (source) => {
-  await alert(`都说了没有实际功能，你还想干啥？`)
+// 导出为 Markdown
+const handleExportMarkdown = async () => {
   closePanel()
-  await alert(`喜欢点是吧？那就一只点吧。`)
-  for (let i = 1; i <= 999999; i++) {
-    await alert(`第 ${i} 次`)
+  const result = await exportToMarkdown()
+  if (result) {
+    await alert('导出成功！')
   }
 }
 </script>
