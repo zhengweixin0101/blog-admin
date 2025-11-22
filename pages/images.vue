@@ -96,7 +96,7 @@
           <div
             v-for="file in files"
             :key="file.key"
-            class="mb-4 relative group rounded-lg overflow-hidden shadow-2xl"
+            class="mb-4 relative group rounded-lg overflow-hidden shadow-2xl min-h-18"
           >
             <img
               :src="`${customDomain}${file.key}`"
@@ -104,12 +104,26 @@
               class="w-full block cursor-pointer"
               @click="copyLink(`${customDomain}${file.key}`)"
             />
-            <button
-              @click="handleDeleteFile(file)"
-              class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 border-none rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-            >
-              删除
-            </button>
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div class="text-white text-sm truncate">{{ file.key }}</div>
+            </div>
+            <div class="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+              {{ formatExactTime(file.lastModified) }}
+            </div>
+            <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                @click="previewImage(`${customDomain}${file.key}`)"
+                class="bg-blue-500 text-white px-2 py-1 border-none rounded cursor-pointer hover:bg-blue-600"
+              >
+                预览
+              </button>
+              <button
+                @click="handleDeleteFile(file)"
+                class="bg-red-500 text-white px-2 py-1 border-none rounded cursor-pointer hover:bg-red-600"
+              >
+                删除
+              </button>
+            </div>
           </div>
         </div>
 
@@ -119,26 +133,31 @@
             :key="file.key"
             class="flex items-center justify-between p-2 border rounded hover:bg-gray-50"
           >
-            <span class="truncate">{{ file.key }}</span>
-            <div class="flex gap-2">
-              <button
-                @click="previewImage(`${customDomain}${file.key}`)"
-                class="px-2 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600"
-              >
-                预览
-              </button>
-              <button
-                @click="copyLink(`${customDomain}${file.key}`)"
-                class="px-2 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600"
-              >
-                复制链接
-              </button>
-              <button
-                @click="handleDeleteFile(file)"
-                class="px-2 py-1 bg-red-500 text-white border-none rounded hover:bg-red-600"
-              >
-                删除
-              </button>
+            <div class="flex-1 min-w-0">
+              <div class="truncate font-medium">{{ file.key }}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="text-sm text-gray-500 whitespace-nowrap mr-4">{{ formatExactTime(file.lastModified) }}</div>
+              <div class="flex gap-2">
+                <button
+                  @click="previewImage(`${customDomain}${file.key}`)"
+                  class="px-2 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600"
+                >
+                  预览
+                </button>
+                <button
+                  @click="copyLink(`${customDomain}${file.key}`)"
+                  class="px-2 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600"
+                >
+                  复制链接
+                </button>
+                <button
+                  @click="handleDeleteFile(file)"
+                  class="px-2 py-1 bg-red-500 text-white border-none rounded hover:bg-red-600"
+                >
+                  删除
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -441,6 +460,24 @@ onMounted(() => {
     Hash: false
   })
 })
+
+// 格式化时间
+function formatExactTime(dateString) {
+  if (!dateString) return '未知时间'
+  try {
+    const date = new Date(dateString)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  } catch (e) {
+    return '无效日期'
+  }
+}
 
 // 等待图片加载完成
 function waitForImagesToLoad() {
