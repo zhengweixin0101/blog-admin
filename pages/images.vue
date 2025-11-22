@@ -82,7 +82,7 @@
           <path d="M112 928a47.936 47.936 0 0 1-47.936-47.936v-224a48 48 0 1 1 96 0v176.064h704v-176.064a48 48 0 1 1 96 0v224a47.936 47.936 0 0 1-47.936 47.936z m352-263.936v-416L327.744 364.48a48.32 48.32 0 0 1-31.232 11.584 47.296 47.296 0 0 1-36.352-16.896 47.808 47.808 0 0 1 5.312-67.648l215.424-184.128a48.32 48.32 0 0 1 62.336 0l215.232 184.128a48 48 0 0 1-62.336 72.96L559.872 248.064v416a48 48 0 0 1-96 0z" fill="#585858"/>
         </svg>
         <p class="text-gray-600 mb-1">点击选择文件或拖拽文件到此区域上传</p>
-        <input ref="fileInput" type="file" class="hidden" multiple @change="handleFileSelect" />
+        <input ref="fileInput" type="file" class="hidden" multiple accept="image/*" @change="handleFileSelect" />
         <p class="text-sm text-gray-400 mt-2">当前路径：{{ currentPrefix === '' ? '/' : currentPrefix }}</p>
       </div>
       <client-only>
@@ -315,6 +315,7 @@ function selectFile() {
   const input = document.createElement('input')
   input.type = 'file'
   input.multiple = true
+  input.accept = 'image/*'
   input.onchange = handleFileSelect
   input.click()
 }
