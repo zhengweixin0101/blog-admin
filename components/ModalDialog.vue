@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 bg-black/40 flex items-center justify-center z-10001">
+  <div v-if="visible" class="fixed inset-0 bg-black/40 flex items-center justify-center z-10001" tabindex="-1" @keydown.space.prevent="handleSpaceKey" ref="modalRef">
     <div class="bg-white rounded-lg shadow-lg p-6 w-96 relative">
       <h2 class="text-lg font-bold mb-4 text-center">{{ title }}</h2>
       <p class="text-gray-600 mb-4 whitespace-pre-line">{{ message }}</p>
@@ -12,6 +12,7 @@
         :placeholder="placeholder"
         @keydown.enter="handleConfirm"
         @keydown.escape="handleCancel"
+        @keydown.space.stop.prevent="handleCancel"
       />
       
       <div class="flex gap-4 justify-end">
@@ -51,6 +52,7 @@ const cancelText = ref('取消')
 const inputValue = ref('')
 const placeholder = ref('')
 const inputRef = ref(null)
+const modalRef = ref(null)
 let resolvePromise = null
 
 // 显示弹窗
@@ -69,6 +71,12 @@ function show(options = {}) {
       if (inputRef.value) {
         inputRef.value.focus()
         inputRef.value.select()
+      }
+    })
+  } else {
+    nextTick(() => {
+      if (modalRef.value) {
+        modalRef.value.focus()
       }
     })
   }
@@ -99,6 +107,16 @@ function handleCancel() {
       resolvePromise(type.value === 'confirm' ? false : true)
     }
     resolvePromise = null
+  }
+}
+
+function handleSpaceKey() {
+  if (type.value === 'alert') {
+    handleCancel()
+  } else if (type.value === 'confirm') {
+    handleCancel()
+  } else if (type.value === 'prompt') {
+    handleCancel()
   }
 }
 
