@@ -245,16 +245,16 @@
                   </div>
                   <div class="flex items-center space-x-2">
                     <button
-                      @click="saveEdit(editingId)"
-                      class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors"
-                    >
-                      保存
-                    </button>
-                    <button
                       @click="cancelEdit"
                       class="px-3 py-1 bg-gray-400 text-white border-none rounded hover:bg-gray-500 transition-colors"
                     >
                       取消
+                    </button>
+                    <button
+                      @click="saveEdit(editingId)"
+                      class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors"
+                    >
+                      保存
                     </button>
                   </div>
                 </div>
@@ -319,16 +319,16 @@
                   </div>
                   <div class="flex items-center space-x-2">
                     <button
-                      @click="startEdit(talk)"
-                      class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors"
-                    >
-                      编辑
-                    </button>
-                    <button
                       @click="removeTalk(talk.id)"
                       class="px-3 py-1 bg-red-500 text-white border-none rounded hover:bg-red-600 transition-colors"
                     >
                       删除
+                    </button>
+                    <button
+                      @click="startEdit(talk)"
+                      class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors"
+                    >
+                      编辑
                     </button>
                   </div>
                 </div>
