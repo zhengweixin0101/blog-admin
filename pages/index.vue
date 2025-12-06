@@ -1,8 +1,385 @@
 <template>
-  <div class="flex">
-    <main class="p-8 flex-1">
-      <h1 class="text-2xl font-bold">管理后台首页</h1>
-      <p>欢迎使用博客管理系统</p>
-    </main>
+  <div class="flex flex-col">
+    <!-- 顶部统计卡片 -->
+    <div class="grid grid-cols-3 gap-4 p-8">
+      <!-- 文章总数 -->
+      <div class="px-4 order rounded shadow">
+        <p class="text-gray-500 text-sm">文章总数</p>
+        <p class="text-2xl font-bold rounded">{{ articleStats.total }} <span class="text-sm text-green-600 font-normal">↑本年共发布 {{ articleStats.thisYear }} 篇</span></p>
+      </div>
+
+      <!-- 标签总数 -->
+      <div class="px-4 order rounded shadow">
+        <p class="text-gray-500 text-sm">标签总数</p>
+        <p class="text-2xl font-bold rounded">{{ tagStats.total }}</p>
+      </div>
+
+      <!-- 说说总数 -->
+      <div class="px-4 order rounded shadow">
+        <p class="text-gray-500 text-sm">说说总数</p>
+        <p class="text-2xl font-bold rounded">{{ talkStats.total }} <span class="text-sm text-green-600 font-normal">↑近三个月发布 {{ talkStats.recent }} 条</span></p>
+      </div>
+    </div>
+
+    <!-- 主体两列布局 -->
+    <div class="grid grid-cols-2 gap-6 px-8 flex-1 min-h-0">
+
+      <!-- 热门文章 -->
+      <div class="bg-white rounded shadow flex flex-col min-h-0">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-800">热门文章</h2>
+        </div>
+        <div class="flex-1 overflow-y-auto px-6">
+          <div v-if="loading" class="text-center py-8">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <p class="text-gray-500 mt-2">加载中...</p>
+          </div>
+          <div v-else>
+            <div v-for="(article, index) in topArticles" :key="article.slug" 
+                 class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded transition-colors">
+              <span class="flex-shrink-0 w-6 h-6 bg-gray-400 text-white rounded flex items-center justify-center text-sm font-bold mr-2">
+                {{ index + 1 }}
+              </span>
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <p class="text-md font-medium text-gray-800">{{ article.title }}</p>
+                  <div v-if="article.tags && article.tags.length" class="flex items-center gap-1">
+                    <span v-for="tag in article.tags.slice(0, 3)" :key="tag" 
+                          class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
+                      {{ tag }}
+                    </span>
+                    <span v-if="article.tags.length > 3" 
+                          class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
+                      +{{ article.tags.length - 3 }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 -mt-5">
+                  <p class="text-xs text-gray-500">{{ article.views }} 次浏览</p>
+                  <p class="text-xs text-gray-400">{{ formatDate(article.date) }}</p>
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <NuxtLink :to="`/articles/edit/${article.slug}`" class="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors no-underline">编辑</NuxtLink>
+                <a :href="`${siteConfig.blogUrl}/posts/${article.slug}`" target="_blank" class="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors no-underline">访问</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 最新评论 -->
+      <div class="bg-white rounded shadow flex flex-col min-h-0">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-800">最新评论</h2>
+        </div>
+        <div class="flex-1 overflow-y-auto p-6">
+          <div v-if="loading" class="text-center py-8">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <p class="text-gray-500 mt-2">加载中...</p>
+          </div>
+          <div v-else-if="recentComments.length === 0" class="text-center py-8">
+            <p class="text-gray-400 text-sm">暂无最新评论</p>
+          </div>
+          <div v-else class="space-y-4">
+            <div v-for="comment in recentComments" :key="comment.id" class="border-b border-gray-100 pb-3 last:border-0">
+              <div class="flex items-start gap-3">
+                <img 
+                  :src="comment.avatar" 
+                  :alt="comment.author"
+                  class="w-8 h-8 rounded-full flex-shrink-0 object-cover"
+                  @error="$event.target.src = `https://gravatar.com/avatar/${comment.email}?d=mp&s=40`"
+                >
+                <div class="flex-1">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-medium text-sm text-gray-800">{{ comment.author }}</span>
+                    <span class="text-xs text-gray-500">{{ comment.relativeTime || comment.date }}</span>
+                  </div>
+                  <p class="text-sm text-gray-600 line-clamp-2">{{ comment.content }}</p>
+                  <span class="text-xs text-blue-500 hover:text-blue-700 cursor-pointer mt-1 inline-block" @click="openSource(comment)">
+                    来源: {{ comment.articleTitle }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useArticles } from '~/composables/useArticles.js'
+import { useTalks } from '~/composables/useTalks.js'
+import { useTwikoo } from '~/composables/useTwikoo.js'
+import { siteConfig } from '@/site.config.js'
+
+const { articles, getList } = useArticles()
+const { talks, getTalks } = useTalks()
+const { getRecentComments } = useTwikoo()
+
+// Umami配置
+const UMAMI_URL = siteConfig.umami.url
+const WEBSITE_ID = siteConfig.umami.siteId
+const TOKEN = siteConfig.umami.token
+
+// 响应式数据
+const loading = ref(true)
+const articleStats = ref({
+  total: 0,
+  thisYear: 0,
+  thisMonth: 0,
+  published: 0,
+  draft: 0
+})
+
+const recentComments = ref([])
+const tagStats = ref({
+  total: 0
+})
+const talkStats = ref({
+  total: 0,
+  recent: 0
+})
+
+const topArticles = ref([])
+
+// 计算文章统计数据
+const calculateArticleStats = () => {
+  const allArticles = Array.isArray(articles.value) ? articles.value : []
+  const currentYear = new Date().getFullYear()
+  const currentMonth = new Date().getMonth()
+  
+  articleStats.value = {
+    total: allArticles.length,
+    thisYear: allArticles.filter(article => {
+      const articleYear = new Date(article.date).getFullYear()
+      return articleYear === currentYear
+    }).length,
+    thisMonth: allArticles.filter(article => {
+      const articleDate = new Date(article.date)
+      return articleDate.getFullYear() === currentYear && articleDate.getMonth() === currentMonth
+    }).length,
+    published: allArticles.filter(article => article.published).length,
+    draft: allArticles.filter(article => !article.published).length
+  }
+}
+
+// 从URL中提取文章slug
+const extractSlugFromUrl = (url) => {
+  const match = url.match(/\/posts\/([^\/?#]+)/)
+  return match ? match[1] : null
+}
+
+// 获取页面路径统计数据
+const fetchMetrics = async (startAt, endAt, type = 'path', limit = 500) => {
+  try {
+    const url = new URL(`${UMAMI_URL}/api/websites/${WEBSITE_ID}/metrics`)
+    url.searchParams.set('startAt', startAt)
+    url.searchParams.set('endAt', endAt)
+    url.searchParams.set('type', type)
+    url.searchParams.set('limit', limit)
+
+    const response = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${TOKEN}` },
+      method: 'GET',
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (err) {
+    console.error('获取页面统计数据失败:', err)
+    throw err
+  }
+}
+
+// 获取时间戳范围
+const getTimestampRange = (days = 30) => {
+  const end = new Date()
+  const start = new Date()
+  start.setDate(end.getDate() - days)
+  start.setHours(0, 0, 0, 0)
+  
+  return { 
+    start: start.getTime(), 
+    end: end.getTime() 
+  }
+}
+
+// 获取热门文章排行
+const getTopArticles = async () => {
+  try {
+    // 从umami获取页面统计数据
+    const { start, end } = getTimestampRange(30)
+    const pathMetrics = await fetchMetrics(start, end, 'path', 500)
+    
+    if (!pathMetrics || !Array.isArray(pathMetrics)) {
+      console.warn('API返回的路径数据格式不正确:', pathMetrics)
+      throw new Error('Invalid data format')
+    }
+    
+    // 过滤出文章并提取slug
+    const articlePages = pathMetrics
+      .map(item => ({
+        path: item.x,
+        pageviews: item.y || 0,
+        slug: extractSlugFromUrl(item.x)
+      }))
+      .filter(item => item.slug) // 只保留文章
+    
+    const allArticles = Array.isArray(articles.value) ? articles.value : []
+    
+    // 合并文章信息和访问统计数据
+    const articlesWithViews = allArticles.map(article => {
+      const pageStats = articlePages.find(page => page.slug === article.slug)
+      return {
+        ...article,
+        views: pageStats ? pageStats.pageviews : 0
+      }
+    })
+    
+    // 按访问量排序
+    topArticles.value = articlesWithViews
+      .filter(article => article.views > 0) // 只显示访问量大于0的文章
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 10) // 取前10篇
+  } catch (err) {
+    console.error('获取热门文章排行失败:', err)
+    // 如果获取统计数据失败，回退到按时间排序
+    const allArticles = Array.isArray(articles.value) ? articles.value : []
+    topArticles.value = allArticles
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 10)
+      .map(article => ({
+        ...article,
+        views: 0
+      }))
+  }
+}
+
+// 获取最新评论
+const fetchRecentComments = async () => {
+  try {
+    const comments = await getRecentComments()
+    
+    // 为评论添加文章标题
+    const commentsWithTitles = comments.map(comment => {
+      const article = articles.value?.find(a => a.slug === comment.articleSlug)
+      return {
+        ...comment,
+        articleTitle: article ? article.title : 
+          comment.url.startsWith('/talks') ? '说说' : 
+          `未知文章 (${comment.articleSlug})`
+      }
+    })
+    
+    recentComments.value = commentsWithTitles
+  } catch (err) {
+    console.error('获取最新评论失败:', err)
+  }
+}
+
+// 获取标签统计
+const getTagStats = () => {
+  const allArticles = Array.isArray(articles.value) ? articles.value : []
+  const allTags = new Set()
+  
+  allArticles.forEach(article => {
+    if (article.tags && Array.isArray(article.tags)) {
+      article.tags.forEach(tag => allTags.add(tag))
+    }
+  })
+  
+  tagStats.value.total = allTags.size
+}
+
+// 获取说说统计数据
+const getTalkStats = () => {
+  const allTalks = Array.isArray(talks.value) ? talks.value : []
+  const threeMonthsAgo = new Date()
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+  
+  talkStats.value.total = allTalks.length
+  talkStats.value.recent = allTalks.filter(talk => {
+    const talkDate = new Date(talk.created_at)
+    return talkDate >= threeMonthsAgo
+  }).length
+}
+
+
+
+// 格式化数字显示
+const formatNumber = (num) => {
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K'
+  }
+  return num.toString()
+}
+
+// 格式化日期显示
+const formatDate = (dateStr) => {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now - date
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  
+  if (days === 0) {
+    return '今天'
+  } else if (days === 1) {
+    return '昨天'
+  } else if (days < 7) {
+    return `${days}天前`
+  } else if (days < 30) {
+    return `${Math.floor(days / 7)}周前`
+  } else {
+    return date.toLocaleDateString('zh-CN')
+  }
+}
+
+// 打开文章
+const openArticle = (slug) => {
+  window.open(`${siteConfig.blogUrl}/posts/${slug}`, '_blank')
+}
+
+
+
+// 打开源页面
+const openSource = (comment) => {
+  if (comment.url.startsWith('/talks')) {
+    window.open(`${siteConfig.blogUrl}/talks#${comment.id}`, '_blank')
+  } else {
+    window.open(`${siteConfig.blogUrl}/posts/${comment.articleSlug}#${comment.id}`, '_blank')
+  }
+}
+
+// 加载数据
+const loadData = async () => {
+  loading.value = true
+  try {
+    await Promise.all([
+      getList(),
+      getTalks()
+    ])
+    
+    calculateArticleStats()
+    getTagStats()
+    getTalkStats()
+    await getTopArticles() // 改为async
+    await fetchRecentComments()
+  } catch (error) {
+    console.error('加载数据失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadData()
+})
+</script>

@@ -8,22 +8,38 @@ export function setLoading(ref) {
   loadingRef.value = ref
 }
 
+// 等待加载组件挂载
+const waitForLoading = () => {
+  return new Promise((resolve) => {
+    const checkLoading = () => {
+      if (loadingRef.value) {
+        resolve(loadingRef.value)
+      } else {
+        setTimeout(checkLoading, 10)
+      }
+    }
+    checkLoading()
+  })
+}
+
 // 显示加载弹窗
-export function showLoading(message = '加载中...') {
+export async function showLoading(message = '加载中...') {
   if (!loadingRef.value) {
-    console.warn('Loading component not mounted yet')
-    return
+    await waitForLoading()
   }
-  loadingRef.value.show(message)
+  if (loadingRef.value) {
+    loadingRef.value.show(message)
+  }
 }
 
 // 隐藏加载弹窗
-export function hideLoading() {
+export async function hideLoading() {
   if (!loadingRef.value) {
-    console.warn('Loading component not mounted yet')
-    return
+    await waitForLoading()
   }
-  loadingRef.value.hide()
+  if (loadingRef.value) {
+    loadingRef.value.hide()
+  }
 }
 
 // 包装异步函数，自动显示/隐藏加载状态
