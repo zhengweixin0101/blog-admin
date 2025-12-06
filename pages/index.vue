@@ -1,11 +1,11 @@
 <template>
   <div class="flex flex-col">
     <!-- 顶部统计卡片 -->
-    <div class="grid grid-cols-3 gap-4 p-8">
+    <div class="grid grid-cols-4 gap-4 p-8">
       <!-- 文章总数 -->
       <div class="px-4 order rounded shadow">
         <p class="text-gray-500 text-sm">文章总数</p>
-        <p class="text-2xl font-bold rounded">{{ articleStats.total }} <span class="text-sm text-green-600 font-normal">↑本年共发布 {{ articleStats.thisYear }} 篇</span></p>
+        <p class="text-2xl font-bold rounded">{{ articleStats.total }} <span v-if="articleStats.thisYear > 0" class="text-sm text-green-600 font-normal">↑本年共发布 {{ articleStats.thisYear }} 篇</span></p>
       </div>
 
       <!-- 标签总数 -->
@@ -17,7 +17,13 @@
       <!-- 说说总数 -->
       <div class="px-4 order rounded shadow">
         <p class="text-gray-500 text-sm">说说总数</p>
-        <p class="text-2xl font-bold rounded">{{ talkStats.total }} <span class="text-sm text-green-600 font-normal">↑近三个月发布 {{ talkStats.recent }} 条</span></p>
+        <p class="text-2xl font-bold rounded">{{ talkStats.total }} <span v-if="talkStats.recent > 0" class="text-sm text-green-600 font-normal">↑近三个月发布 {{ talkStats.recent }} 条</span></p>
+      </div>
+
+      <!-- 总访问量 -->
+      <div class="px-4 order rounded shadow">
+        <p class="text-gray-500 text-sm">访问总量</p>
+        <p class="text-2xl font-bold rounded">{{ formatNumber(visitStats.total) }} <span v-if="visitStats.thisWeek > 0" class="text-sm text-green-600 font-normal">↑近七天新增 {{ formatNumber(visitStats.thisWeek) }}</span></p>
       </div>
     </div>
 
@@ -145,6 +151,11 @@ const talkStats = ref({
   recent: 0
 })
 
+const visitStats = ref({
+  total: 0,
+  thisWeek: 0
+})
+
 const topArticles = ref([])
 
 // 计算文章统计数据
@@ -172,6 +183,34 @@ const calculateArticleStats = () => {
 const extractSlugFromUrl = (url) => {
   const match = url.match(/\/posts\/([^\/?#]+)/)
   return match ? match[1] : null
+}
+
+// 获取统计数据
+const fetchStats = async (startAt, endAt) => {
+  try {
+    const url = `${UMAMI_URL}/api/websites/${WEBSITE_ID}/stats`
+    const response = await fetch(`${url}?startAt=${startAt}&endAt=${endAt}`, {
+      headers: { Authorization: `Bearer ${TOKEN}` },
+      method: 'GET',
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (err) {
+    console.error('获取统计数据失败:', err)
+    throw err
+  }
+}
+
+// 获取访问量的值
+function getValue(data, key) {
+  if (!data) return 0
+  const val = data[key]
+  if (val === undefined || val === null) return 0
+  return Number(val) || 0
 }
 
 // 获取页面路径统计数据
@@ -299,6 +338,41 @@ const getTagStats = () => {
   tagStats.value.total = allTags.size
 }
 
+// 获取访问量统计数据
+const getVisitStats = async () => {
+  try {
+    const now = new Date()
+    const createTime = new Date(siteConfig.umami.createTime)
+    
+    // 获取总访问量
+    const totalStats = await fetchStats(createTime.getTime(), now.getTime())
+    const totalVisits = getValue(totalStats, 'pageviews')
+    
+    // 计算近七天的时间范围
+    const sevenDaysAgo = new Date(now)
+    sevenDaysAgo.setDate(now.getDate() - 6)
+    sevenDaysAgo.setHours(0, 0, 0, 0)
+    
+    const todayEnd = new Date(now)
+    todayEnd.setHours(23, 59, 59, 999)
+    
+    // 获取近七天的访问量
+    const recentStats = await fetchStats(sevenDaysAgo.getTime(), todayEnd.getTime())
+    const recentVisits = getValue(recentStats, 'pageviews')
+    
+    visitStats.value = {
+      total: totalVisits,
+      thisWeek: recentVisits
+    }
+  } catch (err) {
+    console.error('获取访问量统计失败:', err)
+    visitStats.value = {
+      total: 0,
+      thisWeek: 0
+    }
+  }
+}
+
 // 获取说说统计数据
 const getTalkStats = () => {
   const allTalks = Array.isArray(talks.value) ? talks.value : []
@@ -364,13 +438,14 @@ const loadData = async () => {
   try {
     await Promise.all([
       getList(),
-      getTalks()
+      getTalks(),
+      getVisitStats()
     ])
     
     calculateArticleStats()
     getTagStats()
     getTalkStats()
-    await getTopArticles() // 改为async
+    await getTopArticles()
     await fetchRecentComments()
   } catch (error) {
     console.error('加载数据失败:', error)
