@@ -13,7 +13,7 @@ export const siteConfig = {
     // Twikoo 配置（用于首页获取数据）
     twikoo: {
         // 环境ID
-        envId: 'https://twikoo.api.zhengweixin.top/.netlify/functions/twikoo',
+        envId: 'https://twikoo.api.zhengweixin.top',
         // 评论数是否包括回复
         includeReply: true,
         // 获取最新评论数量（最大：100）
