@@ -130,7 +130,7 @@ const deleteAll = async () => {
   if (!confirmed) return
 
   // 输入Yes确认
-  const inputYes = await prompt('请输入 "Yes" 以确认删除全部文章：','No')
+  const inputYes = await prompt('请输入 "Yes" 以确认删除全部文章：','No','确认删除','输入 "Yes" 进行删除')
   if (inputYes !== 'Yes') {
     await alert('操作已取消。')
     return
@@ -186,7 +186,7 @@ const deleteAll = async () => {
 
 // 修改 slug
 const handleEditSlug = async (article) => {
-  const newSlug = await prompt('请输入新的 slug:', article.slug)
+  const newSlug = await prompt('请输入新的 slug:', article.slug, '修改 Slug', '不能为空！')
   if (!newSlug || newSlug === article.slug) return
   const confirmed = await confirm(`确认将 slug "${article.slug}" 修改为 "${newSlug}" 吗？`)
   if (!confirmed) return

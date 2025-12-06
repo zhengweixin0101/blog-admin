@@ -34,12 +34,12 @@ export function confirm(message, title = '确认') {
   })
 }
 
-export function prompt(message, defaultValue = '', title = '输入') {
+export function prompt(message, defaultValue = '', title = '输入', placeholder = '') {
   return showModal({
     title,
     message,
     type: 'prompt',
     defaultValue,
-    placeholder: message
+    placeholder: placeholder
   })
 }

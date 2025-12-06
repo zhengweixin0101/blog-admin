@@ -826,7 +826,12 @@ const saveEdit = async (id) => {
 
 // 从 Memos 同步
 const syncFromMemos = async () => {
-    const apiUrl = await prompt('请输入 Memos API 地址（https://example.com/api/v1/memos）')
+    const apiUrl = await prompt(
+        '请输入 Memos API 地址',
+        '',
+        '从 Memos 同步',
+        'https://example.com/api/v1/memos'
+    )
     if (!apiUrl) return await alert('未输入 API 地址')
 
     try {
