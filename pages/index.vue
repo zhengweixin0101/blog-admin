@@ -11,7 +11,7 @@
       <!-- 标签总数 -->
       <div class="px-4 order rounded shadow">
         <p class="text-gray-500 text-sm">标签总数</p>
-        <p class="text-2xl font-bold rounded">{{ tagStats.total }}</p>
+        <p class="text-2xl font-bold rounded">{{ tagStats.total }} <span v-if="tagStats.articlesWithoutTags === 0 && articleStats.total > 0" class="text-sm text-green-600 font-normal">✓ 所有文章均已添加</span><span v-else-if="tagStats.articlesWithoutTags > 0" class="text-sm text-orange-500 font-normal">! 有 {{ tagStats.articlesWithoutTags }} 篇未添加</span></p>
       </div>
 
       <!-- 说说总数 -->
@@ -144,7 +144,8 @@ const articleStats = ref({
 
 const recentComments = ref([])
 const tagStats = ref({
-  total: 0
+  total: 0,
+  articlesWithoutTags: 0
 })
 const talkStats = ref({
   total: 0,
@@ -328,14 +329,18 @@ const fetchRecentComments = async () => {
 const getTagStats = () => {
   const allArticles = Array.isArray(articles.value) ? articles.value : []
   const allTags = new Set()
+  let articlesWithoutTags = 0
   
   allArticles.forEach(article => {
-    if (article.tags && Array.isArray(article.tags)) {
+    if (article.tags && Array.isArray(article.tags) && article.tags.length > 0) {
       article.tags.forEach(tag => allTags.add(tag))
+    } else {
+      articlesWithoutTags++
     }
   })
   
   tagStats.value.total = allTags.size
+  tagStats.value.articlesWithoutTags = articlesWithoutTags
 }
 
 // 获取访问量统计数据
