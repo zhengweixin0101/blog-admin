@@ -1,27 +1,27 @@
 <template>
   <div class="flex flex-col">
     <!-- 顶部统计卡片 -->
-    <div class="grid grid-cols-5 gap-4 p-8">
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 p-4 md:p-6 lg:p-8">
       <!-- 文章总数 -->
-      <div class="p-4 rounded shadow">
-        <p class="text-gray-500 text-sm">文章总数</p>
-        <p class="text-2xl font-bold rounded -mt-2">
+      <div class="p-3 md:p-4 rounded shadow">
+        <p class="text-gray-500 text-xs md:text-sm">文章总数</p>
+        <p class="text-xl md:text-2xl font-bold rounded -mt-2">
           {{ articleStats.total }}
           <span
-            v-if="articleStats.thisYear > 0"
-            class="text-sm text-green-500 font-normal"
+            v-if="articleStats.thisYear > 0 && articleStats.draft === 0"
+            class="text-xs md:text-sm text-green-500 font-normal block md:inline"
           >
             ↑今年共发布 {{ articleStats.thisYear }} 篇
           </span>
           <span
             v-if="articleStats.total > 0 && articleStats.thisYear === 0"
-            class="text-sm text-red-500 font-normal"
+            class="text-xs md:text-sm text-red-500 font-normal block md:inline"
           >
             ×今年还未发布文章
           </span>
           <span
             v-if="articleStats.draft > 0"
-            class="text-sm text-orange-500 font-normal ml-2"
+            class="text-xs md:text-sm text-orange-500 font-normal block md:inline md:ml-2"
           >
             ! 有 {{ articleStats.draft }} 篇未发布
           </span>
@@ -29,19 +29,19 @@
       </div>
 
       <!-- 标签总数 -->
-      <div class="p-4 rounded shadow">
-        <p class="text-gray-500 text-sm">标签总数</p>
-        <p class="text-2xl font-bold rounded -mt-2">
+      <div class="p-3 md:p-4 rounded shadow">
+        <p class="text-gray-500 text-xs md:text-sm">标签总数</p>
+        <p class="text-xl md:text-2xl font-bold rounded -mt-2">
           {{ tagStats.total }}
           <span
             v-if="tagStats.articlesWithoutTags === 0 && articleStats.total > 0"
-            class="text-sm text-green-500 font-normal"
+            class="text-xs md:text-sm text-green-500 font-normal block md:inline"
           >
             ✓ 所有文章均已添加
           </span>
           <span
             v-else-if="tagStats.articlesWithoutTags > 0"
-            class="text-sm text-orange-500 font-normal"
+            class="text-xs md:text-sm text-orange-500 font-normal block md:inline"
           >
             ! 有 {{ tagStats.articlesWithoutTags }} 篇未添加
           </span>
@@ -49,19 +49,19 @@
       </div>
 
       <!-- 说说总数 -->
-      <div class="p-4 rounded shadow">
-        <p class="text-gray-500 text-sm">说说总数</p>
-        <p class="text-2xl font-bold rounded -mt-2">
+      <div class="p-3 md:p-4 rounded shadow">
+        <p class="text-gray-500 text-xs md:text-sm">说说总数</p>
+        <p class="text-xl md:text-2xl font-bold rounded -mt-2">
           {{ talkStats.total }}
           <span
             v-if="talkStats.recent > 0"
-            class="text-sm text-green-500 font-normal"
+            class="text-xs md:text-sm text-green-500 font-normal block md:inline"
           >
             ↑近三个月发布 {{ talkStats.recent }} 条
           </span>
           <span
             v-if="talkStats.total > 0 && talkStats.recent === 0"
-            class="text-sm text-orange-500 font-normal"
+            class="text-xs md:text-sm text-orange-500 font-normal block md:inline"
           >
             ! 已经很久没发布说说了
           </span>
@@ -69,13 +69,13 @@
       </div>
 
       <!-- 评论总数 -->
-      <div class="p-4 rounded shadow">
-        <p class="text-gray-500 text-sm">评论总数</p>
-        <p class="text-2xl font-bold rounded -mt-2">
+      <div class="p-3 md:p-4 rounded shadow">
+        <p class="text-gray-500 text-xs md:text-sm">评论总数</p>
+        <p class="text-xl md:text-2xl font-bold rounded -mt-2">
           {{ formatNumber(commentStats.total) }}
           <span
             v-if="commentStats.total > 0 && commentStats.articleCount > 0"
-            class="text-sm text-green-500 font-normal"
+            class="text-xs md:text-sm text-green-500 font-normal block md:inline"
           >
             ↗共来自 {{ commentStats.articleCount }} 个页面
           </span>
@@ -83,19 +83,19 @@
       </div>
 
       <!-- 总访问量 -->
-      <div class="p-4 rounded shadow">
-        <p class="text-gray-500 text-sm">访问总量</p>
-        <p class="text-2xl font-bold rounded -mt-2">
+      <div class="p-3 md:p-4 rounded shadow">
+        <p class="text-gray-500 text-xs md:text-sm">访问总量</p>
+        <p class="text-xl md:text-2xl font-bold rounded -mt-2">
           {{ formatNumber(visitStats.total) }}
           <span
             v-if="visitStats.thisWeek > 0"
-            class="text-sm text-green-500 font-normal"
+            class="text-xs md:text-sm text-green-500 font-normal block md:inline"
           >
             ↑近七天新增 {{ formatNumber(visitStats.thisWeek) }}
           </span>
           <span
             v-else-if="visitStats.total > 0 && visitStats.thisWeek === 0"
-            class="text-sm text-orange-500 font-normal"
+            class="text-xs md:text-sm text-orange-500 font-normal block md:inline"
           >
             ! 近期无访问
           </span>
@@ -104,46 +104,46 @@
     </div>
 
     <!-- 主体两列布局 -->
-    <div class="grid grid-cols-2 gap-6 px-8 flex-1 min-h-0">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 px-4 md:px-6 lg:px-8 flex-1 min-h-0">
 
       <!-- 热门文章 -->
       <div class="bg-white rounded shadow flex flex-col min-h-0">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h2 class="text-lg font-semibold text-gray-800">热门文章</h2>
+        <div class="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200">
+          <h2 class="text-base md:text-lg font-semibold text-gray-800">热门文章</h2>
         </div>
-        <div class="flex-1 overflow-y-auto px-6">
+        <div class="flex-1 overflow-y-auto px-4 md:px-6">
           <div v-if="loading" class="text-center py-8">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
             <p class="text-gray-500 mt-2">加载中...</p>
           </div>
           <div v-else>
             <div v-for="(article, index) in topArticles" :key="article.slug" 
-                 class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded transition-colors">
-              <span class="flex-shrink-0 w-6 h-6 bg-gray-400 text-white rounded flex items-center justify-center text-sm font-bold mr-2">
+                 class="flex items-center gap-2 md:gap-3 p-2 md:p-3 hover:bg-gray-50 rounded transition-colors">
+              <span class="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 bg-gray-400 text-white rounded flex items-center justify-center text-xs md:text-sm font-bold">
                 {{ index + 1 }}
               </span>
-              <div class="flex-1">
-                <div class="flex items-center gap-2">
-                  <p class="text-md font-medium text-gray-800">{{ article.title }}</p>
-                  <div v-if="article.tags && article.tags.length" class="flex items-center gap-1">
-                    <span v-for="tag in article.tags.slice(0, 3)" :key="tag" 
-                          class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
+              <div class="flex-1 min-w-0">
+                <div class="flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                  <p class="text-sm md:text-md font-medium text-gray-800 truncate">{{ article.title }}</p>
+                  <div v-if="article.tags && article.tags.length" class="flex flex-wrap items-center gap-1">
+                    <span v-for="tag in article.tags.slice(0, 2)" :key="tag" 
+                          class="px-1 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
                       {{ tag }}
                     </span>
-                    <span v-if="article.tags.length > 3" 
-                          class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
-                      +{{ article.tags.length - 3 }}
+                    <span v-if="article.tags.length > 2" 
+                          class="px-1 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
+                      +{{ article.tags.length - 2 }}
                     </span>
                   </div>
                 </div>
-                <div class="flex items-center gap-4 -mt-5">
+                <div class="flex items-center gap-3 md:gap-4 mt-1">
                   <p class="text-xs text-gray-500">{{ article.views }} 次浏览</p>
                   <p class="text-xs text-gray-400">{{ formatDate(article.date) }}</p>
                 </div>
               </div>
-              <div class="flex gap-2">
-                <NuxtLink :to="`/articles/edit/${article.slug}`" class="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors no-underline">编辑</NuxtLink>
-                <a :href="`${siteConfig.blogUrl}/posts/${article.slug}`" target="_blank" class="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors no-underline">访问</a>
+              <div class="flex gap-1 md:gap-2 flex-shrink-0">
+                <NuxtLink :to="`/articles/edit/${article.slug}`" class="px-2 py-1 text-xs md:text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors no-underline">编辑</NuxtLink>
+                <a :href="`${siteConfig.blogUrl}/posts/${article.slug}`" target="_blank" class="px-2 py-1 text-xs md:text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors no-underline">访问</a>
               </div>
             </div>
           </div>
@@ -152,10 +152,10 @@
 
       <!-- 最新评论 -->
       <div class="bg-white rounded shadow flex flex-col min-h-0">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h2 class="text-lg font-semibold text-gray-800">最新评论</h2>
+        <div class="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200">
+          <h2 class="text-base md:text-lg font-semibold text-gray-800">最新评论</h2>
         </div>
-        <div class="flex-1 overflow-y-auto p-6">
+        <div class="flex-1 overflow-y-auto p-4 md:p-6">
           <div v-if="loading" class="text-center py-8">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
             <p class="text-gray-500 mt-2">加载中...</p>
