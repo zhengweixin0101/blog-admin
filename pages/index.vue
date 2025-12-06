@@ -9,9 +9,15 @@
           {{ articleStats.total }}
           <span
             v-if="articleStats.thisYear > 0"
-            class="text-sm text-green-600 font-normal"
+            class="text-sm text-green-500 font-normal"
           >
-            ↑本年共发布 {{ articleStats.thisYear }} 篇
+            ↑今年共发布 {{ articleStats.thisYear }} 篇
+          </span>
+          <span
+            v-if="articleStats.total > 0 && articleStats.thisYear === 0"
+            class="text-sm text-red-500 font-normal"
+          >
+            ×今年还未发布文章
           </span>
           <span
             v-if="articleStats.draft > 0"
@@ -29,7 +35,7 @@
           {{ tagStats.total }}
           <span
             v-if="tagStats.articlesWithoutTags === 0 && articleStats.total > 0"
-            class="text-sm text-green-600 font-normal"
+            class="text-sm text-green-500 font-normal"
           >
             ✓ 所有文章均已添加
           </span>
@@ -49,9 +55,15 @@
           {{ talkStats.total }}
           <span
             v-if="talkStats.recent > 0"
-            class="text-sm text-green-600 font-normal"
+            class="text-sm text-green-500 font-normal"
           >
             ↑近三个月发布 {{ talkStats.recent }} 条
+          </span>
+          <span
+            v-if="talkStats.total > 0 && talkStats.recent === 0"
+            class="text-sm text-orange-500 font-normal"
+          >
+            ! 已经很久没发布说说了
           </span>
         </p>
       </div>
@@ -63,7 +75,7 @@
           {{ formatNumber(commentStats.total) }}
           <span
             v-if="commentStats.total > 0 && commentStats.articleCount > 0"
-            class="text-sm text-green-600 font-normal"
+            class="text-sm text-green-500 font-normal"
           >
             ↗共来自 {{ commentStats.articleCount }} 个页面
           </span>
@@ -77,7 +89,7 @@
           {{ formatNumber(visitStats.total) }}
           <span
             v-if="visitStats.thisWeek > 0"
-            class="text-sm text-green-600 font-normal"
+            class="text-sm text-green-500 font-normal"
           >
             ↑近七天新增 {{ formatNumber(visitStats.thisWeek) }}
           </span>
