@@ -329,8 +329,9 @@ const getTimestampRange = (days = 30) => {
 const getTopArticles = async () => {
   try {
     // 从umami获取页面统计数据
-    const { start, end } = getTimestampRange(30)
-    const pathMetrics = await fetchMetrics(start, end, 'path', 500)
+    const now = new Date()
+    const createTime = new Date(siteConfig.umami.createTime)
+    const pathMetrics = await fetchMetrics(createTime.getTime(), now.getTime(), 'path', 500)
     
     if (!pathMetrics || !Array.isArray(pathMetrics)) {
       console.warn('API返回的路径数据格式不正确:', pathMetrics)
