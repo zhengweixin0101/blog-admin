@@ -17,7 +17,11 @@ export const siteConfig = {
         // 评论数是否包括回复
         includeReply: true,
         // 获取最新评论数量（最大：100）
-        recentCommentsPageSize: 15
+        recentCommentsPageSize: 15,
+        // 其他有评论的页面路径（用于计算评论总数）
+        customCommentPaths: [
+            '/talks'
+        ]
     },
     
     // Umami 配置（用于首页获取数据）

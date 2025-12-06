@@ -1,29 +1,87 @@
 <template>
   <div class="flex flex-col">
     <!-- 顶部统计卡片 -->
-    <div class="grid grid-cols-4 gap-4 p-8">
+    <div class="grid grid-cols-5 gap-4 p-8">
       <!-- 文章总数 -->
-      <div class="px-4 order rounded shadow">
+      <div class="p-4 rounded shadow">
         <p class="text-gray-500 text-sm">文章总数</p>
-        <p class="text-2xl font-bold rounded">{{ articleStats.total }} <span v-if="articleStats.thisYear > 0" class="text-sm text-green-600 font-normal">↑本年共发布 {{ articleStats.thisYear }} 篇</span></p>
+        <p class="text-2xl font-bold rounded">
+          {{ articleStats.total }}
+          <span
+            v-if="articleStats.thisYear > 0"
+            class="text-sm text-green-600 font-normal"
+          >
+            ↑本年共发布 {{ articleStats.thisYear }} 篇
+          </span>
+        </p>
       </div>
 
       <!-- 标签总数 -->
-      <div class="px-4 order rounded shadow">
+      <div class="p-4 rounded shadow">
         <p class="text-gray-500 text-sm">标签总数</p>
-        <p class="text-2xl font-bold rounded">{{ tagStats.total }} <span v-if="tagStats.articlesWithoutTags === 0 && articleStats.total > 0" class="text-sm text-green-600 font-normal">✓ 所有文章均已添加</span><span v-else-if="tagStats.articlesWithoutTags > 0" class="text-sm text-orange-500 font-normal">! 有 {{ tagStats.articlesWithoutTags }} 篇未添加</span></p>
+        <p class="text-2xl font-bold rounded">
+          {{ tagStats.total }}
+          <span
+            v-if="tagStats.articlesWithoutTags === 0 && articleStats.total > 0"
+            class="text-sm text-green-600 font-normal"
+          >
+            ✓ 所有文章均已添加
+          </span>
+          <span
+            v-else-if="tagStats.articlesWithoutTags > 0"
+            class="text-sm text-orange-500 font-normal"
+          >
+            ! 有 {{ tagStats.articlesWithoutTags }} 篇未添加
+          </span>
+        </p>
       </div>
 
       <!-- 说说总数 -->
-      <div class="px-4 order rounded shadow">
+      <div class="p-4 rounded shadow">
         <p class="text-gray-500 text-sm">说说总数</p>
-        <p class="text-2xl font-bold rounded">{{ talkStats.total }} <span v-if="talkStats.recent > 0" class="text-sm text-green-600 font-normal">↑近三个月发布 {{ talkStats.recent }} 条</span></p>
+        <p class="text-2xl font-bold rounded">
+          {{ talkStats.total }}
+          <span
+            v-if="talkStats.recent > 0"
+            class="text-sm text-green-600 font-normal"
+          >
+            ↑近三个月发布 {{ talkStats.recent }} 条
+          </span>
+        </p>
+      </div>
+
+      <!-- 评论总数 -->
+      <div class="p-4 rounded shadow">
+        <p class="text-gray-500 text-sm">评论总数</p>
+        <p class="text-2xl font-bold rounded">
+          {{ formatNumber(commentStats.total) }}
+          <span
+            v-if="commentStats.total > 0 && commentStats.articleCount > 0"
+            class="text-sm text-green-600 font-normal"
+          >
+            ↗来自 {{ commentStats.articleCount }} 个页面
+          </span>
+        </p>
       </div>
 
       <!-- 总访问量 -->
-      <div class="px-4 order rounded shadow">
+      <div class="p-4 rounded shadow">
         <p class="text-gray-500 text-sm">访问总量</p>
-        <p class="text-2xl font-bold rounded">{{ formatNumber(visitStats.total) }} <span v-if="visitStats.thisWeek > 0" class="text-sm text-green-600 font-normal">↑近七天新增 {{ formatNumber(visitStats.thisWeek) }}</span></p>
+        <p class="text-2xl font-bold rounded">
+          {{ formatNumber(visitStats.total) }}
+          <span
+            v-if="visitStats.thisWeek > 0"
+            class="text-sm text-green-600 font-normal"
+          >
+            ↑近七天新增 {{ formatNumber(visitStats.thisWeek) }}
+          </span>
+          <span
+            v-else-if="visitStats.total > 0 && visitStats.thisWeek === 0"
+            class="text-sm text-orange-500 font-normal"
+          >
+            ! 近期无访问
+          </span>
+        </p>
       </div>
     </div>
 
@@ -125,7 +183,7 @@ import { siteConfig } from '@/site.config.js'
 
 const { articles, getList } = useArticles()
 const { talks, getTalks } = useTalks()
-const { getRecentComments } = useTwikoo()
+const { getCommentsCount, getRecentComments } = useTwikoo()
 
 // Umami配置
 const UMAMI_URL = siteConfig.umami.url
@@ -150,6 +208,11 @@ const tagStats = ref({
 const talkStats = ref({
   total: 0,
   recent: 0
+})
+
+const commentStats = ref({
+  total: 0,
+  articleCount: 0
 })
 
 const visitStats = ref({
@@ -378,6 +441,47 @@ const getVisitStats = async () => {
   }
 }
 
+// 获取评论统计数据
+const getCommentStats = async () => {
+  try {
+    // 获取所有文章的评论数
+    const allArticles = Array.isArray(articles.value) ? articles.value : []
+    const articleUrls = allArticles.map(article => `/posts/${article.slug}`)
+    
+    // 添加自定义页面的评论路径
+    const customUrls = siteConfig.twikoo.customCommentPaths || []
+    const allUrls = [...articleUrls, ...customUrls]
+    
+    if (allUrls.length === 0) {
+      commentStats.value = {
+        total: 0,
+        articleCount: 0
+      }
+      return
+    }
+
+    // 获取所有页面的评论数
+    const commentsCount = await getCommentsCount(allUrls)
+    
+    // 计算总评论数
+    const totalComments = commentsCount.reduce((sum, item) => sum + (item.count || 0), 0)
+    
+    // 计算有评论的文章数量
+    const articlesWithComments = commentsCount.filter(item => item.count > 0).length
+    
+    commentStats.value = {
+      total: totalComments,
+      articleCount: articlesWithComments
+    }
+  } catch (err) {
+    console.error('获取评论统计失败:', err)
+    commentStats.value = {
+      total: 0,
+      articleCount: 0
+    }
+  }
+}
+
 // 获取说说统计数据
 const getTalkStats = () => {
   const allTalks = Array.isArray(talks.value) ? talks.value : []
@@ -450,6 +554,7 @@ const loadData = async () => {
     calculateArticleStats()
     getTagStats()
     getTalkStats()
+    await getCommentStats()
     await getTopArticles()
     await fetchRecentComments()
   } catch (error) {
