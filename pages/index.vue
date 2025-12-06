@@ -5,7 +5,7 @@
       <!-- 文章总数 -->
       <div class="p-4 rounded shadow">
         <p class="text-gray-500 text-sm">文章总数</p>
-        <p class="text-2xl font-bold rounded">
+        <p class="text-2xl font-bold rounded -mt-2">
           {{ articleStats.total }}
           <span
             v-if="articleStats.thisYear > 0"
@@ -13,13 +13,19 @@
           >
             ↑本年共发布 {{ articleStats.thisYear }} 篇
           </span>
+          <span
+            v-if="articleStats.draft > 0"
+            class="text-sm text-orange-500 font-normal ml-2"
+          >
+            ! 有 {{ articleStats.draft }} 篇未发布
+          </span>
         </p>
       </div>
 
       <!-- 标签总数 -->
       <div class="p-4 rounded shadow">
         <p class="text-gray-500 text-sm">标签总数</p>
-        <p class="text-2xl font-bold rounded">
+        <p class="text-2xl font-bold rounded -mt-2">
           {{ tagStats.total }}
           <span
             v-if="tagStats.articlesWithoutTags === 0 && articleStats.total > 0"
@@ -39,7 +45,7 @@
       <!-- 说说总数 -->
       <div class="p-4 rounded shadow">
         <p class="text-gray-500 text-sm">说说总数</p>
-        <p class="text-2xl font-bold rounded">
+        <p class="text-2xl font-bold rounded -mt-2">
           {{ talkStats.total }}
           <span
             v-if="talkStats.recent > 0"
@@ -53,13 +59,13 @@
       <!-- 评论总数 -->
       <div class="p-4 rounded shadow">
         <p class="text-gray-500 text-sm">评论总数</p>
-        <p class="text-2xl font-bold rounded">
+        <p class="text-2xl font-bold rounded -mt-2">
           {{ formatNumber(commentStats.total) }}
           <span
             v-if="commentStats.total > 0 && commentStats.articleCount > 0"
             class="text-sm text-green-600 font-normal"
           >
-            ↗来自 {{ commentStats.articleCount }} 个页面
+            ↗共来自 {{ commentStats.articleCount }} 个页面
           </span>
         </p>
       </div>
@@ -67,7 +73,7 @@
       <!-- 总访问量 -->
       <div class="p-4 rounded shadow">
         <p class="text-gray-500 text-sm">访问总量</p>
-        <p class="text-2xl font-bold rounded">
+        <p class="text-2xl font-bold rounded -mt-2">
           {{ formatNumber(visitStats.total) }}
           <span
             v-if="visitStats.thisWeek > 0"
@@ -195,8 +201,6 @@ const loading = ref(true)
 const articleStats = ref({
   total: 0,
   thisYear: 0,
-  thisMonth: 0,
-  published: 0,
   draft: 0
 })
 
@@ -226,7 +230,6 @@ const topArticles = ref([])
 const calculateArticleStats = () => {
   const allArticles = Array.isArray(articles.value) ? articles.value : []
   const currentYear = new Date().getFullYear()
-  const currentMonth = new Date().getMonth()
   
   articleStats.value = {
     total: allArticles.length,
@@ -234,11 +237,6 @@ const calculateArticleStats = () => {
       const articleYear = new Date(article.date).getFullYear()
       return articleYear === currentYear
     }).length,
-    thisMonth: allArticles.filter(article => {
-      const articleDate = new Date(article.date)
-      return articleDate.getFullYear() === currentYear && articleDate.getMonth() === currentMonth
-    }).length,
-    published: allArticles.filter(article => article.published).length,
     draft: allArticles.filter(article => !article.published).length
   }
 }
