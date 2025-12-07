@@ -366,14 +366,177 @@ async function handleDeleteFile(file) {
   showLoading('正在删除图片...')
   error.value = ''
   try {
+    // 先检查文件是否存在
+    const exists = await existsKey(file.key)
+    if (exists !== true) {
+      hideLoading()
+      await alert('文件不存在或无法确认。')
+      await listFiles()
+      return
+    }
+
     await s3.deleteFile({ fileKey: file.key, cfg: s3Config.value })
+    const status = await checkDeletion(file.key)
     hideLoading()
-    await alert('图片删除成功！')
+    if (status === 'deleted') {
+      await alert('图片删除成功！')
+    } else if (status === 'exists') {
+      await alert('删除失败：文件仍然存在，请检查权限或稍后重试。')
+    } else {
+      await alert('已发送删除请求，但无法确认删除状态，请自行检查。')
+    }
     await listFiles()
   } catch (e) {
     console.error(e)
     hideLoading()
     error.value = '删除失败，请重试！'
+  }
+}
+
+// 短暂等待
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+// 规范化 key 比较
+function normalizeKey(k) {
+  if (typeof k !== 'string') return k
+  return k.startsWith('/') ? k.slice(1) : k
+}
+
+// 对文件直链执行 HEAD 检查
+// 返回 true 存在， false 不存在， null 无法判断
+async function headCheck(key, retries = 2, interval = 300) {
+  if (!customDomain.value) return null
+  const url = customDomain.value.endsWith('/') ? `${customDomain.value}${key}` : `${customDomain.value}/${key}`
+  for (let i = 0; i < retries; i++) {
+    try {
+      const resp = await fetch(url, { method: 'HEAD', cache: 'no-store' })
+      if (resp.status === 404) return false
+      if (resp.ok) return true
+    } catch (e) {
+      console.error('headCheck 出错:', e)
+    }
+    await sleep(interval)
+  }
+  return null
+}
+
+// 检测文件是否被删除
+async function checkDeletion(key) {
+  const maxRetries = 6
+  let interval = 400
+  const target = normalizeKey(key)
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const list = await s3.listFiles({ prefix: target, cfg: s3Config.value })
+      if (Array.isArray(list)) {
+        const found = list.some(item => normalizeKey(item.key) === target)
+        if (!found) {
+          return 'deleted'
+        }
+        // 进一步用 HEAD 确认
+        const head = await headCheck(target, 1, 200)
+        if (head === false) return 'deleted'
+        if (head === true) {
+          return 'exists'
+        }
+      } else {
+        const head = await headCheck(target, 2, 300)
+        if (head === false) return 'deleted'
+        if (head === true) return 'exists'
+      }
+    } catch (e) {
+      console.error('checkDeletion listFiles 出错:', e)
+    }
+    await sleep(interval)
+    interval = Math.min(2000, Math.round(interval * 1.5))
+  }
+
+  try {
+    const finalHead = await headCheck(target, 3, 300)
+    if (finalHead === false) return 'deleted'
+    if (finalHead === true) return 'exists'
+  } catch (e) {
+    console.error('headCheck 失败:', e)
+  }
+
+  return 'unknown'
+}
+
+// 检查 key 是否存在
+async function existsKey(key) {
+  showLoading('正在检查文件...')
+  const target = normalizeKey(key)
+  let foundInList = false
+  
+  try {
+    // 通过 listFiles 检查
+    const list = await s3.listFiles({ prefix: target, cfg: s3Config.value })
+    if (Array.isArray(list)) {
+      foundInList = list.some(item => normalizeKey(item.key) === target)
+      if (foundInList) {
+        hideLoading()
+        return true
+      }
+    }
+  } catch (e) {
+    console.error('existsKey listFiles 出错:', e)
+  }
+
+  // HEAD 检查
+  try {
+    const head = await headCheck(target, 3, 300)
+    hideLoading()
+    if (head === true) return true
+    if (head === false) return false
+  } catch (e) {
+    console.error('existsKey headCheck 出错:', e)
+    hideLoading()
+  }
+
+  // 无法确认返回 false
+  hideLoading()
+  return false
+}
+
+async function handleDeleteByUrl(passedUrl) {
+  const target = (typeof passedUrl === 'string' && passedUrl.trim()) ? passedUrl.trim() : deleteUrl.value.trim()
+  if (!target) {
+    await alert('请输入图片链接！')
+    return
+  }
+
+  const key = extractKey(target)
+
+  // 先检查文件是否存在
+  const exists = await existsKey(key)
+  if (exists !== true) {
+    await alert('文件不存在或无法确认，无法执行删除操作。')
+    deleteUrl.value = ''
+    await listFiles()
+    return
+  }
+
+  try {
+    showLoading('正在删除图片...')
+    await s3.deleteFile({ fileKey: key, cfg: s3Config.value })
+    const status = await checkDeletion(key)
+    hideLoading()
+    if (status === 'deleted') {
+      await alert('图片删除成功！')
+    } else if (status === 'exists') {
+      await alert('删除失败：文件仍然存在，请检查权限或稍后重试。')
+    } else {
+      await alert('已执行删除操作，但无法确认文件已被删除，请稍后检查。')
+    }
+    deleteUrl.value = ''
+    await listFiles()
+  } catch (e) {
+    console.error(e)
+    hideLoading()
+    await alert('删除失败，请检查链接或权限是否正确')
   }
 }
 
@@ -383,27 +546,6 @@ function extractKey(url) {
     return u.pathname.startsWith('/') ? u.pathname.slice(1) : u.pathname
   } catch (e) {
     return url
-  }
-}
-
-async function handleDeleteByUrl() {
-  if (!deleteUrl.value.trim()) {
-    await alert('请输入图片链接')
-    return
-  }
-
-  const key = extractKey(deleteUrl.value.trim())
-  try {
-    showLoading('正在删除图片...')
-    await s3.deleteFile({ fileKey: key, cfg: s3Config.value })
-    hideLoading()
-    await alert('已成功执行删除操作，但无法判断文件是否存在，请手动检查！')
-    deleteUrl.value = ''
-    await listFiles()
-  } catch (e) {
-    console.error(e)
-    hideLoading()
-    await alert('删除失败，请检查链接或权限是否正确')
   }
 }
 
