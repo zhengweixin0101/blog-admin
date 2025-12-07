@@ -68,7 +68,7 @@ const originalArticle = ref({})
 const tagsString = computed({
   get: () => article.value.tags.join(','),
   set: val => {
-    article.value.tags = val.split(',').map(t => t.trim()).filter(Boolean)
+    article.value.tags = val.split(/[,，]/).map(t => t.trim()).filter(Boolean)
   }
 })
 
