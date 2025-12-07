@@ -309,6 +309,12 @@ export function useS3({ config, apiKey, onProgress } = {}) {
             // 先进行压缩
             const compressedResult = await compressImage(file)
             
+            // 检查压缩后大小
+            if (compressedResult.compressedSize >= file.size) {
+                console.log(`图片 "${file.name}" 压缩后体积更大(${compressedResult.compressedSize} => ${file.size})，已使用原图上传`)
+                return { action: 'skip', file }
+            }
+            
             // 显示对比弹窗
             const choice = await showImageComparison(file, compressedResult)
             

@@ -41,7 +41,7 @@ export const siteConfig = {
         // 是否启用
         enabled: true,
         // 压缩质量 (0-1)
-        quality: 0.85,
+        quality: 0.9,
         // 最大宽度
         maxWidth: 1920,
         // 最小文件阈值 (小于此大小的文件不压缩)
