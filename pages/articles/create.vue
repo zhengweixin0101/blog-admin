@@ -4,13 +4,10 @@
       <h1 class="text-2xl font-bold mb-4">创建文章</h1>
 
       <!-- 标题 -->
-      <input v-model="article.title" id="title" placeholder="标题" class="border p-2 w-full mb-4"/>
-
-      <!-- Slug -->
-      <input v-model="article.slug" id="slug" placeholder="Slug" class="border p-2 w-full mb-4"/>
-
-      <!-- 日期 -->
-      <input v-model="article.date" id="date" type="date" class="border p-2 w-full mb-4"/>
+      <div class="flex gap-2 mb-4">
+        <input v-model="article.title" id="title" placeholder="标题" class="border p-2 flex-1"/>
+        <button @click="generateTitle" class="-mr-4">AI生成</button>
+      </div>
 
       <!-- 描述 -->
       <div class="flex gap-2 mb-4">
@@ -18,8 +15,14 @@
         <button @click="generateSummary" class="-mr-4">AI生成</button>
       </div>
 
+      <!-- 日期 -->
+      <input v-model="article.date" id="date" type="date" class="border p-2 w-full mb-4"/>
+
       <!-- 标签 -->
       <input v-model="tagsString" id="tags" placeholder="标签（逗号分隔）" class="border p-2 w-full mb-4"/>
+
+      <!-- Slug -->
+      <input v-model="article.slug" id="slug" placeholder="Slug" class="border p-2 w-full mb-4"/>
 
       <!-- 已发布 -->
       <label class="flex items-center gap-2 mb-4">
@@ -128,6 +131,52 @@ const create = async () => {
   router.push('/articles')
 }
 
+// 生成AI标题
+const generateTitle = async () => {
+  if (!article.value.content.trim()) {
+    await alert('请先输入文章内容')
+    return
+  }
+
+  try {
+    const apiKey = localStorage.getItem('api_key')
+    if (!apiKey) {
+      await alert('请先设置API密钥')
+      return
+    }
+
+    const response = await withLoading(
+      () => fetch(siteConfig.aiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey
+        },
+        body: JSON.stringify({
+          messages: `请为以下文章生成一个20字以内吸引人的标题：\n${article.value.content}`
+        })
+      }),
+      'AI生成中...'
+    )()
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+    
+    if (result.messages) {
+      article.value.title = result.messages
+      await alert('标题生成成功！')
+    } else {
+      await alert('生成标题失败：未返回有效内容')
+    }
+  } catch (error) {
+    console.error('生成标题失败:', error)
+    await alert('生成标题失败，请检查网络连接和API密钥')
+  }
+}
+
 // 生成AI摘要
 const generateSummary = async () => {
   if (!article.value.content.trim()) {
@@ -143,17 +192,17 @@ const generateSummary = async () => {
     }
 
     const response = await withLoading(
-      () => fetch(siteConfig.aiSummary, {
+      () => fetch(siteConfig.aiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': apiKey
         },
         body: JSON.stringify({
-          content: article.value.content
+          messages: `请为以下文章生成一个用于博客前台展示的50字以内的简洁摘要：\n${article.value.content}`
         })
       }),
-      'AI生成摘要中...'
+      'AI生成中...'
     )()
 
     if (!response.ok) {
@@ -162,11 +211,11 @@ const generateSummary = async () => {
 
     const result = await response.json()
     
-    if (result.summary) {
-      article.value.description = result.summary
+    if (result.messages) {
+      article.value.description = result.messages
       await alert('摘要生成成功！')
     } else {
-      await alert('生成摘要失败：未返回有效摘要')
+      await alert('生成摘要失败：未返回有效内容')
     }
   } catch (error) {
     console.error('生成摘要失败:', error)
