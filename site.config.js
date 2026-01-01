@@ -5,8 +5,8 @@ export const siteConfig = {
     blogUrl: 'https://zhengweixin.top',
 
     // AI 服务地址
-    // 我使用的是n8n，方便快速切换不同的AI模型
-    // 其实可以直接调用APi的，但是最近接触了n8n就顺便用一下
+    // 我使用的是n8n
+    // 后台是静态的，即使token写在环境变量中，也会有泄露的风险
     // 你可以自行修改源代码或参考我的流程部署n8n
     aiUrl: 'https://workflow.zhengweixin.top/webhook/d7684229-748f-4080-ac72-68e62b15b730',
     
