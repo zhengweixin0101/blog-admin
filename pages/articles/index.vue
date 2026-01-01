@@ -68,7 +68,7 @@
     </main>
 
     <!-- 操作面板弹窗 -->
-    <div v-if="showPanel" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div v-if="showPanel" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" tabindex="-1" @keydown.esc="closePanel">
       <div class="bg-white rounded-lg shadow-lg p-6 w-96 relative">
         <h2 class="text-lg font-bold mb-4 text-center">{{ panelType === 'export' ? '导出文章' : '导入文章' }}</h2>
         <div v-if="panelType === 'export'" class="space-y-3">
@@ -88,7 +88,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useArticles } from '~/composables/useArticles.js'
 import { useArticleImportExport } from '~/composables/useArticleImportExport.js'
 import { alert, confirm } from '@/composables/useModal'
@@ -209,6 +209,11 @@ const openPanel = (type) => {
   document.body.style.position = 'fixed'
   document.body.style.top = `-${window.scrollY}px`
   document.body.style.width = '100%'
+  // 让弹窗获取焦点以接收键盘事件
+  nextTick(() => {
+    const panel = document.querySelector('.fixed.inset-0.bg-black\\/40')
+    if (panel) panel.focus()
+  })
 }
 
 const closePanel = () => {
