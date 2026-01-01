@@ -106,6 +106,7 @@
             />
             <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
               <div class="text-white text-sm truncate">{{ file.key }}</div>
+              <div class="text-white/80 text-xs mt-1">{{ formatFileSize(file.size) }} · {{ formatExactTime(file.lastModified) }}</div>
             </div>
             <div class="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
               {{ formatExactTime(file.lastModified) }}
@@ -136,8 +137,9 @@
             <div class="flex-1 min-w-0">
               <div class="truncate font-medium">{{ file.key }}</div>
             </div>
-            <div class="flex items-center gap-2">
-              <div class="text-sm text-gray-500 whitespace-nowrap mr-4">{{ formatExactTime(file.lastModified) }}</div>
+            <div class="flex items-center gap-4">
+              <div class="text-sm text-gray-500 whitespace-nowrap">{{ formatExactTime(file.lastModified) }}</div>
+              <div class="text-sm text-gray-500 whitespace-nowrap">{{ formatFileSize(file.size) }}</div>
               <div class="flex gap-2">
                 <button
                   @click="previewImage(`${customDomain}${file.key}`)"
@@ -615,11 +617,20 @@ function formatExactTime(dateString) {
     const hours = String(date.getHours()).padStart(2, '0')
     const minutes = String(date.getMinutes()).padStart(2, '0')
     const seconds = String(date.getSeconds()).padStart(2, '0')
-    
+
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
   } catch (e) {
     return '无效日期'
   }
+}
+
+// 格式化文件大小
+function formatFileSize(bytes) {
+  if (!bytes || bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 // 等待图片加载完成
