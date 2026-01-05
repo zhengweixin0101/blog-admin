@@ -342,7 +342,7 @@
             <div v-else>
               <div v-if="!finished" class="text-center mt-4">
                 <button
-                  @click="loadTalks()"
+                  @click="loadTalks(false)"
                   :disabled="loading"
                   class="px-4 py-2 bg-gray-200 hover:bg-gray-300 border-none shadow rounded transition disabled:opacity-50"
                 >
@@ -596,10 +596,15 @@ function parseContent(text) {
 
   // 图片提取
   const imgsMap = new Map()
+  const altCountMap = new Map()
   while ((match = imgRegex.exec(restoredText))) {
     const [full, alt, url] = match
-    if (!imgsMap.has(url)) imgsMap.set(url, { alt, url })
-    contentWithPlaceholders = contentWithPlaceholders.replace(full, `<talkImg>${alt}</talkImg>`)
+    // 处理重复的 alt
+    const count = altCountMap.get(alt) || 0
+    altCountMap.set(alt, count + 1)
+    const finalAlt = count === 0 ? alt : `${alt}(${count + 1})`
+    imgsMap.set(url, { alt: finalAlt, url })
+    contentWithPlaceholders = contentWithPlaceholders.replace(full, `<talkImg>${finalAlt}</talkImg>`)
   }
   const imgs = Array.from(imgsMap.values())
 
@@ -718,11 +723,11 @@ const selectTag = (tag) => {
   page.value = 1
   finished.value = false
   talks.value = []
-  loadTalks(true)
+  loadTalks()
 }
 
 // 获取说说
-const loadTalks = async (reset = false) => {
+const loadTalks = async (reset = true) => {
   if (loading.value) return
   loading.value = true
 
