@@ -8,7 +8,7 @@ export const siteConfig = {
     // 我使用的是n8n
     // 后台是静态的，即使token写在环境变量中，也会有泄露的风险
     // 你可以自行修改源代码或参考我的流程部署n8n
-    aiUrl: 'https://workflow.zhengweixin.top/webhook/d7684229-748f-4080-ac72-68e62b15b730',
+    aiUrl: 'https://n8n-sihwbkwz.us-west-1.clawcloudrun.com/webhook/cd8d9b39-4bb8-417d-aba9-e7d094e60313',
     
     // Twikoo 配置（用于首页获取数据）
     twikoo: {
