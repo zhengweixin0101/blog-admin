@@ -3,16 +3,19 @@ import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { siteConfig } from '@/site.config.js'
 import { withLoading } from './useLoading.js'
+import { useApiKey } from './useApiKey.js'
 
 export function useArticles() {
     const API_BASE = siteConfig.apiUrl
     const articles = ref([])
     const router = useRouter()
+    const { getKey } = useApiKey()
 
     function ensureKey() {
-        const key = localStorage.getItem('api_key')
+        const key = getKey()
         if (!key) {
             localStorage.removeItem('admin_verified')
+            sessionStorage.removeItem('admin_verified')
             router.push('/verify')
             throw new Error('API key missing, redirecting to verify page')
         }
@@ -132,7 +135,9 @@ export function useArticles() {
             if (status === 401) {
                 alert('API Key 错误或已过期，请重新验证')
                 localStorage.removeItem('api_key')
+                sessionStorage.removeItem('api_key')
                 localStorage.removeItem('admin_verified')
+                sessionStorage.removeItem('admin_verified')
                 router.push('/verify')
             } else if (status === 404) {
                 alert('文章不存在，请检查 slug 是否正确')

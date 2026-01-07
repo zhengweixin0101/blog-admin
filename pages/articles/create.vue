@@ -51,6 +51,9 @@ import { useArticles } from '~/composables/useArticles.js'
 import MarkdownEditor from '~/components/MarkdownEditor.vue'
 import { siteConfig } from '~/site.config.js'
 import { withLoading } from '~/composables/useLoading.js'
+import { useApiKey } from '@/composables/useApiKey.js'
+
+const { getKey } = useApiKey()
 
 const router = useRouter()
 const { addArticle } = useArticles()
@@ -139,7 +142,7 @@ const generateTitle = async () => {
   }
 
   try {
-    const apiKey = localStorage.getItem('api_key')
+    const apiKey = getKey()
     if (!apiKey) {
       await alert('请先设置API密钥')
       return
@@ -185,7 +188,7 @@ const generateSummary = async () => {
   }
 
   try {
-    const apiKey = localStorage.getItem('api_key')
+    const apiKey = getKey()
     if (!apiKey) {
       await alert('请先设置API密钥')
       return

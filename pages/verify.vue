@@ -5,7 +5,7 @@
         <h1 class="text-xl font-bold">后台访问验证</h1>
       </div>
       
-      <form @submit.prevent="handleSubmit" class="space-y-6">
+      <form @submit.prevent="handleSubmit" class="space-y-3">
         <div>
           <label for="apiKey" class="block text-sm font-medium text-gray-700 mb-2">
             请输入访问密钥以继续：
@@ -19,6 +19,19 @@
             placeholder="请输入您的访问密钥"
             :disabled="loading"
           />
+        </div>
+
+        <div class="flex items-center">
+          <input
+            id="rememberKey"
+            v-model="rememberKey"
+            type="checkbox"
+            class="h-4 w-4 mr-1 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+            :disabled="loading"
+          />
+          <label for="rememberKey" class="block text-sm text-gray-700 cursor-pointer select-none leading-4">
+            记住密钥
+          </label>
         </div>
         
         <div v-if="errorMessage" class="bg-red-50 border border-red-200 rounded-md p-3">
@@ -54,6 +67,7 @@ const KEY_NAME = 'api_key'
 const apiKeyInput = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
+const rememberKey = ref(false)
 
 async function checkKey(key) {
   try {
@@ -88,7 +102,15 @@ async function handleSubmit() {
   const ok = await checkKey(apiKeyInput.value.trim())
   
   if (ok) {
-    localStorage.setItem(KEY_NAME, apiKeyInput.value.trim())
+    // 根据选择决定缓存方式
+    if (rememberKey.value) {
+      localStorage.setItem(KEY_NAME, apiKeyInput.value.trim())
+    } else {
+      localStorage.removeItem(KEY_NAME)
+      // 会话级缓存，页面关闭后失效
+      sessionStorage.setItem(KEY_NAME, apiKeyInput.value.trim())
+    }
+    
     const verified = useCookie('admin_verified', { path: '/' })
     verified.value = 'true'
     window.location.href = '/'
@@ -103,7 +125,22 @@ async function handleSubmit() {
 onMounted(() => {
   const cachedKey = localStorage.getItem(KEY_NAME)
   if (cachedKey) {
-    apiKeyInput.value = cachedKey
+    checkKey(cachedKey).then(ok => {
+      if (ok) {
+        const verified = useCookie('admin_verified', { path: '/' })
+        verified.value = 'true'
+        window.location.href = '/'
+      } else {
+        localStorage.removeItem(KEY_NAME)
+      }
+    })
+    rememberKey.value = true
+  } else {
+    const sessionKeyCached = sessionStorage.getItem(KEY_NAME)
+    if (sessionKeyCached) {
+      apiKeyInput.value = sessionKeyCached
+    }
+    rememberKey.value = false
   }
 })
 </script>

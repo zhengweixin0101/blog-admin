@@ -170,8 +170,11 @@ import { ref, onMounted, nextTick } from 'vue'
 import { useS3 } from '@/composables/useS3.js'
 import { alert, confirm } from '@/composables/useModal'
 import { showLoading, hideLoading } from '@/composables/useLoading.js'
+import { useApiKey } from '@/composables/useApiKey.js'
 import { Fancybox } from '@fancyapps/ui'
 import '@fancyapps/ui/dist/fancybox/fancybox.css'
+
+const { getKey } = useApiKey()
 
 const bucket = ref('')
 const endpoint = ref('')
@@ -224,7 +227,7 @@ function switchView(mode) {
 }
 
 if (import.meta.client) {
-  apiKey = localStorage.getItem('api_key')
+  apiKey = getKey()
 }
 
 const s3Config = ref({})

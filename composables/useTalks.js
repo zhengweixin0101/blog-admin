@@ -5,16 +5,19 @@ import { useRouter } from 'vue-router'
 import { siteConfig } from '@/site.config.js'
 import { withLoading } from './useLoading.js'
 import { alert, confirm } from '@/composables/useModal'
+import { useApiKey } from './useApiKey.js'
 
 export function useTalks() {
     const API_BASE = siteConfig.apiUrl
     const talks = ref([])
     const router = useRouter()
+    const { getKey } = useApiKey()
 
     function ensureKey() {
-        const key = localStorage.getItem('api_key')
+        const key = getKey()
         if (!key) {
             localStorage.removeItem('admin_verified')
+            sessionStorage.removeItem('admin_verified')
             router.push('/verify')
             throw new Error('API key missing, redirecting to verify page')
         }
@@ -233,7 +236,9 @@ export function useTalks() {
             if (status === 401) {
                 await alert('API Key 错误或已过期，请重新验证')
                 localStorage.removeItem('api_key')
+                sessionStorage.removeItem('api_key')
                 localStorage.removeItem('admin_verified')
+                sessionStorage.removeItem('admin_verified')
                 router.push('/verify')
             } else if (status === 404) {
                 await alert('说说不存在，请检查 ID 是否正确')

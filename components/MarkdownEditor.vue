@@ -15,6 +15,7 @@ import 'md-editor-v3/lib/style.css'
 import CryptoJS from 'crypto-js'
 import { useS3 } from '@/composables/useS3'
 import { showLoading, hideLoading } from '@/composables/useLoading'
+import { useApiKey } from '@/composables/useApiKey.js'
 
 const props = defineProps({
   modelValue: String,
@@ -26,9 +27,11 @@ const localValue = ref(props.modelValue)
 watch(() => props.modelValue, val => localValue.value = val)
 watch(localValue, val => emit('update:modelValue', val))
 
+const { getKey } = useApiKey()
+
 // S3 配置
 function getApiKey() {
-  return localStorage.getItem('api_key')
+  return getKey()
 }
 
 function decryptConfig(cipherText, apiKey) {
