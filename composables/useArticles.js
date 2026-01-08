@@ -16,10 +16,26 @@ export function useArticles() {
         if (!key) {
             localStorage.removeItem('admin_verified')
             sessionStorage.removeItem('admin_verified')
-            router.push('/verify')
-            throw new Error('API key missing, redirecting to verify page')
+            router.push('/login')
+            throw new Error('API key missing, redirecting to login page')
         }
         return key
+    }
+
+    async function getTurnstileToken() {
+        if (typeof window === 'undefined' || !window.turnstile) {
+            return null
+        }
+
+        try {
+            if (window.showTurnstileModal) {
+                return await window.showTurnstileModal()
+            }
+            return null
+        } catch (error) {
+            console.error('Failed to get Turnstile token:', error)
+            return null
+        }
     }
 
     // 获取文章列表
@@ -78,10 +94,17 @@ export function useArticles() {
 
         try {
             const key = ensureKey()
+            const turnstileToken = await getTurnstileToken()
+
+            if (!turnstileToken) {
+                return null
+            }
+
+            const headers = { 'Authorization': `Bearer ${key}` }
+            payload.turnstileToken = turnstileToken
+
             const res = await withLoading(
-                () => axios.put(`${API_BASE}/api/article/edit`, payload, {
-                    headers: { 'Authorization': `Bearer ${key}` }
-                }),
+                () => axios.put(`${API_BASE}/api/article/edit`, payload, { headers }),
                 '更新文章中...'
             )()
             return res.data
@@ -97,8 +120,16 @@ export function useArticles() {
 
         try {
             const key = ensureKey()
+            const turnstileToken = await getTurnstileToken()
+
+            if (!turnstileToken) {
+                return null
+            }
+
+            const payload = { oldSlug, newSlug, turnstileToken }
+
             const res = await withLoading(
-                () => axios.put(`${API_BASE}/api/article/edit-slug`, { oldSlug, newSlug }, {
+                () => axios.put(`${API_BASE}/api/article/edit-slug`, payload, {
                     headers: { 'Authorization': `Bearer ${key}` }
                 }),
                 '修改文章链接中...'
@@ -114,9 +145,20 @@ export function useArticles() {
     const deleteArticle = async (slug) => {
         try {
             const key = ensureKey()
+            const turnstileToken = await getTurnstileToken()
+
+            if (!turnstileToken) {
+                return null
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${key}`,
+                'x-turnstile-token': turnstileToken
+            }
+
             await withLoading(
                 () => axios.delete(`${API_BASE}/api/article/delete`, {
-                    headers: { 'Authorization': `Bearer ${key}` },
+                    headers,
                     data: { slug }
                 }),
                 '删除文章中...'
@@ -140,7 +182,7 @@ export function useArticles() {
                 sessionStorage.removeItem('token_expires')
                 localStorage.removeItem('admin_verified')
                 sessionStorage.removeItem('admin_verified')
-                router.push('/verify')
+                router.push('/login')
             } else if (status === 404) {
                 alert('文章不存在，请检查 slug 是否正确')
             } else if (status === 409) {

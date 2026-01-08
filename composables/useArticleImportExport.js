@@ -14,8 +14,8 @@ export function useArticleImportExport() {
         if (!key) {
             localStorage.removeItem('admin_verified')
             sessionStorage.removeItem('admin_verified')
-            router.push('/verify')
-            throw new Error('Token missing, redirecting to verify page')
+            router.push('/login')
+            throw new Error('Token missing, redirecting to login page')
         }
         return key
     }
@@ -80,7 +80,7 @@ export function useArticleImportExport() {
                 sessionStorage.removeItem('token_expires')
                 localStorage.removeItem('admin_verified')
                 sessionStorage.removeItem('admin_verified')
-                router.push('/verify')
+                router.push('/login')
             } else if (status === 404) {
                 alert('文章不存在，请检查 slug 是否正确')
             } else if (status === 409) {

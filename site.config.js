@@ -9,7 +9,13 @@ export const siteConfig = {
     // 后台是静态的，即使token写在环境变量中，也会有泄露的风险
     // 你可以自行修改源代码或参考我的流程部署n8n
     aiUrl: 'https://n8n-sihwbkwz.us-west-1.clawcloudrun.com/webhook/cd8d9b39-4bb8-417d-aba9-e7d094e60313',
-    
+
+    // Turnstile 人机验证配置
+    // 在 Cloudflare Turnstile 获取 site key
+    // 留空则不启用人机验证
+    // 若后端配置了，前端没配置，会提示操作失败
+    turnstileSiteKey: '0x4AAAAAACLEiecyeZZ77jfM',
+
     // Twikoo 配置（用于首页获取数据）
     twikoo: {
         // 环境ID
@@ -23,7 +29,7 @@ export const siteConfig = {
             '/talks'
         ]
     },
-    
+
     // Umami 配置（用于首页获取数据）
     umami: {
         // Umami 地址
@@ -35,7 +41,7 @@ export const siteConfig = {
         // 网站创建时间
         createTime: '2025-08-15T16:00:00.000Z'
     },
-    
+
     // 图片压缩配置
     imageCompression: {
         // 是否启用

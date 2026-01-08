@@ -1,29 +1,29 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+  <div class="min-h-screen bg-gray-50 flex items-center justify-center select-none">
     <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
       <div class="text-center mb-8">
         <h1 class="text-xl font-bold">后台登录</h1>
       </div>
 
       <form @submit.prevent="handleSubmit" class="space-y-4">
-        <div>
-          <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
-            用户名
+        <div class="flex items-center">
+          <label for="username" class="text-sm font-medium text-gray-700 shrink-0">
+            用户名：
           </label>
           <input
             id="username"
             v-model="username"
             required
             autocomplete="username"
-            class="w-full p-2 box-border border rounded"
+            class="flex-1 p-2 box-border border rounded"
             placeholder="请输入用户名"
             :disabled="loading"
           />
         </div>
 
-        <div>
-          <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
-            密码
+        <div class="flex items-center">
+          <label for="password" class="text-sm font-medium text-gray-700 shrink-0">
+            密　码：
           </label>
           <input
             id="password"
@@ -31,10 +31,14 @@
             type="password"
             required
             autocomplete="current-password"
-            class="w-full p-2 box-border border rounded"
+            class="flex-1 p-2 box-border border rounded"
             placeholder="请输入密码"
             :disabled="loading"
           />
+        </div>
+
+        <div v-if="turnstileSiteKey" class="flex justify-center">
+          <div ref="turnstileRef" id="turnstile-widget"></div>
         </div>
 
         <div class="flex items-center">
@@ -45,8 +49,8 @@
             class="h-4 w-4 mr-1 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
             :disabled="loading"
           />
-          <label for="rememberMe" class="block text-sm text-gray-700 cursor-pointer select-none leading-4">
-            记住登录状态
+          <label for="rememberMe" class="block text-sm text-gray-700 cursor-pointer leading-4">
+            记住账号
           </label>
         </div>
 
@@ -56,7 +60,7 @@
 
         <button
           type="submit"
-          :disabled="loading"
+          :disabled="loading || (turnstileSiteKey && !hasValidToken())"
           class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span v-if="loading" class="flex items-center">
@@ -68,14 +72,20 @@
           </span>
           <span v-else>登录</span>
         </button>
+
+        <div class="text-xs text-gray-500 space-y-1">
+          <p>1. 使用首次登录的账号自动注册</p>
+          <p>2. 若忘记密码请删除数据库admin表后重新登录</p>
+        </div>
       </form>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { siteConfig } from '@/site.config.js'
+import { useTurnstile } from '~/composables/useTurnstile'
 
 const API_BASE = siteConfig.apiUrl
 const TOKEN_NAME = 'auth_token'
@@ -85,6 +95,15 @@ const password = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
 const rememberMe = ref(true)
+const turnstileRef = ref(null)
+
+const {
+  renderTurnstile,
+  getTurnstileToken,
+  hasValidToken,
+  waitForTurnstileLoad,
+  turnstileSiteKey
+} = useTurnstile()
 
 async function handleSubmit() {
   if (!username.value.trim() || !password.value.trim()) {
@@ -92,17 +111,35 @@ async function handleSubmit() {
     return
   }
 
+  if (turnstileSiteKey && !hasValidToken()) {
+    errorMessage.value = '请完成人机验证'
+    return
+  }
+
   loading.value = true
   errorMessage.value = ''
 
   try {
+    const requestBody = {
+      username: username.value.trim(),
+      password: password.value.trim()
+    }
+
+    if (turnstileSiteKey) {
+      const token = getTurnstileToken()
+      console.log('Turnstile Token:', token ? `${token.substring(0, 20)}...` : 'null')
+      if (!token) {
+        errorMessage.value = '人机验证未完成，请稍后重试'
+        loading.value = false
+        return
+      }
+      requestBody.turnstileToken = token
+    }
+
     const res = await fetch(`${API_BASE}/api/system/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: username.value.trim(),
-        password: password.value.trim()
-      })
+      body: JSON.stringify(requestBody)
     })
 
     const data = await res.json()
@@ -131,8 +168,7 @@ async function handleSubmit() {
   loading.value = false
 }
 
-// 检查是否有缓存的Token
-onMounted(() => {
+onMounted(async () => {
   const cachedToken = localStorage.getItem(TOKEN_NAME)
   if (cachedToken) {
     const expires = Number(localStorage.getItem('token_expires'))
@@ -147,6 +183,17 @@ onMounted(() => {
     rememberMe.value = true
   } else {
     rememberMe.value = false
+  }
+
+  if (turnstileSiteKey && turnstileRef.value) {
+    try {
+      await waitForTurnstileLoad()
+      await nextTick()
+      renderTurnstile(turnstileRef.value)
+    } catch (error) {
+      console.error('Failed to load Turnstile:', error)
+      errorMessage.value = '人机验证加载失败，请刷新页面重试'
+    }
   }
 })
 </script>

@@ -1,11 +1,11 @@
 export default defineNuxtRouteMiddleware((to) => {
     if (process.server) return
 
-    if (to.path === '/verify') return
+    if (to.path === '/login') return
 
     const verified = useCookie('admin_verified')
     if (!verified.value) {
-        window.location.href = '/verify'
+        window.location.href = '/login'
         return
     }
 
@@ -21,7 +21,7 @@ export default defineNuxtRouteMiddleware((to) => {
     const token = getToken()
     if (!token) {
         // 没有Token，跳转到验证页面
-        window.location.href = '/verify'
+        window.location.href = '/login'
         return
     }
 
@@ -43,7 +43,7 @@ export default defineNuxtRouteMiddleware((to) => {
         sessionStorage.removeItem('token_expires')
         localStorage.removeItem('admin_verified')
         sessionStorage.removeItem('admin_verified')
-        window.location.href = '/verify'
+        window.location.href = '/login'
         return
     }
 })
