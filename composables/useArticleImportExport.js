@@ -15,7 +15,7 @@ export function useArticleImportExport() {
             localStorage.removeItem('admin_verified')
             sessionStorage.removeItem('admin_verified')
             router.push('/verify')
-            throw new Error('API key missing, redirecting to verify page')
+            throw new Error('Token missing, redirecting to verify page')
         }
         return key
     }
@@ -29,7 +29,7 @@ export function useArticleImportExport() {
             const firstRes = await withLoading(
                 () => axios.get(`${API_BASE}/api/article/all`, {
                     params: { page: 1, pageSize },
-                    headers: { 'x-api-key': key }
+                    headers: { 'Authorization': `Bearer ${key}` }
                 }),
                 '正在加载第 1 页...'
             )()
@@ -49,7 +49,7 @@ export function useArticleImportExport() {
                 const res = await withLoading(
                     () => axios.get(`${API_BASE}/api/article/all`, {
                         params: { page: p, pageSize },
-                        headers: { 'x-api-key': key }
+                        headers: { 'Authorization': `Bearer ${key}` }
                     }),
                     `正在加载第 ${p} 页...`
                 )()
@@ -73,9 +73,11 @@ export function useArticleImportExport() {
         if (err.response) {
             const { status } = err.response
             if (status === 401) {
-                alert('API Key 错误或已过期，请重新验证')
-                localStorage.removeItem('api_key')
-                sessionStorage.removeItem('api_key')
+                alert('登录已过期，请重新登录')
+                localStorage.removeItem('auth_token')
+                localStorage.removeItem('token_expires')
+                sessionStorage.removeItem('auth_token')
+                sessionStorage.removeItem('token_expires')
                 localStorage.removeItem('admin_verified')
                 sessionStorage.removeItem('admin_verified')
                 router.push('/verify')
@@ -83,8 +85,6 @@ export function useArticleImportExport() {
                 alert('文章不存在，请检查 slug 是否正确')
             } else if (status === 409) {
                 alert('slug 已存在，请更换后重试')
-            } else if (status === 429) {
-                alert('错误次数过多，IP 已封禁十年')
             } else if (status === 400) {
                 alert('slug 是必填项，请检查后重试')
             } else {
@@ -344,7 +344,7 @@ published: ${article.published !== undefined ? article.published : false}
                         const key = ensureKey()
                         const res = await withLoading(
                             () => axios.post(`${API_BASE}/api/article/add`, parsed, {
-                                headers: { 'x-api-key': key }
+                                headers: { 'Authorization': `Bearer ${key}` }
                             }),
                             `正在导入: ${filename}...`
                         )()
@@ -393,7 +393,7 @@ published: ${article.published !== undefined ? article.published : false}
             const key = ensureKey()
             const res = await withLoading(
                 () => axios.post(`${API_BASE}/api/article/add`, parsed, {
-                    headers: { 'x-api-key': key }
+                    headers: { 'Authorization': `Bearer ${key}` }
                 }),
                 '导入 Markdown 文章中...'
             )()
@@ -432,7 +432,7 @@ published: ${article.published !== undefined ? article.published : false}
                     
                     const res = await withLoading(
                         () => axios.post(`${API_BASE}/api/article/add`, article, {
-                            headers: { 'x-api-key': key }
+                            headers: { 'Authorization': `Bearer ${key}` }
                         }),
                         `导入文章: ${article.title || article.slug}...`
                     )()
@@ -498,7 +498,7 @@ published: ${article.published !== undefined ? article.published : false}
                     
                     const res = await withLoading(
                         () => axios.post(`${API_BASE}/api/article/add`, article, {
-                            headers: { 'x-api-key': key }
+                            headers: { 'Authorization': `Bearer ${key}` }
                         }),
                         `正在导入: ${article.title || article.slug}...`
                     )()

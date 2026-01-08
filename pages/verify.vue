@@ -2,42 +2,58 @@
   <div class="min-h-screen bg-gray-50 flex items-center justify-center">
     <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
       <div class="text-center mb-8">
-        <h1 class="text-xl font-bold">后台访问验证</h1>
+        <h1 class="text-xl font-bold">后台登录</h1>
       </div>
-      
-      <form @submit.prevent="handleSubmit" class="space-y-3">
+
+      <form @submit.prevent="handleSubmit" class="space-y-4">
         <div>
-          <label for="apiKey" class="block text-sm font-medium text-gray-700 mb-2">
-            请输入访问密钥以继续：
+          <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+            用户名
           </label>
           <input
-            id="apiKey"
-            v-model="apiKeyInput"
+            id="username"
+            v-model="username"
+            required
+            autocomplete="username"
+            class="w-full p-2 box-border border rounded"
+            placeholder="请输入用户名"
+            :disabled="loading"
+          />
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+            密码
+          </label>
+          <input
+            id="password"
+            v-model="password"
+            type="password"
             required
             autocomplete="current-password"
             class="w-full p-2 box-border border rounded"
-            placeholder="请输入您的访问密钥"
+            placeholder="请输入密码"
             :disabled="loading"
           />
         </div>
 
         <div class="flex items-center">
           <input
-            id="rememberKey"
-            v-model="rememberKey"
+            id="rememberMe"
+            v-model="rememberMe"
             type="checkbox"
             class="h-4 w-4 mr-1 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
             :disabled="loading"
           />
-          <label for="rememberKey" class="block text-sm text-gray-700 cursor-pointer select-none leading-4">
-            记住密钥
+          <label for="rememberMe" class="block text-sm text-gray-700 cursor-pointer select-none leading-4">
+            记住登录状态
           </label>
         </div>
-        
+
         <div v-if="errorMessage" class="bg-red-50 border border-red-200 rounded-md p-3">
           <p class="text-sm text-red-600">{{ errorMessage }}</p>
         </div>
-        
+
         <button
           type="submit"
           :disabled="loading"
@@ -48,9 +64,9 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            验证中...
+            登录中...
           </span>
-          <span v-else>验证并进入后台</span>
+          <span v-else>登录</span>
         </button>
       </form>
     </div>
@@ -62,85 +78,75 @@ import { ref } from 'vue'
 import { siteConfig } from '@/site.config.js'
 
 const API_BASE = siteConfig.apiUrl
-const KEY_NAME = 'api_key'
+const TOKEN_NAME = 'auth_token'
 
-const apiKeyInput = ref('')
+const username = ref('')
+const password = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
-const rememberKey = ref(false)
-
-async function checkKey(key) {
-  try {
-    const res = await fetch(`${API_BASE}/api/article/edit`, {
-      method: 'PUT',
-      headers: { 'x-api-key': key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug: 'U2FsdGVkX18hAHT7Y5p3rPyFRrDnpH4VVTixbEhXLqw=' })
-    })
-    if (res.status === 401) return false
-    if (res.status === 404) return true
-    if (res.status === 429) {
-      errorMessage.value = '错误次数过多，IP已封禁十年！'
-      return false
-    }
-    return true
-  } catch (err) {
-    console.error(err)
-    errorMessage.value = '网络连接错误，请检查网络后重试'
-    return false
-  }
-}
+const rememberMe = ref(true)
 
 async function handleSubmit() {
-  if (!apiKeyInput.value.trim()) {
-    errorMessage.value = '请输入访问密钥'
+  if (!username.value.trim() || !password.value.trim()) {
+    errorMessage.value = '用户名和密码不能为空'
     return
   }
 
   loading.value = true
   errorMessage.value = ''
 
-  const ok = await checkKey(apiKeyInput.value.trim())
-  
-  if (ok) {
-    // 根据选择决定缓存方式
-    if (rememberKey.value) {
-      localStorage.setItem(KEY_NAME, apiKeyInput.value.trim())
-    } else {
-      localStorage.removeItem(KEY_NAME)
-      // 会话级缓存，页面关闭后失效
-      sessionStorage.setItem(KEY_NAME, apiKeyInput.value.trim())
+  try {
+    const res = await fetch(`${API_BASE}/api/system/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: username.value.trim(),
+        password: password.value.trim()
+      })
+    })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      throw new Error(data.error || '登录失败')
     }
-    
+
+    // 存储Token
+    if (rememberMe.value) {
+      localStorage.setItem(TOKEN_NAME, data.token)
+      localStorage.setItem('token_expires', String(Date.now() + data.expiresIn))
+    } else {
+      sessionStorage.setItem(TOKEN_NAME, data.token)
+      sessionStorage.setItem('token_expires', String(Date.now() + data.expiresIn))
+    }
+
     const verified = useCookie('admin_verified', { path: '/' })
     verified.value = 'true'
     window.location.href = '/'
-  } else if (!errorMessage.value) {
-    errorMessage.value = '密钥错误，请检查后重试'
+  } catch (err) {
+    console.error(err)
+    errorMessage.value = err.message || '网络连接错误，请检查网络后重试'
   }
-  
+
   loading.value = false
 }
 
-// 检查是否有缓存的密钥
+// 检查是否有缓存的Token
 onMounted(() => {
-  const cachedKey = localStorage.getItem(KEY_NAME)
-  if (cachedKey) {
-    checkKey(cachedKey).then(ok => {
-      if (ok) {
-        const verified = useCookie('admin_verified', { path: '/' })
-        verified.value = 'true'
-        window.location.href = '/'
-      } else {
-        localStorage.removeItem(KEY_NAME)
-      }
-    })
-    rememberKey.value = true
-  } else {
-    const sessionKeyCached = sessionStorage.getItem(KEY_NAME)
-    if (sessionKeyCached) {
-      apiKeyInput.value = sessionKeyCached
+  const cachedToken = localStorage.getItem(TOKEN_NAME)
+  if (cachedToken) {
+    const expires = Number(localStorage.getItem('token_expires'))
+    if (expires > Date.now()) {
+      const verified = useCookie('admin_verified', { path: '/' })
+      verified.value = 'true'
+      window.location.href = '/'
+    } else {
+      localStorage.removeItem(TOKEN_NAME)
+      localStorage.removeItem('token_expires')
     }
-    rememberKey.value = false
+    rememberMe.value = true
+  } else {
+    rememberMe.value = false
   }
 })
 </script>

@@ -4,7 +4,7 @@ import { Upload } from "@aws-sdk/lib-storage"
 import { siteConfig } from '@/site.config.js'
 import { confirm } from '@/composables/useModal'
 
-export function useS3({ config, apiKey, onProgress } = {}) {
+export function useS3({ config, passphrase, onProgress } = {}) {
     // 获取压缩配置
     const compressionConfig = siteConfig.imageCompression || {
         enabled: false,
@@ -15,21 +15,23 @@ export function useS3({ config, apiKey, onProgress } = {}) {
 
     // 加密配置
     function encryptConfig(configObj) {
-        if (!apiKey) {
-            console.warn('缺少 api_key！')
+        const key = passphrase || (typeof window !== 'undefined' && window.location && window.location.hostname)
+        if (!key) {
+            console.warn('缺少 s3 配置加密密钥！')
             return null
         }
-        return CryptoJS.AES.encrypt(JSON.stringify(configObj), apiKey).toString()
+        return CryptoJS.AES.encrypt(JSON.stringify(configObj), key).toString()
     }
 
     // 解密配置
     function decryptConfig(cipherText) {
-        if (!apiKey) {
-            console.warn('缺少 api_key！')
+        const key = passphrase || (typeof window !== 'undefined' && window.location && window.location.hostname)
+        if (!key) {
+            console.warn('缺少 s3 配置加密密钥！')
             return {}
         }
         try {
-            const bytes = CryptoJS.AES.decrypt(cipherText, apiKey)
+            const bytes = CryptoJS.AES.decrypt(cipherText, key)
             return JSON.parse(bytes.toString(CryptoJS.enc.Utf8))
         } catch (e) {
             console.error('加载失败：', e)
@@ -54,7 +56,7 @@ export function useS3({ config, apiKey, onProgress } = {}) {
         const client = getS3Client(cfg)
         await client.send(new ListObjectsV2Command({ Bucket: cfg.bucket, MaxKeys: 1 }))
         const encrypted = encryptConfig(cfg)
-        if (!encrypted) throw new Error('缺少 api_key！')
+        if (!encrypted) throw new Error('缺少 s3 配置加密密钥！')
         localStorage.setItem('s3_config', encrypted)
         return true
     }

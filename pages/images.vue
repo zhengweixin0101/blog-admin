@@ -170,11 +170,8 @@ import { ref, onMounted, nextTick } from 'vue'
 import { useS3 } from '@/composables/useS3.js'
 import { alert, confirm } from '@/composables/useModal'
 import { showLoading, hideLoading } from '@/composables/useLoading.js'
-import { useApiKey } from '@/composables/useApiKey.js'
 import { Fancybox } from '@fancyapps/ui'
 import '@fancyapps/ui/dist/fancybox/fancybox.css'
-
-const { getKey } = useApiKey()
 
 const bucket = ref('')
 const endpoint = ref('')
@@ -191,7 +188,6 @@ const masonryContainer = ref(null)
 const uploadProgress = ref({})
 const deleteUrl = ref('');
 let macyInstance = null
-let apiKey = null
 
 const paths = [
   { label: '文章图片', prefix: 'blog/posts/' },
@@ -226,10 +222,6 @@ function switchView(mode) {
   }
 }
 
-if (import.meta.client) {
-  apiKey = getKey()
-}
-
 const s3Config = ref({})
 let s3 = null
 
@@ -239,9 +231,9 @@ function loadConfig() {
     const savedMode = localStorage.getItem('view_mode')
     if (savedMode) viewMode.value = savedMode
 
-    if (saved && apiKey) {
-      s3 = useS3({ apiKey })
-      const config = s3.decryptConfig(saved)
+      if (saved) {
+        s3 = useS3()
+        const config = s3.decryptConfig(saved)
       bucket.value = config.bucket || ''
       endpoint.value = config.endpoint || ''
       region.value = config.region || ''
@@ -271,7 +263,7 @@ async function handleSaveConfig() {
       secretAccessKey: secretAccessKey.value,
       customDomain: customDomain.value
     }
-    s3 = useS3({ apiKey, config })
+    s3 = useS3()
     await s3.saveConfig(config)
     window.location.reload()
   } catch (e) {

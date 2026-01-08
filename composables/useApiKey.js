@@ -1,13 +1,13 @@
-const KEY_NAME = 'api_key'
+const TOKEN_NAME = 'auth_token'
 
 export function useApiKey() {
   const getKey = () => {
     // 优先从 localStorage 获取，其次从 sessionStorage 获取
-    let key = localStorage.getItem(KEY_NAME)
-    if (!key) {
-      key = sessionStorage.getItem(KEY_NAME)
+    let token = localStorage.getItem(TOKEN_NAME)
+    if (!token) {
+      token = sessionStorage.getItem(TOKEN_NAME)
     }
-    return key
+    return token
   }
 
   return {

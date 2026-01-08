@@ -53,7 +53,7 @@ export function useArticles() {
             const key = ensureKey()
             const res = await withLoading(
                 () => axios.post(`${API_BASE}/api/article/add`, article, {
-                    headers: { 'x-api-key': key }
+                    headers: { 'Authorization': `Bearer ${key}` }
                 }),
                 '创建文章中...'
             )()
@@ -80,7 +80,7 @@ export function useArticles() {
             const key = ensureKey()
             const res = await withLoading(
                 () => axios.put(`${API_BASE}/api/article/edit`, payload, {
-                    headers: { 'x-api-key': key }
+                    headers: { 'Authorization': `Bearer ${key}` }
                 }),
                 '更新文章中...'
             )()
@@ -99,7 +99,7 @@ export function useArticles() {
             const key = ensureKey()
             const res = await withLoading(
                 () => axios.put(`${API_BASE}/api/article/edit-slug`, { oldSlug, newSlug }, {
-                    headers: { 'x-api-key': key }
+                    headers: { 'Authorization': `Bearer ${key}` }
                 }),
                 '修改文章链接中...'
             )()
@@ -116,7 +116,7 @@ export function useArticles() {
             const key = ensureKey()
             await withLoading(
                 () => axios.delete(`${API_BASE}/api/article/delete`, {
-                    headers: { 'x-api-key': key },
+                    headers: { 'Authorization': `Bearer ${key}` },
                     data: { slug }
                 }),
                 '删除文章中...'
@@ -133,9 +133,11 @@ export function useArticles() {
         if (err.response) {
             const { status } = err.response
             if (status === 401) {
-                alert('API Key 错误或已过期，请重新验证')
-                localStorage.removeItem('api_key')
-                sessionStorage.removeItem('api_key')
+                alert('登录已过期，请重新登录')
+                localStorage.removeItem('auth_token')
+                localStorage.removeItem('token_expires')
+                sessionStorage.removeItem('auth_token')
+                sessionStorage.removeItem('token_expires')
                 localStorage.removeItem('admin_verified')
                 sessionStorage.removeItem('admin_verified')
                 router.push('/verify')
@@ -143,8 +145,6 @@ export function useArticles() {
                 alert('文章不存在，请检查 slug 是否正确')
             } else if (status === 409) {
                 alert('slug 已存在，请更换后重试')
-            } else if (status === 429) {
-                alert('错误次数过多，IP 已封禁十年')
             } else if (status === 400) {
                 alert('slug 是必填项，请检查后重试')
             } else {

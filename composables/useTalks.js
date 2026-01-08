@@ -56,7 +56,7 @@ export function useTalks() {
 
             const res = await withLoading(
                 () => axios.post(`${API_BASE}/api/talks/add`, payload, {
-                    headers: { 'x-api-key': key }
+                    headers: { 'Authorization': `Bearer ${key}` }
                 }),
                 '添加说说中...'
             )()
@@ -83,7 +83,7 @@ export function useTalks() {
 
             const res = await withLoading(
                 () => axios.put(`${API_BASE}/api/talks/edit`, talk, {
-                    headers: { 'x-api-key': key }
+                    headers: { 'Authorization': `Bearer ${key}` }
                 }),
                 '编辑说说中...'
             )()
@@ -101,7 +101,7 @@ export function useTalks() {
             const key = ensureKey()
             await withLoading(
                 () => axios.delete(`${API_BASE}/api/talks/delete`, {
-                    headers: { 'x-api-key': key },
+                    headers: { 'Authorization': `Bearer ${key}` },
                     data: { id }
                 }),
                 '删除说说中...'
@@ -238,16 +238,16 @@ export function useTalks() {
         if (err.response) {
             const { status } = err.response
             if (status === 401) {
-                await alert('API Key 错误或已过期，请重新验证')
-                localStorage.removeItem('api_key')
-                sessionStorage.removeItem('api_key')
+                await alert('登录已过期，请重新登录')
+                localStorage.removeItem('auth_token')
+                localStorage.removeItem('token_expires')
+                sessionStorage.removeItem('auth_token')
+                sessionStorage.removeItem('token_expires')
                 localStorage.removeItem('admin_verified')
                 sessionStorage.removeItem('admin_verified')
                 router.push('/verify')
             } else if (status === 404) {
                 await alert('说说不存在，请检查 ID 是否正确')
-            } else if (status === 429) {
-                await alert('错误次数过多，IP 已封禁十年')
             } else {
                 const errorMsg = getApiError(err)
                 await alert(errorMsg || '操作失败，请稍后重试')

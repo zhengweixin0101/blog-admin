@@ -15,7 +15,6 @@ import 'md-editor-v3/lib/style.css'
 import CryptoJS from 'crypto-js'
 import { useS3 } from '@/composables/useS3'
 import { showLoading, hideLoading } from '@/composables/useLoading'
-import { useApiKey } from '@/composables/useApiKey.js'
 
 const props = defineProps({
   modelValue: String,
@@ -27,16 +26,11 @@ const localValue = ref(props.modelValue)
 watch(() => props.modelValue, val => localValue.value = val)
 watch(localValue, val => emit('update:modelValue', val))
 
-const { getKey } = useApiKey()
-
-// S3 配置
-function getApiKey() {
-  return getKey()
-}
-
-function decryptConfig(cipherText, apiKey) {
+// S3 配置使用当前访问域名作为本地加密密钥
+function decryptConfig(cipherText, pass) {
+  const key = pass || (typeof window !== 'undefined' && window.location && window.location.hostname)
   try {
-    const bytes = CryptoJS.AES.decrypt(cipherText, apiKey)
+    const bytes = CryptoJS.AES.decrypt(cipherText, key)
     return JSON.parse(bytes.toString(CryptoJS.enc.Utf8))
   } catch {
     return {}
@@ -44,10 +38,10 @@ function decryptConfig(cipherText, apiKey) {
 }
 
 function getS3Config() {
-  const apiKey = getApiKey()
-  const saved = localStorage.getItem('s3_config')
-  if (!saved || !apiKey) return null
-  return decryptConfig(saved, apiKey)
+  const saved = typeof localStorage !== 'undefined' && localStorage.getItem('s3_config')
+  const key = (typeof window !== 'undefined' && window.location && window.location.hostname)
+  if (!saved || !key) return null
+  return decryptConfig(saved, key)
 }
 
 // S3 图片上传
@@ -71,8 +65,7 @@ async function handleUploadImg(files, callback) {
   try {
     showLoading(`正在上传 ${imageFiles.length} 张图片...`)
     
-    const apiKey = localStorage.getItem('api_key')
-    const s3 = useS3({ apiKey, config })
+    const s3 = useS3({ config })
     
     const urls = await s3.uploadFiles({
       files: imageFiles,

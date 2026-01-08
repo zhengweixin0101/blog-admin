@@ -384,10 +384,6 @@ const finished = ref(false)
 const loading = ref(false)
 
 const { getKey } = useApiKey()
-let apiKey = null
-if (import.meta.client) {
-  apiKey = getKey()
-}
 const s3Config = ref({})
 let s3 = null
 
@@ -395,8 +391,8 @@ let s3 = null
 function loadS3Config() {
   if (import.meta.client) {
     const saved = localStorage.getItem('s3_config')
-    if (saved && apiKey) {
-      s3 = useS3({ apiKey })
+    if (saved) {
+      s3 = useS3()
       const config = s3.decryptConfig(saved)
       s3Config.value = config
     }

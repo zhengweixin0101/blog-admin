@@ -141,10 +141,10 @@ const generateTitle = async () => {
     return
   }
 
-  try {
-    const apiKey = getKey()
-    if (!apiKey) {
-      await alert('请先设置API密钥')
+    try {
+    const token = getKey()
+    if (!token) {
+      await alert('请先登录')
       return
     }
 
@@ -153,7 +153,7 @@ const generateTitle = async () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           messages: `请为以下文章生成一个20字以内吸引人的标题：\n${article.value.content}`
@@ -187,10 +187,10 @@ const generateSummary = async () => {
     return
   }
 
-  try {
-    const apiKey = getKey()
-    if (!apiKey) {
-      await alert('请先设置API密钥')
+    try {
+    const token = getKey()
+    if (!token) {
+      await alert('请先登录')
       return
     }
 
@@ -199,7 +199,7 @@ const generateSummary = async () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           messages: `请为以下文章生成一个用于博客前台展示的50字以内的简洁摘要：\n${article.value.content}`
