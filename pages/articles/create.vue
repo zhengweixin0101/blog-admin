@@ -33,7 +33,7 @@
       <!-- Markdown 内容 -->
       <MarkdownEditor 
         v-model="article.content"
-        :onSave="handleSave"
+        @onSave="handleSave"
       />
 
       <div class="mt-4 flex gap-2">
