@@ -61,7 +61,7 @@ export function useTalks() {
                 '添加说说中...'
             )()
             if (showAlert) await alert('说说添加成功！')
-            return res.data
+            return { success: true, talk: res.data.talk || res.data, message: res.data.message }
         } catch (err) {
             handleError(err)
             return null
@@ -88,7 +88,7 @@ export function useTalks() {
                 '编辑说说中...'
             )()
             await alert('说说修改成功！')
-            return res.data
+            return { success: true, talk: res.data.talk || res.data, message: res.data.message }
         } catch (err) {
             handleError(err)
             return null
@@ -230,6 +230,10 @@ export function useTalks() {
     }
 
 
+    function getApiError(error) {
+        return error?.response?.data?.error || error?.response?.data?.message || '未知错误'
+    }
+
     async function handleError(err) {
         if (err.response) {
             const { status } = err.response
@@ -245,7 +249,8 @@ export function useTalks() {
             } else if (status === 429) {
                 await alert('错误次数过多，IP 已封禁十年')
             } else {
-                await alert('操作失败，请稍后重试')
+                const errorMsg = getApiError(err)
+                await alert(errorMsg || '操作失败，请稍后重试')
             }
         } else {
             console.error(err)

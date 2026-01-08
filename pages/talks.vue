@@ -775,7 +775,7 @@ const addNewTalk = async () => {
     return addTalkInternal(talk, true)
   }
   const res = await addTalk({ content: pureContent, location, tags, links, imgs })
-  if (res && res.success) {
+  if (res && (res.success || res.talk)) {
     newContent.value = ''
     await loadTalks()
   }
@@ -824,7 +824,7 @@ const saveEdit = async (id) => {
 
   const { pureContent, location, tags, links, imgs } = parseContent(editingContent.value)
   const res = await editTalk({ id, content: pureContent, location, tags, links, imgs })
-  if (res && res.success) {
+  if (res && (res.success || res.talk)) {
     editingId.value = null
     editingContent.value = ''
     await loadTalks()
