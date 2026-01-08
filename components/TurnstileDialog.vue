@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]" ref="modalRef">
+  <div v-if="visible" class="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999] overflow-hidden" ref="modalRef">
     <div class="bg-white rounded-lg shadow-lg p-6 w-96 relative">
       <h2 class="text-lg font-bold mb-2 text-center">人机验证</h2>
       <p class="text-gray-600 mb-4 text-center text-sm">请完成以下验证以继续操作</p>
@@ -10,7 +10,7 @@
         <button
           v-if="loading"
           disabled
-          class="px-4 py-2 bg-gray-400 text-white rounded cursor-not-allowed"
+          class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition border-none rounded cursor-pointer cursor-not-allowed"
         >
           验证中...
         </button>
@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, computed } from 'vue'
+import { ref, nextTick, computed, watch, onUnmounted } from 'vue'
 import { siteConfig } from '@/site.config.js'
 
 const visible = ref(false)
@@ -43,6 +43,20 @@ const isTurnstileEnabled = computed(() => {
          siteConfig.turnstileSiteKey.trim() !== '' &&
          typeof window !== 'undefined' &&
          window.turnstile
+})
+
+// 控制 body 滚动
+watch(visible, (newVal) => {
+  if (newVal) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+})
+
+// 组件卸载时恢复滚动
+onUnmounted(() => {
+  document.body.style.overflow = ''
 })
 
 function show() {

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 bg-black/40 flex items-center justify-center z-10002">
+  <div v-if="visible" class="fixed inset-0 bg-black/40 flex items-center justify-center z-10002 overflow-hidden">
     <div class="bg-white rounded-lg shadow-lg p-8 w-64 relative">
       <div class="flex flex-col items-center justify-center">
         <svg
@@ -29,10 +29,24 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 
 const visible = ref(false)
 const message = ref('加载中...')
+
+// 控制 body 滚动
+watch(visible, (newVal) => {
+  if (newVal) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+})
+
+// 组件卸载时恢复滚动
+onUnmounted(() => {
+  document.body.style.overflow = ''
+})
 
 // 显示加载弹窗
 function show(loadingMessage = '加载中...') {

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 bg-black/40 flex items-center justify-center z-10001" tabindex="-1" @keydown.space.prevent="handleSpaceKey" @keydown.esc="handleCancel" ref="modalRef">
+  <div v-if="visible" class="fixed inset-0 bg-black/40 flex items-center justify-center z-10001 overflow-hidden" tabindex="-1" @keydown.space.prevent="handleSpaceKey" @keydown.esc="handleCancel" ref="modalRef">
     <div class="bg-white rounded-lg shadow-lg p-6 w-96 relative">
       <h2 class="text-lg font-bold mb-4 text-center">{{ title }}</h2>
       <p class="text-gray-600 mb-4 whitespace-pre-line">{{ message }}</p>
@@ -41,7 +41,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, watch, onUnmounted } from 'vue'
 
 const visible = ref(false)
 const title = ref('')
@@ -55,6 +55,20 @@ const inputRef = ref(null)
 const modalRef = ref(null)
 let resolvePromise = null
 
+// 控制 body 滚动
+watch(visible, (newVal) => {
+  if (newVal) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+})
+
+// 组件卸载时恢复滚动
+onUnmounted(() => {
+  document.body.style.overflow = ''
+})
+
 // 显示弹窗
 function show(options = {}) {
   visible.value = true
@@ -65,7 +79,7 @@ function show(options = {}) {
   cancelText.value = options.cancelText || '取消'
   inputValue.value = options.defaultValue || ''
   placeholder.value = options.placeholder || ''
-  
+
   if (type.value === 'prompt') {
     nextTick(() => {
       if (inputRef.value) {
@@ -80,7 +94,7 @@ function show(options = {}) {
       }
     })
   }
-  
+
   return new Promise((resolve) => {
     resolvePromise = resolve
   })
