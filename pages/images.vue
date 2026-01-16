@@ -228,12 +228,9 @@ let s3 = null
 function loadConfig() {
   if (import.meta.client) {
     const saved = localStorage.getItem('s3_config')
-    const savedMode = localStorage.getItem('view_mode')
-    if (savedMode) viewMode.value = savedMode
-
-      if (saved) {
-        s3 = useS3()
-        const config = s3.decryptConfig(saved)
+    if (saved) {
+      s3 = useS3()
+      const config = s3.decryptConfig(saved)
       bucket.value = config.bucket || ''
       endpoint.value = config.endpoint || ''
       region.value = config.region || ''
