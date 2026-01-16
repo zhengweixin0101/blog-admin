@@ -24,19 +24,28 @@ export function useTalks() {
         return key
     }
 
-    async function getTurnstileToken() {
-        if (typeof window === 'undefined' || !window.turnstile) {
-            return null
-        }
+    async function requestWithTurnstile(requestFn) {
+        let lastError = null
 
+        // 第一次请求无需人机验证
         try {
-            if (window.showTurnstileModal) {
-                return await window.showTurnstileModal()
+            return await requestFn(null)
+        } catch (err) {
+            lastError = err
+
+            // 如果错误是403验证失败且启用了Turnstile则弹窗验证后重试
+            if (err.response?.status === 403 && window.showTurnstileModal && siteConfig.turnstileSiteKey) {
+                try {
+                    const token = await window.showTurnstileModal()
+                    // 带上人机验证令牌
+                    return await requestFn(token)
+                } catch (verifyErr) {
+                    console.error('Turnstile verification failed:', verifyErr)
+                    throw new Error('验证失败,操作已取消')
+                }
+            } else {
+                throw err
             }
-            return null
-        } catch (error) {
-            console.error('Failed to get Turnstile token:', error)
-            return null
         }
     }
 
@@ -97,21 +106,20 @@ export function useTalks() {
                 talk.links = talk.links.map(l => typeof l === 'string' ? { text: l, url: l } : l)
             }
 
-            const turnstileToken = await getTurnstileToken()
+            const res = await requestWithTurnstile(async (turnstileToken) => {
+                const payload = { ...talk }
+                if (turnstileToken) {
+                    payload.turnstileToken = turnstileToken
+                }
 
-            // 验证失败时直接返回
-            if (!turnstileToken) {
-                return null
-            }
+                return await withLoading(
+                    () => axios.put(`${API_BASE}/api/talks/edit`, payload, {
+                        headers: { 'Authorization': `Bearer ${key}` }
+                    }),
+                    '编辑说说中...'
+                )()
+            })
 
-            const payload = { ...talk, turnstileToken }
-
-            const res = await withLoading(
-                () => axios.put(`${API_BASE}/api/talks/edit`, payload, {
-                    headers: { 'Authorization': `Bearer ${key}` }
-                }),
-                '编辑说说中...'
-            )()
             await alert('说说修改成功！')
             return { success: true, talk: res.data.talk || res.data, message: res.data.message }
         } catch (err) {
@@ -124,25 +132,24 @@ export function useTalks() {
     const deleteTalk = async (id) => {
         try {
             const key = ensureKey()
-            const turnstileToken = await getTurnstileToken()
 
-            // 验证失败时直接返回
-            if (!turnstileToken) {
-                return null
-            }
+            await requestWithTurnstile(async (turnstileToken) => {
+                const headers = {
+                    'Authorization': `Bearer ${key}`
+                }
+                if (turnstileToken) {
+                    headers['x-turnstile-token'] = turnstileToken
+                }
 
-            const headers = {
-                'Authorization': `Bearer ${key}`,
-                'x-turnstile-token': turnstileToken
-            }
+                return await withLoading(
+                    () => axios.delete(`${API_BASE}/api/talks/delete`, {
+                        headers,
+                        data: { id }
+                    }),
+                    '删除说说中...'
+                )()
+            })
 
-            await withLoading(
-                () => axios.delete(`${API_BASE}/api/talks/delete`, {
-                    headers,
-                    data: { id }
-                }),
-                '删除说说中...'
-            )()
             await alert('说说删除成功！')
             return { success: true }
         } catch (err) {

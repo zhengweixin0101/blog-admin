@@ -37,7 +37,7 @@
           />
         </div>
 
-        <div v-if="turnstileSiteKey" class="flex justify-center">
+        <div v-if="turnstileSiteKey && showTurnstileWidget" class="flex justify-center">
           <div ref="turnstileRef" id="turnstile-widget"></div>
         </div>
 
@@ -60,7 +60,7 @@
 
         <button
           type="submit"
-          :disabled="loading || (turnstileSiteKey && !hasValidToken())"
+          :disabled="loading || (turnstileSiteKey && showTurnstileWidget && !hasValidToken())"
           class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span v-if="loading" class="flex items-center">
@@ -96,6 +96,7 @@ const loading = ref(false)
 const errorMessage = ref('')
 const rememberMe = ref(true)
 const turnstileRef = ref(null)
+const showTurnstileWidget = ref(false)
 
 const {
   renderTurnstile,
@@ -111,7 +112,7 @@ async function handleSubmit() {
     return
   }
 
-  if (turnstileSiteKey && !hasValidToken()) {
+  if (showTurnstileWidget.value && turnstileSiteKey && !hasValidToken()) {
     errorMessage.value = '请完成人机验证'
     return
   }
@@ -125,7 +126,8 @@ async function handleSubmit() {
       password: password.value.trim()
     }
 
-    if (turnstileSiteKey) {
+    // 如果已显示验证组件，则带上令牌
+    if (showTurnstileWidget.value && turnstileSiteKey) {
       const token = getTurnstileToken()
       console.log('Turnstile Token:', token ? `${token.substring(0, 20)}...` : 'null')
       if (!token) {
@@ -145,8 +147,50 @@ async function handleSubmit() {
     const data = await res.json()
 
     if (!res.ok) {
+      // 如果请求失败且未显示过验证组件，则显示验证
+      if (turnstileSiteKey && !showTurnstileWidget.value) {
+        errorMessage.value = '请先进行人机验证'
+        showTurnstileWidget.value = true
+        loading.value = false
+        
+        // 加载并渲染Turnstile组件
+        await nextTick()
+        if (turnstileRef.value) {
+          try {
+            await waitForTurnstileLoad()
+            renderTurnstile(turnstileRef.value)
+          } catch (error) {
+            console.error('Failed to load Turnstile:', error)
+            errorMessage.value = '人机验证加载失败，请刷新页面重试'
+          }
+        }
+        return
+      }
+      
+      // 如果已显示验证但仍然失败，则刷新人机验证
+      if (turnstileSiteKey && showTurnstileWidget.value) {
+        errorMessage.value = data.error || '登录失败，请重新验证'
+        loading.value = false
+        // 清空旧的验证组件，重新渲染获取新token
+        if (turnstileRef.value) {
+          turnstileRef.value.innerHTML = ''
+          await nextTick()
+          try {
+            await waitForTurnstileLoad()
+            renderTurnstile(turnstileRef.value)
+          } catch (error) {
+            console.error('Failed to reload Turnstile:', error)
+          }
+        }
+        return
+      }
+      
+      // 如果未启用Turnstile，则直接显示错误信息
       throw new Error(data.error || '登录失败')
     }
+
+    // 登录成功，清除验证状态
+    showTurnstileWidget.value = false
 
     // 存储Token
     if (rememberMe.value) {
@@ -183,17 +227,6 @@ onMounted(async () => {
     rememberMe.value = true
   } else {
     rememberMe.value = false
-  }
-
-  if (turnstileSiteKey && turnstileRef.value) {
-    try {
-      await waitForTurnstileLoad()
-      await nextTick()
-      renderTurnstile(turnstileRef.value)
-    } catch (error) {
-      console.error('Failed to load Turnstile:', error)
-      errorMessage.value = '人机验证加载失败，请刷新页面重试'
-    }
   }
 })
 </script>

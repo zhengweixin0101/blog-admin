@@ -22,19 +22,28 @@ export function useArticles() {
         return key
     }
 
-    async function getTurnstileToken() {
-        if (typeof window === 'undefined' || !window.turnstile) {
-            return null
-        }
+    async function requestWithTurnstile(requestFn) {
+        let lastError = null
 
+        // 第一次请求无需人机验证
         try {
-            if (window.showTurnstileModal) {
-                return await window.showTurnstileModal()
+            return await requestFn(null)
+        } catch (err) {
+            lastError = err
+
+            // 如果错误是403验证失败且启用了Turnstile则弹窗验证后重试
+            if (err.response?.status === 403 && window.showTurnstileModal && siteConfig.turnstileSiteKey) {
+                try {
+                    const token = await window.showTurnstileModal()
+                    // 带上人机验证令牌
+                    return await requestFn(token)
+                } catch (verifyErr) {
+                    console.error('Turnstile verification failed:', verifyErr)
+                    throw new Error('验证失败,操作已取消')
+                }
+            } else {
+                throw err
             }
-            return null
-        } catch (error) {
-            console.error('Failed to get Turnstile token:', error)
-            return null
         }
     }
 
@@ -94,19 +103,21 @@ export function useArticles() {
 
         try {
             const key = ensureKey()
-            const turnstileToken = await getTurnstileToken()
 
-            if (!turnstileToken) {
-                return null
-            }
+            const res = await requestWithTurnstile(async (turnstileToken) => {
+                const requestPayload = { ...payload }
+                if (turnstileToken) {
+                    requestPayload.turnstileToken = turnstileToken
+                }
 
-            const headers = { 'Authorization': `Bearer ${key}` }
-            payload.turnstileToken = turnstileToken
+                return await withLoading(
+                    () => axios.put(`${API_BASE}/api/article/edit`, requestPayload, {
+                        headers: { 'Authorization': `Bearer ${key}` }
+                    }),
+                    '更新文章中...'
+                )()
+            })
 
-            const res = await withLoading(
-                () => axios.put(`${API_BASE}/api/article/edit`, payload, { headers }),
-                '更新文章中...'
-            )()
             return res.data
         } catch (err) {
             handleError(err)
@@ -120,20 +131,21 @@ export function useArticles() {
 
         try {
             const key = ensureKey()
-            const turnstileToken = await getTurnstileToken()
 
-            if (!turnstileToken) {
-                return null
-            }
+            const res = await requestWithTurnstile(async (turnstileToken) => {
+                const payload = { oldSlug, newSlug }
+                if (turnstileToken) {
+                    payload.turnstileToken = turnstileToken
+                }
 
-            const payload = { oldSlug, newSlug, turnstileToken }
+                return await withLoading(
+                    () => axios.put(`${API_BASE}/api/article/edit-slug`, payload, {
+                        headers: { 'Authorization': `Bearer ${key}` }
+                    }),
+                    '修改文章链接中...'
+                )()
+            })
 
-            const res = await withLoading(
-                () => axios.put(`${API_BASE}/api/article/edit-slug`, payload, {
-                    headers: { 'Authorization': `Bearer ${key}` }
-                }),
-                '修改文章链接中...'
-            )()
             return res.data
         } catch (err) {
             handleError(err)
@@ -145,24 +157,24 @@ export function useArticles() {
     const deleteArticle = async (slug) => {
         try {
             const key = ensureKey()
-            const turnstileToken = await getTurnstileToken()
 
-            if (!turnstileToken) {
-                return null
-            }
+            await requestWithTurnstile(async (turnstileToken) => {
+                const headers = {
+                    'Authorization': `Bearer ${key}`
+                }
+                if (turnstileToken) {
+                    headers['x-turnstile-token'] = turnstileToken
+                }
 
-            const headers = {
-                'Authorization': `Bearer ${key}`,
-                'x-turnstile-token': turnstileToken
-            }
+                return await withLoading(
+                    () => axios.delete(`${API_BASE}/api/article/delete`, {
+                        headers,
+                        data: { slug }
+                    }),
+                    '删除文章中...'
+                )()
+            })
 
-            await withLoading(
-                () => axios.delete(`${API_BASE}/api/article/delete`, {
-                    headers,
-                    data: { slug }
-                }),
-                '删除文章中...'
-            )()
             return { success: true }
         } catch (err) {
             handleError(err)
