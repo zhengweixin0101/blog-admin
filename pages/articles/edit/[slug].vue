@@ -51,9 +51,9 @@ import { useArticles } from '~/composables/useArticles.js'
 import MarkdownEditor from '~/components/MarkdownEditor.vue'
 import { siteConfig } from '~/site.config.js'
 import { withLoading } from '~/composables/useLoading.js'
-import { useApiKey } from '@/composables/useApiKey.js'
+import { useToken } from '@/composables/useToken.js'
 
-const { getKey } = useApiKey()
+const { getToken } = useToken()
 
 const route = useRoute()
 const router = useRouter()
@@ -161,7 +161,7 @@ const generateTitle = async () => {
   }
 
     try {
-    const token = getKey()
+    const token = getToken()
     if (!token) {
       await alert('请先登录')
       return
@@ -207,7 +207,7 @@ const generateSummary = async () => {
   }
 
     try {
-    const token = getKey()
+    const token = getToken()
     if (!token) {
       await alert('请先登录')
       return

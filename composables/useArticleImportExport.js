@@ -2,18 +2,17 @@ import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { siteConfig } from '@/site.config.js'
 import { withLoading } from './useLoading.js'
-import { useApiKey } from './useApiKey.js'
+import { useToken } from './useToken.js'
 
 export function useArticleImportExport() {
     const API_BASE = siteConfig.apiUrl
     const router = useRouter()
-    const { getKey } = useApiKey()
+    const { getToken, clearAuthData } = useToken()
 
     function ensureKey() {
-        const key = getKey()
+        const key = getToken()
         if (!key) {
-            localStorage.removeItem('admin_verified')
-            sessionStorage.removeItem('admin_verified')
+            clearAuthData()
             router.push('/login')
             throw new Error('Token missing, redirecting to login page')
         }
@@ -74,12 +73,7 @@ export function useArticleImportExport() {
             const { status } = err.response
             if (status === 401) {
                 alert('登录已过期，请重新登录')
-                localStorage.removeItem('auth_token')
-                localStorage.removeItem('token_expires')
-                sessionStorage.removeItem('auth_token')
-                sessionStorage.removeItem('token_expires')
-                localStorage.removeItem('admin_verified')
-                sessionStorage.removeItem('admin_verified')
+                clearAuthData()
                 router.push('/login')
             } else if (status === 404) {
                 alert('文章不存在，请检查 slug 是否正确')

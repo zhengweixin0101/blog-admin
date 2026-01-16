@@ -367,7 +367,6 @@ import { useTalks } from '@/composables/useTalks'
 import { useS3 } from '@/composables/useS3'
 import { alert, confirm } from '@/composables/useModal'
 import { showLoading, hideLoading } from '@/composables/useLoading'
-import { useApiKey } from '@/composables/useApiKey.js'
 
 import { Fancybox } from '@fancyapps/ui'
 import '@fancyapps/ui/dist/fancybox/fancybox.css'
@@ -383,7 +382,6 @@ const pageSize = 20
 const finished = ref(false)
 const loading = ref(false)
 
-const { getKey } = useApiKey()
 const s3Config = ref({})
 let s3 = null
 

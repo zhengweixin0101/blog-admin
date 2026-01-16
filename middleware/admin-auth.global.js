@@ -1,3 +1,5 @@
+import { useToken } from '~/composables/useToken'
+
 export default defineNuxtRouteMiddleware((to) => {
     if (process.server) return
 
@@ -10,13 +12,7 @@ export default defineNuxtRouteMiddleware((to) => {
     }
 
     // 获取Token并验证有效性
-    const getToken = () => {
-        let token = localStorage.getItem('auth_token')
-        if (!token) {
-            token = sessionStorage.getItem('auth_token')
-        }
-        return token
-    }
+    const { getToken, isTokenExpired, clearAuthData } = useToken()
 
     const token = getToken()
     if (!token) {
@@ -26,23 +22,9 @@ export default defineNuxtRouteMiddleware((to) => {
     }
 
     // 检查Token是否过期
-    const getExpires = () => {
-        let expires = localStorage.getItem('token_expires')
-        if (!expires) {
-            expires = sessionStorage.getItem('token_expires')
-        }
-        return expires ? Number(expires) : 0
-    }
-
-    const expires = getExpires()
-    if (expires <= Date.now()) {
+    if (isTokenExpired()) {
         // Token已过期，清除并跳转到验证页面
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('token_expires')
-        sessionStorage.removeItem('auth_token')
-        sessionStorage.removeItem('token_expires')
-        localStorage.removeItem('admin_verified')
-        sessionStorage.removeItem('admin_verified')
+        clearAuthData()
         window.location.href = '/login'
         return
     }

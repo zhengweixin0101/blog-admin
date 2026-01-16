@@ -86,9 +86,10 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { siteConfig } from '@/site.config.js'
 import { useTurnstile } from '~/composables/useTurnstile'
+import { useToken } from '~/composables/useToken'
 
 const API_BASE = siteConfig.apiUrl
-const TOKEN_NAME = 'auth_token'
+const { getToken, setToken, setTokenExpires, removeToken, removeTokenExpires } = useToken()
 
 const username = ref('')
 const password = ref('')
@@ -194,11 +195,11 @@ async function handleSubmit() {
 
     // 存储Token
     if (rememberMe.value) {
-      localStorage.setItem(TOKEN_NAME, data.token)
-      localStorage.setItem('token_expires', String(Date.now() + data.expiresIn))
+      setToken(data.token, true)
+      setTokenExpires(Date.now() + data.expiresIn, true)
     } else {
-      sessionStorage.setItem(TOKEN_NAME, data.token)
-      sessionStorage.setItem('token_expires', String(Date.now() + data.expiresIn))
+      setToken(data.token, false)
+      setTokenExpires(Date.now() + data.expiresIn, false)
     }
 
     const verified = useCookie('admin_verified', { path: '/' })
@@ -213,7 +214,7 @@ async function handleSubmit() {
 }
 
 onMounted(async () => {
-  const cachedToken = localStorage.getItem(TOKEN_NAME)
+  const cachedToken = getToken()
   if (cachedToken) {
     const expires = Number(localStorage.getItem('token_expires'))
     if (expires > Date.now()) {
@@ -221,8 +222,8 @@ onMounted(async () => {
       verified.value = 'true'
       window.location.href = '/'
     } else {
-      localStorage.removeItem(TOKEN_NAME)
-      localStorage.removeItem('token_expires')
+      removeToken()
+      removeTokenExpires()
     }
     rememberMe.value = true
   } else {
