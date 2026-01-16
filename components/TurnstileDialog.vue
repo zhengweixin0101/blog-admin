@@ -6,16 +6,6 @@
 
       <div ref="turnstileContainer" class="flex justify-center mb-4"></div>
 
-      <div class="flex justify-center">
-        <button
-          v-if="loading"
-          disabled
-          class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition border-none rounded cursor-pointer cursor-not-allowed"
-        >
-          验证中...
-        </button>
-      </div>
-
       <button
         @click="handleCancel"
         class="absolute top-2 right-3 bg-transparent border-none text-lg text-gray-400 hover:text-gray-600 cursor-pointer"
@@ -41,9 +31,29 @@ let rejectPromise = null
 const isTurnstileEnabled = computed(() => {
   return siteConfig.turnstileSiteKey &&
          siteConfig.turnstileSiteKey.trim() !== '' &&
-         typeof window !== 'undefined' &&
-         window.turnstile
+         typeof window !== 'undefined'
 })
+
+// 等待 Turnstile 脚本加载完成
+function waitForTurnstileLoad(timeout = 10000) {
+  return new Promise((resolve, reject) => {
+    if (window.turnstile) {
+      resolve(true)
+      return
+    }
+
+    const startTime = Date.now()
+    const checkInterval = setInterval(() => {
+      if (window.turnstile) {
+        clearInterval(checkInterval)
+        resolve(true)
+      } else if (Date.now() - startTime > timeout) {
+        clearInterval(checkInterval)
+        reject(new Error('Turnstile failed to load'))
+      }
+    }, 100)
+  })
+}
 
 // 控制 body 滚动
 watch(visible, (newVal) => {
@@ -68,45 +78,57 @@ function show() {
   visible.value = true
   loading.value = true
 
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     resolvePromise = resolve
     rejectPromise = reject
 
-    nextTick(() => {
-      if (turnstileContainer.value) {
-        turnstileWidgetId.value = window.turnstile.render(turnstileContainer.value, {
-          sitekey: siteConfig.turnstileSiteKey,
-          theme: 'light',
-          callback: (token) => {
-            loading.value = false
-            setTimeout(() => {
-              visible.value = false
-              if (resolvePromise) {
-                resolvePromise(token)
-                resolvePromise = null
+    try {
+      // 等待 Turnstile 脚本加载完成
+      await waitForTurnstileLoad()
+
+      nextTick(() => {
+        if (turnstileContainer.value) {
+          turnstileWidgetId.value = window.turnstile.render(turnstileContainer.value, {
+            sitekey: siteConfig.turnstileSiteKey,
+            theme: 'light',
+            callback: (token) => {
+              loading.value = false
+              setTimeout(() => {
+                visible.value = false
+                if (resolvePromise) {
+                  resolvePromise(token)
+                  resolvePromise = null
+                  rejectPromise = null
+                }
+              }, 200)
+            },
+            'error-callback': () => {
+              loading.value = false
+              if (rejectPromise) {
+                rejectPromise(new Error('验证失败'))
                 rejectPromise = null
+                resolvePromise = null
               }
-            }, 200)
-          },
-          'error-callback': () => {
-            loading.value = false
-            if (rejectPromise) {
-              rejectPromise(new Error('验证失败'))
-              rejectPromise = null
-              resolvePromise = null
+            },
+            'expired-callback': () => {
+              loading.value = false
+              if (rejectPromise) {
+                rejectPromise(new Error('验证已过期'))
+                rejectPromise = null
+                resolvePromise = null
+              }
             }
-          },
-          'expired-callback': () => {
-            loading.value = false
-            if (rejectPromise) {
-              rejectPromise(new Error('验证已过期'))
-              rejectPromise = null
-              resolvePromise = null
-            }
-          }
-        })
+          })
+        }
+      })
+    } catch (error) {
+      visible.value = false
+      if (rejectPromise) {
+        rejectPromise(new Error('人机验证加载失败，请刷新页面重试'))
+        rejectPromise = null
+        resolvePromise = null
       }
-    })
+    }
   })
 }
 

@@ -33,15 +33,17 @@ export function useTalks() {
         } catch (err) {
             lastError = err
 
-            // 如果错误是403验证失败且启用了Turnstile则弹窗验证后重试
-            if (err.response?.status === 403 && window.showTurnstileModal && siteConfig.turnstileSiteKey) {
+            // 如果后端返回needTurnstile标志且启用了Turnstile则弹窗验证后重试
+            if (err.response?.data?.needTurnstile && window.showTurnstileModal && siteConfig.turnstileSiteKey) {
                 try {
                     const token = await window.showTurnstileModal()
-                    // 带上人机验证令牌
+                    // 带上人机验证令牌重试
                     return await requestFn(token)
                 } catch (verifyErr) {
-                    console.error('Turnstile verification failed:', verifyErr)
-                    throw new Error('验证失败,操作已取消')
+                    // 用户取消验证时直接抛出错误，不继续处理
+                    const error = new Error('已取消人机验证')
+                    error.isTurnstileCancelled = true
+                    throw error
                 }
             } else {
                 throw err
@@ -79,12 +81,20 @@ export function useTalks() {
             if (!payload.created_at) delete payload.created_at
             if (!payload.location) delete payload.location
 
-            const res = await withLoading(
-                () => axios.post(`${API_BASE}/api/talks/add`, payload, {
-                    headers: { 'Authorization': `Bearer ${key}` }
-                }),
-                '添加说说中...'
-            )()
+            const res = await requestWithTurnstile(async (turnstileToken) => {
+                const requestPayload = { ...payload }
+                if (turnstileToken) {
+                    requestPayload.turnstileToken = turnstileToken
+                }
+
+                return await withLoading(
+                    () => axios.post(`${API_BASE}/api/talks/add`, requestPayload, {
+                        headers: { 'Authorization': `Bearer ${key}` }
+                    }),
+                    '添加说说中...'
+                )()
+            })
+
             if (showAlert) await alert('说说添加成功！')
             return { success: true, talk: res.data.talk || res.data, message: res.data.message }
         } catch (err) {
@@ -239,7 +249,7 @@ export function useTalks() {
                             await addTalkInternal(talk, false)
                             successCount++
                         } catch (err) {
-                            console.error('添加失败：', talk, err)
+                            // 静默失败，跳过
                         }
                     }
                 }
@@ -257,7 +267,7 @@ export function useTalks() {
                                 await addTalkInternal(talk, false)
                                 duplicateCount++
                             } catch (err) {
-                                console.error('添加失败：', talk, err)
+                                // 静默失败，跳过
                             }
                         }
                     }
@@ -266,7 +276,6 @@ export function useTalks() {
                 await getTalks()
                 await alert(`导入完成！\n成功导入：${successCount} 条${duplicateCount ? `\n重复内容：${duplicateCount} 条` : ''}`)
             } catch (err) {
-                console.error(err)
                 await alert('导入失败，请检查密钥或文件格式是否正确！')
             }
         }
@@ -279,7 +288,18 @@ export function useTalks() {
     }
 
     async function handleError(err) {
+        // 如果是用户取消人机验证，则不显示错误提示
+        if (err.isTurnstileCancelled) {
+            return
+        }
+
         if (err.response) {
+            // 如果需要人机验证，显示统一的验证错误提示
+            if (err.response?.data?.needTurnstile) {
+                alert(err.response.data.error || '请完成人机验证后重试')
+                return
+            }
+
             const { status } = err.response
             if (status === 401) {
                 await alert('登录已过期，请重新登录')
@@ -297,7 +317,6 @@ export function useTalks() {
                 await alert(errorMsg || '操作失败，请稍后重试')
             }
         } else {
-            console.error(err)
             await alert('网络错误或服务器异常')
         }
     }

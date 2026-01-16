@@ -31,15 +31,17 @@ export function useArticles() {
         } catch (err) {
             lastError = err
 
-            // 如果错误是403验证失败且启用了Turnstile则弹窗验证后重试
-            if (err.response?.status === 403 && window.showTurnstileModal && siteConfig.turnstileSiteKey) {
+            // 如果后端返回needTurnstile标志且启用了Turnstile则弹窗验证后重试
+            if (err.response?.data?.needTurnstile && window.showTurnstileModal && siteConfig.turnstileSiteKey) {
                 try {
                     const token = await window.showTurnstileModal()
-                    // 带上人机验证令牌
+                    // 带上人机验证令牌重试
                     return await requestFn(token)
                 } catch (verifyErr) {
-                    console.error('Turnstile verification failed:', verifyErr)
-                    throw new Error('验证失败,操作已取消')
+                    // 用户取消验证时直接抛出错误，不继续处理
+                    const error = new Error('已取消人机验证')
+                    error.isTurnstileCancelled = true
+                    throw error
                 }
             } else {
                 throw err
@@ -76,12 +78,21 @@ export function useArticles() {
     const addArticle = async (article) => {
         try {
             const key = ensureKey()
-            const res = await withLoading(
-                () => axios.post(`${API_BASE}/api/article/add`, article, {
-                    headers: { 'Authorization': `Bearer ${key}` }
-                }),
-                '创建文章中...'
-            )()
+
+            const res = await requestWithTurnstile(async (turnstileToken) => {
+                const requestPayload = { ...article }
+                if (turnstileToken) {
+                    requestPayload.turnstileToken = turnstileToken
+                }
+
+                return await withLoading(
+                    () => axios.post(`${API_BASE}/api/article/add`, requestPayload, {
+                        headers: { 'Authorization': `Bearer ${key}` }
+                    }),
+                    '创建文章中...'
+                )()
+            })
+
             return res.data
         } catch (err) {
             handleError(err)
@@ -184,7 +195,18 @@ export function useArticles() {
 
     // 通用错误处理
     function handleError(err) {
+        // 如果是用户取消人机验证，则不显示错误提示
+        if (err.isTurnstileCancelled) {
+            return
+        }
+
         if (err.response) {
+            // 如果需要人机验证，显示统一的验证错误提示
+            if (err.response?.data?.needTurnstile) {
+                alert(err.response.data.error || '请完成人机验证后重试')
+                return
+            }
+
             const { status } = err.response
             if (status === 401) {
                 alert('登录已过期，请重新登录')
@@ -205,7 +227,6 @@ export function useArticles() {
                 alert('操作失败，请稍后重试')
             }
         } else {
-            console.error(err)
             alert('网络错误或服务器异常')
         }
     }
