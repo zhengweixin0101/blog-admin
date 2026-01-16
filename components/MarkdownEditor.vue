@@ -12,7 +12,6 @@
 import { ref, watch } from 'vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
-import CryptoJS from 'crypto-js'
 import { useS3 } from '@/composables/useS3'
 import { showLoading, hideLoading } from '@/composables/useLoading'
 
@@ -26,22 +25,12 @@ const localValue = ref(props.modelValue)
 watch(() => props.modelValue, val => localValue.value = val)
 watch(localValue, val => emit('update:modelValue', val))
 
-// S3 配置使用当前访问域名作为本地加密密钥
-function decryptConfig(cipherText, pass) {
-  const key = pass || (typeof window !== 'undefined' && window.location && window.location.hostname)
-  try {
-    const bytes = CryptoJS.AES.decrypt(cipherText, key)
-    return JSON.parse(bytes.toString(CryptoJS.enc.Utf8))
-  } catch {
-    return {}
-  }
-}
-
 function getS3Config() {
   const saved = typeof localStorage !== 'undefined' && localStorage.getItem('s3_config')
-  const key = (typeof window !== 'undefined' && window.location && window.location.hostname)
-  if (!saved || !key) return null
-  return decryptConfig(saved, key)
+  if (!saved) return null
+
+  const s3 = useS3()
+  return s3.decryptConfig(saved)
 }
 
 // S3 图片上传
