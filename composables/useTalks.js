@@ -1,5 +1,4 @@
 import { ref } from 'vue'
-import CryptoJS from 'crypto-js'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { siteConfig } from '@/site.config.js'
@@ -174,15 +173,7 @@ export function useTalks() {
             return
         }
 
-        const password = await prompt('设置导入密钥密钥（留空则不加密）', '');
-        if (password === null) {
-            return;
-        }
-
-        let dataStr = JSON.stringify(talks.value, null, 2)
-        if (password) {
-            dataStr = CryptoJS.AES.encrypt(dataStr, password).toString()
-        }
+        const dataStr = JSON.stringify(talks.value, null, 2)
 
         const blob = new Blob([dataStr], { type: 'application/json' })
         const url = URL.createObjectURL(blob)
@@ -203,27 +194,11 @@ export function useTalks() {
             if (!file) return
 
             try {
-                const password = await prompt('请输入入密钥密钥（未加密则留空）', '');
-                if (password === null) {
-                    return;
-                }
-
                 let text = await file.text()
-
-                if (password) {
-                    try {
-                        const bytes = CryptoJS.AES.decrypt(text, password)
-                        text = bytes.toString(CryptoJS.enc.Utf8)
-                        if (!text) throw new Error('解密失败，请检查密码！')
-                    } catch (err) {
-                        await alert('解密失败，请检查密码！')
-                        return
-                    }
-                }
 
                 let importedTalks = JSON.parse(text)
                 if (!Array.isArray(importedTalks)) {
-                    await alert('密钥错误或导入文件格式不正确！')
+                    await alert('导入文件格式不正确！')
                     return
                 }
 
@@ -275,7 +250,7 @@ export function useTalks() {
                 await getTalks()
                 await alert(`导入完成！\n成功导入：${successCount} 条${duplicateCount ? `\n重复内容：${duplicateCount} 条` : ''}`)
             } catch (err) {
-                await alert('导入失败，请检查密钥或文件格式是否正确！')
+                await alert('导入失败，请检查文件格式是否正确！')
             }
         }
         input.click()

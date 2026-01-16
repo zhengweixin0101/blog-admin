@@ -176,75 +176,6 @@ published: ${article.published !== undefined ? article.published : false}
         }
     }
 
-    // 导出为加密文件
-    const exportToEncrypted = async () => {
-        try {
-            const result = await exportAllArticles(10)
-            if (!result || !result.data || result.data.length === 0) {
-                alert('没有文章可以导出')
-                return
-            }
-
-            // 使用key进行加密
-            const key = ensureKey()
-
-            const jsonData = JSON.stringify(result.data)
-
-            const encryptedData = xorEncrypt(jsonData, key)
-            
-            // 创建加密文件
-            const blob = new Blob([encryptedData], { type: 'application/octet-stream' })
-            const url = URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = url
-            link.download = `exportArticles-${Date.now()}`
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-            URL.revokeObjectURL(url)
-
-            return { success: true }
-        } catch (err) {
-            console.error('导出加密文件失败:', err)
-            alert('导出加密文件失败，请稍后重试')
-            return null
-        }
-    }
-
-    // XOR加密函数
-    const xorEncrypt = (text, key) => {
-        // 将字符串转换为UTF-8字节数组
-        const textBytes = new TextEncoder().encode(text)
-        const keyBytes = new TextEncoder().encode(key)
-        
-        // 加密
-        const encryptedBytes = textBytes.map((byte, i) => byte ^ keyBytes[i % keyBytes.length])
-        
-        // 转换为Base64
-        return btoa(String.fromCharCode(...encryptedBytes))
-    }
-
-    // XOR解密函数
-    const xorDecrypt = (encryptedData, key) => {
-        try {
-            // 从Base64转换回字节数组
-            const encryptedBytes = new Uint8Array(
-                atob(encryptedData).split('').map(char => char.charCodeAt(0))
-            )
-            
-            const keyBytes = new TextEncoder().encode(key)
-            
-            // 解密
-            const decryptedBytes = encryptedBytes.map((byte, i) => byte ^ keyBytes[i % keyBytes.length])
-            
-            // 转换回字符串
-            return new TextDecoder().decode(decryptedBytes)
-        } catch (err) {
-            console.error('解密失败:', err)
-            return null
-        }
-    }
-
     // 解析 Markdown frontmatter
     const parseFrontmatter = (content) => {
         const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/
@@ -458,81 +389,12 @@ published: ${article.published !== undefined ? article.published : false}
         }
     }
 
-    // 从加密文件导入
-    const importFromEncrypted = async (file) => {
-        try {
-            const encryptedData = await file.text()
-            const key = ensureKey()
-            
-            // 解密数据
-            const decryptedData = xorDecrypt(encryptedData, key)
-            
-            if (!decryptedData) {
-                alert('解密失败，请检查文件是否正确或 API 密钥是否匹配')
-                return null
-            }
-            
-            // 解析为 JSON 并导入
-            const articles = JSON.parse(decryptedData)
-            const articlesArray = Array.isArray(articles) ? articles : [articles]
-            
-            if (articlesArray.length === 0) {
-                alert('加密文件中没有文章数据')
-                return null
-            }
-            
-            const results = []
-            
-            for (const article of articlesArray) {
-                try {
-                    if (!article.slug) {
-                        console.warn('跳过没有 slug 的文章:', article.title || '无标题')
-                        continue
-                    }
-                    
-                    const res = await withLoading(
-                        () => axios.post(`${API_BASE}/api/article/add`, article, {
-                            headers: { 'Authorization': `Bearer ${key}` }
-                        }),
-                        `正在导入: ${article.title || article.slug}...`
-                    )()
-                    
-                    results.push({ success: true, data: res.data, slug: article.slug })
-                } catch (err) {
-                    console.error(`导入文章 ${article.slug} 失败:`, err)
-                    results.push({ success: false, error: err.message, slug: article.slug })
-                }
-            }
-            
-            const successCount = results.filter(r => r.success).length
-            const failCount = results.length - successCount
-            
-            if (failCount > 0) {
-                alert(`导入完成！成功 ${successCount} 篇，失败 ${failCount} 篇。请查看控制台了解详情。`)
-            } else {
-                alert(`导入成功！共导入 ${successCount} 篇文章。`)
-            }
-            
-            return { success: true, results }
-        } catch (err) {
-            if (err instanceof SyntaxError) {
-                alert('解密后的数据格式错误，请检查文件是否损坏')
-            } else {
-                alert('导入加密文件失败，请检查文件是否正确或 API 密钥是否匹配')
-                console.error(err)
-            }
-            return null
-        }
-    }
-
     return {
         exportAllArticles,
         exportToMarkdown,
         exportToJSON,
-        exportToEncrypted,
         importFromMarkdown,
         importFromMarkdownZip,
-        importFromJSON,
-        importFromEncrypted
+        importFromJSON
     }
 }

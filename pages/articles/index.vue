@@ -74,12 +74,10 @@
         <div v-if="panelType === 'export'" class="space-y-3">
           <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="handleExportMarkdown">导出为 Markdown</button>
           <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="handleExportJSON">导出为 Json</button>
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="handleExportEncrypted">导出为加密文件</button>
         </div>
         <div v-if="panelType === 'import'" class="space-y-3">
           <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="handleImportMarkdown">从 Markdown 导入</button>
           <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="handleImportJSON">从 Json 导入</button>
-          <button class="w-full py-2 rounded bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-1" @click="handleImportEncrypted">从加密文件导入</button>
         </div>
         <button @click="closePanel" class="absolute top-2 right-3 bg-transparent border-none text-lg text-gray-400 hover:text-gray-600 cursor-pointer">✕</button>
       </div>
@@ -96,7 +94,7 @@ import { siteConfig } from '@/site.config.js'
 import { useRouter } from 'vue-router'
 
 const { articles, getList, deleteArticle, editSlug } = useArticles()
-const { exportToMarkdown, exportToJSON, exportToEncrypted, importFromMarkdown, importFromMarkdownZip, importFromJSON, importFromEncrypted } = useArticleImportExport()
+const { exportToMarkdown, exportToJSON, importFromMarkdown, importFromMarkdownZip, importFromJSON } = useArticleImportExport()
 
 const router = useRouter()
 const goCreate = () => {
@@ -247,16 +245,6 @@ const handleExportJSON = async () => {
   }
 }
 
-// 导出为加密文件
-const handleExportEncrypted = async () => {
-  closePanel()
-  await alert('将使用本站的API密钥进行加解密，若密钥被修改将无法导入！')
-  const result = await exportToEncrypted()
-  if (result) {
-    await alert('导出成功！')
-  }
-}
-
 // 从 Markdown 导入
 const handleImportMarkdown = async () => {
   closePanel()
@@ -321,29 +309,6 @@ const handleImportJSON = async () => {
     if (!file) return
     
     const result = await importFromJSON(file)
-    if (result) {
-      getList()
-    }
-  }
-  
-  input.click()
-}
-
-// 从加密文件导入
-const handleImportEncrypted = async () => {
-  closePanel()
-  
-  await alert('将使用本站的API密钥进行解密，请确保密钥与导出时一致！')
-  
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = '*'
-  
-  input.onchange = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    
-    const result = await importFromEncrypted(file)
     if (result) {
       getList()
     }
