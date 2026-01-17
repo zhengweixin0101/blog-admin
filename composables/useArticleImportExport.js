@@ -33,7 +33,7 @@ export function useArticleImportExport() {
                 '正在加载第 1 页...'
             )()
             const firstBody = firstRes.data
-            if (!firstBody || !Array.isArray(firstBody.data)) return { data: [], page: 1, pageSize, total: 0, totalPages: 0 }
+            if (!firstBody?.success || !Array.isArray(firstBody.data)) return { data: [], page: 1, pageSize, total: 0, totalPages: 0 }
 
             const all = [...firstBody.data]
             const total = firstBody.total ?? all.length
@@ -53,7 +53,7 @@ export function useArticleImportExport() {
                     `正在加载第 ${p} 页...`
                 )()
                 const body = res.data
-                if (body && Array.isArray(body.data) && body.data.length > 0) {
+                if (body?.success && Array.isArray(body.data) && body.data.length > 0) {
                     all.push(...body.data)
                 } else {
                     break

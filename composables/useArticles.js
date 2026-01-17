@@ -54,14 +54,18 @@ export function useArticles() {
             () => axios.get(`${API_BASE}/api/article/list?posts=all`),
             '加载文章列表中...'
         )()
-        articles.value = res.data.map(article => ({
-            slug: article.slug,
-            title: article.title || '无标题',
-            date: article.date || '未指定日期',
-            description: article.description || '暂无描述',
-            tags: article.tags || ['未指定标签'],
-            published: article.published !== undefined ? article.published : false
-        }))
+
+        const response = res.data
+        if (response.success && response.data) {
+            articles.value = response.data.map(article => ({
+                slug: article.slug,
+                title: article.title || '无标题',
+                date: article.date || '未指定日期',
+                description: article.description || '暂无描述',
+                tags: article.tags || ['未指定标签'],
+                published: article.published !== undefined ? article.published : false
+            }))
+        }
     }
 
     // 获取文章内容
@@ -70,7 +74,15 @@ export function useArticles() {
             () => axios.get(`${API_BASE}/api/article/get`, { params: { slug } }),
             '加载文章内容中...'
         )()
-        return res.data
+
+        const response = res.data
+        if (response.success) {
+            return {
+                frontmatter: response.frontmatter,
+                content: response.content
+            }
+        }
+        return null
     }
 
     // 新建文章
@@ -92,7 +104,11 @@ export function useArticles() {
                 )()
             })
 
-            return res.data
+            const response = res.data
+            if (response.success && response.article) {
+                return response.article
+            }
+            return null
         } catch (err) {
             handleError(err)
             return null
@@ -128,7 +144,11 @@ export function useArticles() {
                 )()
             })
 
-            return res.data
+            const response = res.data
+            if (response.success && response.article) {
+                return response.article
+            }
+            return null
         } catch (err) {
             handleError(err)
             return null
@@ -156,7 +176,11 @@ export function useArticles() {
                 )()
             })
 
-            return res.data
+            const response = res.data
+            if (response.success && response.article) {
+                return response.article
+            }
+            return null
         } catch (err) {
             handleError(err)
             return null

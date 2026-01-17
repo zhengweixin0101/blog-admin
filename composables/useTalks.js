@@ -55,13 +55,16 @@ export function useTalks() {
             '加载说说中...'
         )()
 
-        if (params.page && params.page > 1) {
-            talks.value.push(...res.data.data)
-        } else {
-            talks.value = res.data.data
+        const response = res.data
+        if (response.success && response.data) {
+            if (params.page && params.page > 1) {
+                talks.value.push(...response.data)
+            } else {
+                talks.value = response.data
+            }
         }
 
-        return res.data
+        return response
     }
 
     // 添加说说
@@ -94,7 +97,8 @@ export function useTalks() {
             })
 
             if (showAlert) await alert('说说添加成功！')
-            return { success: true, talk: res.data.talk || res.data, message: res.data.message }
+            const response = res.data
+            return { success: true, talk: response.talk, message: response.message }
         } catch (err) {
             handleError(err)
             return null
@@ -129,7 +133,8 @@ export function useTalks() {
             })
 
             await alert('说说修改成功！')
-            return { success: true, talk: res.data.talk || res.data, message: res.data.message }
+            const response = res.data
+            return { success: true, talk: response.talk, message: response.message }
         } catch (err) {
             handleError(err)
             return null

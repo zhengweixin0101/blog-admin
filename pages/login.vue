@@ -147,7 +147,48 @@ async function handleSubmit() {
 
     const data = await res.json()
 
-    if (!res.ok) {
+    // 如果后端返回需要人机验证
+    if (data.needTurnstile) {
+      // 如果未显示过验证组件，则显示验证
+      if (turnstileSiteKey && !showTurnstileWidget.value) {
+        errorMessage.value = '请先进行人机验证'
+        showTurnstileWidget.value = true
+        loading.value = false
+
+        // 加载并渲染Turnstile组件
+        await nextTick()
+        if (turnstileRef.value) {
+          try {
+            await waitForTurnstileLoad()
+            renderTurnstile(turnstileRef.value)
+          } catch (error) {
+            console.error('Failed to load Turnstile:', error)
+            errorMessage.value = '人机验证加载失败，请刷新页面重试'
+          }
+        }
+        return
+      }
+
+      // 如果已显示验证但仍然失败，则刷新人机验证
+      if (turnstileSiteKey && showTurnstileWidget.value) {
+        errorMessage.value = data.error || '登录失败，请重新验证'
+        loading.value = false
+        // 清空旧的验证组件，重新渲染获取新token
+        if (turnstileRef.value) {
+          turnstileRef.value.innerHTML = ''
+          await nextTick()
+          try {
+            await waitForTurnstileLoad()
+            renderTurnstile(turnstileRef.value)
+          } catch (error) {
+            console.error('Failed to reload Turnstile:', error)
+          }
+        }
+        return
+      }
+    }
+
+    if (!res.ok || !data.success) {
       // 如果请求失败且未显示过验证组件，则显示验证
       if (turnstileSiteKey && !showTurnstileWidget.value) {
         errorMessage.value = '请先进行人机验证'
@@ -167,25 +208,7 @@ async function handleSubmit() {
         }
         return
       }
-      
-      // 如果已显示验证但仍然失败，则刷新人机验证
-      if (turnstileSiteKey && showTurnstileWidget.value) {
-        errorMessage.value = data.error || '登录失败，请重新验证'
-        loading.value = false
-        // 清空旧的验证组件，重新渲染获取新token
-        if (turnstileRef.value) {
-          turnstileRef.value.innerHTML = ''
-          await nextTick()
-          try {
-            await waitForTurnstileLoad()
-            renderTurnstile(turnstileRef.value)
-          } catch (error) {
-            console.error('Failed to reload Turnstile:', error)
-          }
-        }
-        return
-      }
-      
+
       // 如果未启用Turnstile，则直接显示错误信息
       throw new Error(data.error || '登录失败')
     }
