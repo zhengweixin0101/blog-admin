@@ -56,14 +56,14 @@
             />
             <button
               @click="handleDeleteByUrl(deleteUrl)"
-              class="px-4 py-2 bg-red-500 text-white rounded-r-md hover:bg-red-600 border-none transition-colors"
+              class="px-4 py-2 bg-red-500 text-white rounded-r-md hover:bg-red-600 border-none transition-colors cursor-pointer"
             >
               删除
             </button>
           </div>
           <button
             @click="clearConfig"
-            class="px-4 py-2 bg-red-500 text-white border-none rounded hover:bg-red-600 transition-colors cursor-pointer"
+            class="px-4 py-2 bg-red-500 text-white border-none rounded hover:bg-red-600 transition-colors cursor-pointer cursor-pointer"
           >
             删除配置
           </button>
@@ -111,13 +111,13 @@
             <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 @click="previewImage(`${customDomain}${file.key}`)"
-                class="bg-blue-500 text-white px-2 py-1 border-none rounded cursor-pointer hover:bg-blue-600 transition-colors"
+                class="bg-blue-500 text-white px-2 py-1 border-none rounded cursor-pointer hover:bg-blue-600 transition-colors cursor-pointer"
               >
                 预览
               </button>
               <button
                 @click="handleDeleteFile(file)"
-                class="bg-red-500 text-white px-2 py-1 border-none rounded cursor-pointer hover:bg-red-600 transition-colors"
+                class="bg-red-500 text-white px-2 py-1 border-none rounded cursor-pointer hover:bg-red-600 transition-colors cursor-pointer"
               >
                 删除
               </button>
@@ -140,19 +140,19 @@
               <div class="flex gap-2">
                 <button
                   @click="previewImage(`${customDomain}${file.key}`)"
-                  class="px-2 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors"
+                  class="px-2 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors cursor-pointer"
                 >
                   预览
                 </button>
                 <button
                   @click="copyLink(`${customDomain}${file.key}`)"
-                  class="px-2 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors"
+                  class="px-2 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors cursor-pointer"
                 >
                   复制链接
                 </button>
                 <button
                   @click="handleDeleteFile(file)"
-                  class="px-2 py-1 bg-red-500 text-white border-none rounded hover:bg-red-600 transition-colors"
+                  class="px-2 py-1 bg-red-500 text-white border-none rounded hover:bg-red-600 transition-colors cursor-pointer"
                 >
                   删除
                 </button>
