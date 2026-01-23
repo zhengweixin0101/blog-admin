@@ -51,7 +51,7 @@
             <input
               @keydown.enter.prevent="handleDeleteByUrl(deleteUrl)"
               v-model="deleteUrl"
-              placeholder="输入图片链接删除"
+              placeholder="输入图片链接"
               class="flex-1 px-4 py-2 border border-gray-300 rounded-l-md outline-none"
             />
             <button
