@@ -9,29 +9,35 @@
         v-model="inputValue"
         ref="inputRef"
         class="w-full p-2 box-border border rounded mb-4"
+        :class="{ 'border-red-500': showError }"
         :placeholder="placeholder"
         @keydown.enter="handleConfirm"
         @keydown.escape="handleCancel"
         @keydown.space.stop.prevent="handleCancel"
+        @input="showError = false"
       />
-      
-      <div class="flex gap-4 justify-end">
-        <button 
+
+      <div v-if="type === 'prompt' && showError" class="bg-red-50 border border-red-200 rounded-md px-2 py-0.5 mb-4">
+        <p class="text-sm text-red-600">请输入内容</p>
+      </div>
+
+      <div class="flex gap-2 mt-2">
+        <button
           v-if="type === 'confirm' || type === 'prompt'"
           @click="handleCancel"
-          class=" px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition border-none rounded cursor-pointer"
+          class="flex-1 px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition border-none cursor-pointer"
         >
           {{ cancelText }}
         </button>
-        <button 
+        <button
           @click="handleConfirm"
-          class=" px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition border-none rounded cursor-pointer"
+          class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition border-none cursor-pointer"
         >
           {{ confirmText }}
         </button>
       </div>
-      <button 
-        @click="handleCancel" 
+      <button
+        @click="handleCancel"
         class="absolute top-2 right-3 bg-transparent border-none text-lg text-gray-400 hover:text-gray-600 cursor-pointer"
       >
         ✕
@@ -53,6 +59,7 @@ const inputValue = ref('')
 const placeholder = ref('')
 const inputRef = ref(null)
 const modalRef = ref(null)
+const showError = ref(false)
 let resolvePromise = null
 
 // 控制 body 滚动
@@ -101,7 +108,13 @@ function show(options = {}) {
 }
 
 function handleConfirm() {
+  if (type.value === 'prompt' && !inputValue.value.trim()) {
+    showError.value = true
+    return
+  }
+
   visible.value = false
+  showError.value = false
   if (resolvePromise) {
     if (type.value === 'prompt') {
       resolvePromise(inputValue.value)
@@ -114,6 +127,7 @@ function handleConfirm() {
 
 function handleCancel() {
   visible.value = false
+  showError.value = false
   if (resolvePromise) {
     if (type.value === 'prompt') {
       resolvePromise(null)

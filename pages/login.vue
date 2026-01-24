@@ -72,11 +72,6 @@
           </span>
           <span v-else>登录</span>
         </button>
-
-        <div class="text-xs text-gray-500 space-y-1">
-          <p>1. 使用首次登录的账号自动注册</p>
-          <p>2. 若忘记密码请删除数据库configs表中的admin后重新登录</p>
-        </div>
       </form>
     </div>
   </div>
