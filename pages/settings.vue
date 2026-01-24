@@ -16,33 +16,117 @@
     </div>
 
     <!-- 账号管理板块 -->
-    <div v-show="activeTab === 'user'" class="p-3 rounded shadow">
-      <h2 class="text-lg font-bold mb-4">账号密码</h2>
+    <div v-show="activeTab === 'account'" class="space-y-3">
+      <div class="p-3 rounded shadow">
+        <h2 class="text-lg font-bold mb-4">Token 管理</h2>
 
-      <div class="flex gap-3">
-        <!-- 修改用户名 -->
-        <button
-          @click="handleUpdateUsername"
-          class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
-        >
-          修改用户名
-        </button>
+        <!-- 创建 Token 表单 -->
+        <div class="mb-4 pb-4 border-b border-gray-200">
+          <h3 class="text-sm font-medium text-gray-700 mb-3">创建新 Token</h3>
+          <input
+            v-model="newToken.name"
+            type="text"
+            placeholder="Token 名称"
+            class="w-full p-2 box-border border rounded mb-2"
+          />
+          <select
+            v-model="newToken.expiresIn"
+            class="w-full p-2 box-border border rounded mb-2"
+          >
+            <option :value="86400000">24 小时</option>
+            <option :value="604800000">7 天</option>
+            <option :value="2592000000">30 天</option>
+            <option :value="7776000000">90 天</option>
+            <option :value="15552000000">180 天</option>
+            <option :value="31536000000">1 年</option>
+            <option :value="315360000000">10 年</option>
+          </select>
+          <input
+            v-model="newToken.description"
+            type="text"
+            placeholder="Token 描述（可选）"
+            class="w-full p-2 box-border border rounded mb-2"
+          />
+          <button
+            @click="handleCreateToken"
+            class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
+          >
+            创建 Token
+          </button>
+        </div>
 
-        <!-- 修改密码 -->
-        <button
-          @click="handleUpdatePassword"
-          class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
-        >
-          修改密码
-        </button>
+        <!-- Token 列表 -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200">
+                <th class="text-left py-2 px-2 font-medium">名称</th>
+                <th class="text-left py-2 px-2 font-medium">描述</th>
+                <th class="text-left py-2 px-2 font-medium">创建时间</th>
+                <th class="text-left py-2 px-2 font-medium">过期时间</th>
+                <th class="text-left py-2 px-2 font-medium">状态</th>
+                <th class="text-left py-2 px-2 font-medium">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="tokens.length === 0">
+                <td colspan="6" class="text-center py-8 text-gray-500">暂无 Token</td>
+              </tr>
+              <tr v-for="token in tokens" :key="token.id" class="border-b border-gray-100 hover:bg-gray-50">
+                <td class="py-2 px-2">{{ token.name || '-' }}</td>
+                <td class="py-2 px-2">{{ token.description || '-' }}</td>
+                <td class="py-2 px-2">{{ formatDate(token.createdAt) }}</td>
+                <td class="py-2 px-2">{{ token.expiresAt ? formatDate(token.expiresAt) : '永不过期' }}</td>
+                <td class="py-2 px-2">
+                  <span
+                    :class="getRemainingTime(token.expiresAt).isExpired ? 'text-red-500' : 'text-green-500'"
+                    class="text-xs"
+                  >
+                    {{ getRemainingTime(token.expiresAt).text }}
+                  </span>
+                </td>
+                <td class="py-2 px-2">
+                  <button
+                    @click="handleDeleteToken(token)"
+                    class="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors cursor-pointer border-none"
+                  >
+                    删除
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-        <!-- 退出登录 -->
-        <button
-          @click="handleLogout"
-          class="px-4 py-2 bg-red-500 text-white rounded border-none hover:bg-red-600 transition-colors cursor-pointer"
-        >
-          退出登录
-        </button>
+      <div class="p-3 rounded shadow">
+        <h2 class="text-lg font-bold mb-4">账号操作</h2>
+
+        <div class="flex gap-3">
+          <!-- 修改用户名 -->
+          <button
+            @click="handleUpdateUsername"
+            class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
+          >
+            修改用户名
+          </button>
+
+          <!-- 修改密码 -->
+          <button
+            @click="handleUpdatePassword"
+            class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
+          >
+            修改密码
+          </button>
+
+          <!-- 退出登录 -->
+          <button
+            @click="handleLogout"
+            class="px-4 py-2 bg-red-500 text-white rounded border-none hover:bg-red-600 transition-colors cursor-pointer"
+          >
+            退出登录
+          </button>
+        </div>
       </div>
     </div>
 
@@ -60,21 +144,17 @@ import { useSettings } from '~/composables/useSettings.js'
 import { alert, confirm, prompt } from '@/composables/useModal'
 import { useToken } from '~/composables/useToken.js'
 
-const { updateAccount, getTokensList, createToken, revokeToken } = useSettings()
+const { updateAccount, getTokensList, createToken, deleteToken } = useSettings()
 const { removeToken, removeTokenExpires } = useToken()
 
 // 当前激活的标签页
-const activeTab = ref('user')
+const activeTab = ref('account')
 
 // 标签页配置
 const tabs = [
   {
-    id: 'user',
+    id: 'account',
     label: '账号管理'
-  },
-  {
-    id: 'token',
-    label: 'Token 管理'
   },
   {
     id: 'other',
@@ -108,6 +188,14 @@ onMounted(() => {
 const handleUpdateUsername = async () => {
   const newUsername = await prompt('', '', '修改用户名', '请输入新用户名')
   if (newUsername === null || !newUsername.trim()) return
+
+  const confirmUsername = await prompt('', '', '确认用户名', '请再次输入新用户名')
+  if (confirmUsername === null || !confirmUsername.trim()) return
+
+  if (newUsername.trim() !== confirmUsername.trim()) {
+    await alert('两次输入的用户名不一致')
+    return
+  }
 
   const currentPassword = await prompt('', '', '验证身份', '请输入当前密码以验证身份', true)
   if (currentPassword === null || !currentPassword) return
@@ -184,12 +272,39 @@ const handleDeleteToken = async (token) => {
   const confirmed = await confirm(`确定要删除 Token "${token.name || token.id}" 吗？`)
   if (!confirmed) return
 
-  const result = await revokeToken(token.id)
+  const result = await deleteToken(token.id)
   if (result.success) {
     await alert(result.message || 'Token 删除成功')
-    loadTokens()
+    await loadTokens()
   } else {
     await alert(result.error || '删除 Token 失败')
+  }
+}
+
+// 计算剩余时间
+const getRemainingTime = (expiresAt) => {
+  if (!expiresAt) {
+    return { isExpired: false, text: '永不过期' }
+  }
+
+  const now = Date.now()
+  const expiresTime = new Date(expiresAt).getTime()
+  const remainingMs = expiresTime - now
+
+  if (remainingMs <= 0) {
+    return { isExpired: true, text: '已过期' }
+  }
+
+  const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60))
+
+  if (days > 0) {
+    return { isExpired: false, text: `剩余 ${days}天${hours}小时` }
+  } else if (hours > 0) {
+    return { isExpired: false, text: `剩余 ${hours}小时${minutes}分钟` }
+  } else {
+    return { isExpired: false, text: `剩余 ${minutes}分钟` }
   }
 }
 

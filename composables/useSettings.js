@@ -11,9 +11,27 @@ export function useSettings() {
         const key = getToken()
         if (!key) {
             clearAuthData()
+            window.location.href = '/login'
             throw new Error('API key missing')
         }
         return key
+    }
+
+    // 通用错误处理
+    async function handleError(error) {
+        if (error.response) {
+            const { status, data } = error.response
+            if (status === 401) {
+                await alert('登录已过期，请重新登录')
+                clearAuthData()
+                window.location.href = '/login'
+                return { success: false, error: '登录已过期' }
+            }
+            return data || { success: false, error: '操作失败' }
+        } else if (error.message === 'API key missing') {
+            return { success: false, error: '未登录' }
+        }
+        return { success: false, error: '网络错误或服务器异常' }
     }
 
     // 更新账号信息（用户名或密码）
@@ -35,7 +53,7 @@ export function useSettings() {
             }, '更新中...')()
             return response.data
         } catch (error) {
-            return error.response?.data || { success: false, error: '更新账号失败' }
+            return await handleError(error)
         }
     }
 
@@ -51,7 +69,7 @@ export function useSettings() {
             })
             return response.data
         } catch (error) {
-            return error.response?.data || { success: false, error: '获取 Token 列表失败' }
+            return await handleError(error)
         }
     }
 
@@ -74,17 +92,17 @@ export function useSettings() {
             }, '创建中...')()
             return response.data
         } catch (error) {
-            return error.response?.data || { success: false, error: '创建 Token 失败' }
+            return await handleError(error)
         }
     }
 
     // 删除 Token
-    const revokeToken = async (id) => {
+    const deleteToken = async (id) => {
         const key = ensureKey()
 
         try {
             const response = await withLoading(async () => {
-                return await axios.delete(`${API_BASE}/api/tokens/revoke`, {
+                return await axios.delete(`${API_BASE}/api/tokens/delete`, {
                     data: { id },
                     headers: {
                         'Authorization': `Bearer ${key}`,
@@ -94,7 +112,7 @@ export function useSettings() {
             }, '删除中...')()
             return response.data
         } catch (error) {
-            return error.response?.data || { success: false, error: '删除 Token 失败' }
+            return await handleError(error)
         }
     }
 
@@ -102,6 +120,6 @@ export function useSettings() {
         updateAccount,
         getTokensList,
         createToken,
-        revokeToken
+        deleteToken
     }
 }
