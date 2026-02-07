@@ -116,10 +116,52 @@ export function useSettings() {
         }
     }
 
+    // 获取配置
+    const getConfig = async (key) => {
+        const authKey = ensureKey()
+
+        try {
+            const response = await axios.get(`${API_BASE}/api/config/get`, {
+                params: { key },
+                headers: {
+                    'Authorization': `Bearer ${authKey}`
+                }
+            })
+            return response.data
+        } catch (error) {
+            return await handleError(error)
+        }
+    }
+
+    // 设置配置
+    const setConfig = async ({ key, value, description }) => {
+        const authKey = ensureKey()
+
+        try {
+            const response = await withLoading(async () => {
+                return await axios.post(`${API_BASE}/api/config/set`, {
+                    key,
+                    value,
+                    description
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${authKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+            }, '保存中...')()
+            return response.data
+        } catch (error) {
+            return await handleError(error)
+        }
+    }
+
     return {
         updateAccount,
         getTokensList,
         createToken,
-        deleteToken
+        deleteToken,
+        getConfig,
+        setConfig
     }
 }

@@ -23,36 +23,25 @@
         <!-- 创建 Token 表单 -->
         <div class="mb-4 pb-4 border-b border-gray-200">
           <h3 class="text-sm font-medium text-gray-700 mb-3">创建新 Token</h3>
-          <input
-            v-model="newToken.name"
-            type="text"
-            placeholder="Token 名称"
-            class="w-full p-2 box-border border rounded mb-2"
-          />
-          <select
-            v-model="newToken.expiresIn"
-            class="w-full p-2 box-border border rounded mb-2"
-          >
-            <option :value="86400000">24 小时</option>
-            <option :value="604800000">7 天</option>
-            <option :value="2592000000">30 天</option>
-            <option :value="7776000000">90 天</option>
-            <option :value="15552000000">180 天</option>
-            <option :value="31536000000">1 年</option>
-            <option :value="315360000000">10 年</option>
-          </select>
-          <input
-            v-model="newToken.description"
-            type="text"
-            placeholder="Token 描述（可选）"
-            class="w-full p-2 box-border border rounded mb-2"
-          />
-          <button
-            @click="handleCreateToken"
-            class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
-          >
-            创建 Token
-          </button>
+          <form id="tokenForm" class="space-y-3">
+            <input v-model="newToken.name" id="tokenName" type="text" placeholder="Token 名称" class="w-full p-2 box-border border rounded" />
+            <select v-model="newToken.expiresIn" id="tokenExpires" class="w-full p-2 box-border border rounded">
+              <option :value="86400000">24 小时</option>
+              <option :value="604800000">7 天</option>
+              <option :value="2592000000">30 天</option>
+              <option :value="7776000000">90 天</option>
+              <option :value="15552000000">180 天</option>
+              <option :value="31536000000">1 年</option>
+              <option :value="315360000000">10 年</option>
+            </select>
+            <input v-model="newToken.description" id="tokenDescription" type="text" placeholder="Token 描述（可选）" class="w-full p-2 box-border border rounded" />
+            <button
+              @click="handleCreateToken"
+              class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
+            >
+              创建 Token
+            </button>
+          </form>
         </div>
 
         <!-- Token 列表 -->
@@ -130,6 +119,40 @@
       </div>
     </div>
 
+    <!-- S3 存储配置板块 -->
+    <div v-show="activeTab === 'storage'" class="space-y-3">
+      <div class="p-3 rounded shadow">
+        <h2 class="text-lg font-bold mb-4">S3 配置</h2>
+
+        <div>
+          <form id="s3Config" class="space-y-3">
+            <input v-model="s3Config.bucket" id="bucket" placeholder="Bucket" class="w-full p-2 box-border border rounded" />
+            <input v-model="s3Config.endpoint" id="endpoint" placeholder="Endpoint" class="w-full p-2 box-border border rounded" />
+            <input v-model="s3Config.region" id="region" placeholder="Region" class="w-full p-2 box-border border rounded" />
+            <input v-model="s3Config.accessKeyId" id="accessKeyId" placeholder="Access Key ID" class="w-full p-2 box-border border rounded" />
+            <input v-model="s3Config.secretAccessKey" id="secretAccessKey" placeholder="Access Key Secret" class="w-full p-2 box-border border rounded"/>
+            <input v-model="s3Config.customDomain" id="customDomain" placeholder="Custom Domain" class="w-full p-2 box-border border rounded" />
+          </form>
+        </div>
+
+        <div class="flex gap-2 mt-4">
+          <button
+            @click="handleSaveS3Config"
+            :disabled="loadingS3Config"
+            class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {{ loadingS3Config ? '保存中...' : '保存配置' }}
+          </button>
+          <button
+            @click="handleClearS3Config"
+            class="px-4 py-2 bg-red-500 text-white rounded border-none hover:bg-red-600 transition-colors cursor-pointer"
+          >
+            清除配置
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 预留其他配置部分 -->
     <div v-show="activeTab === 'other'" class="p-3 rounded shadow">
       <h2 class="text-lg font-bold mb-4">其他配置</h2>
@@ -144,7 +167,7 @@ import { useSettings } from '~/composables/useSettings.js'
 import { alert, confirm, prompt } from '@/composables/useModal'
 import { useToken } from '~/composables/useToken.js'
 
-const { updateAccount, getTokensList, createToken, deleteToken } = useSettings()
+const { updateAccount, getTokensList, createToken, deleteToken, getConfig, setConfig } = useSettings()
 const { removeToken, removeTokenExpires } = useToken()
 
 // 当前激活的标签页
@@ -155,6 +178,10 @@ const tabs = [
   {
     id: 'account',
     label: '账号管理'
+  },
+  {
+    id: 'storage',
+    label: '存储配置'
   },
   {
     id: 'other',
@@ -170,6 +197,17 @@ const newToken = ref({
   expiresIn: 86400000
 })
 
+// S3 配置相关数据
+const s3Config = ref({
+  bucket: '',
+  endpoint: '',
+  region: '',
+  accessKeyId: '',
+  secretAccessKey: '',
+  customDomain: ''
+})
+const loadingS3Config = ref(false)
+
 // 加载 Token 列表
 const loadTokens = async () => {
   const result = await getTokensList()
@@ -182,6 +220,7 @@ const loadTokens = async () => {
 
 onMounted(() => {
   loadTokens()
+  loadS3Config()
 })
 
 // 修改用户名
@@ -329,5 +368,77 @@ const handleLogout = async () => {
   removeToken()
   removeTokenExpires()
   window.location.href = '/login'
+}
+
+// 加载 S3 配置
+const loadS3Config = async () => {
+  try {
+    const result = await getConfig('s3_config')
+    if (result.success && result.data) {
+      const config = JSON.parse(result.data.value)
+      s3Config.value = {
+        bucket: config.bucket || '',
+        endpoint: config.endpoint || '',
+        region: config.region || '',
+        accessKeyId: config.accessKeyId || '',
+        secretAccessKey: config.secretAccessKey || '',
+        customDomain: config.customDomain || ''
+      }
+    }
+  } catch (error) {
+  }
+}
+
+// 保存 S3 配置
+const handleSaveS3Config = async () => {
+  if (!s3Config.value.bucket || !s3Config.value.endpoint || !s3Config.value.accessKeyId || !s3Config.value.secretAccessKey) {
+    await alert('请填写完整 S3 配置信息')
+    return
+  }
+
+  const result = await setConfig({
+    key: 's3_config',
+    value: JSON.stringify({
+      bucket: s3Config.value.bucket,
+      endpoint: s3Config.value.endpoint,
+      region: s3Config.value.region,
+      accessKeyId: s3Config.value.accessKeyId,
+      secretAccessKey: s3Config.value.secretAccessKey,
+      customDomain: s3Config.value.customDomain
+    }),
+    description: 'S3 存储配置'
+  })
+
+  if (result.success) {
+    await alert('S3 配置保存成功！')
+  } else {
+    await alert(result.error || '保存配置失败')
+  }
+}
+
+// 清除 S3 配置
+const handleClearS3Config = async () => {
+  const confirmed = await confirm('确定要清除 S3 配置吗？此操作不可逆。')
+  if (!confirmed) return
+
+  const result = await setConfig({
+    key: 's3_config',
+    value: '',
+    description: 'S3 存储配置'
+  })
+
+  if (result.success) {
+    s3Config.value = {
+      bucket: '',
+      endpoint: '',
+      region: '',
+      accessKeyId: '',
+      secretAccessKey: '',
+      customDomain: ''
+    }
+    await alert('S3 配置已清除！')
+  } else {
+    await alert(result.error || '清除配置失败')
+  }
 }
 </script>
