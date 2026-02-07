@@ -9,11 +9,13 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import { useS3 } from '@/composables/useS3'
+import { useSettings } from '~/composables/useSettings.js'
 import { showLoading, hideLoading } from '@/composables/useLoading'
+import { alert } from '@/composables/useModal'
 
 const props = defineProps({
   modelValue: String,
@@ -21,23 +23,36 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue'])
 
+const { getConfig } = useSettings()
+
 const localValue = ref(props.modelValue)
 watch(() => props.modelValue, val => localValue.value = val)
 watch(localValue, val => emit('update:modelValue', val))
 
-function getS3Config() {
-  const saved = typeof localStorage !== 'undefined' && localStorage.getItem('s3_config')
-  if (!saved) return null
+const s3Config = ref(null)
+let s3 = null
 
-  const s3 = useS3()
-  return s3.decryptConfig(saved)
+// 初始化 S3 配置
+async function loadS3Config() {
+  if (import.meta.client) {
+    try {
+      const result = await getConfig('s3_config')
+      if (result.success && result.data && result.data.value) {
+        const config = JSON.parse(result.data.value)
+        s3Config.value = config
+        s3 = useS3({ config })
+      }
+    } catch (error) {
+      // 配置不存在或其他错误
+    }
+  }
 }
+onMounted(loadS3Config)
 
 // S3 图片上传
 async function handleUploadImg(files, callback) {
-  const config = getS3Config()
-  if (!config) {
-    await alert('S3 配置缺失，请先在图片管理页面填写并保存 S3 配置！')
+  if (!s3Config.value || !s3) {
+    await alert('S3 配置缺失，请先在设置页面的"存储配置"标签页中配置 S3 存储！')
     return
   }
 
@@ -53,20 +68,22 @@ async function handleUploadImg(files, callback) {
 
   try {
     showLoading(`正在上传 ${imageFiles.length} 张图片...`)
-    
-    const s3 = useS3({ config })
-    
+
     const urls = await s3.uploadFiles({
       files: imageFiles,
-      cfg: config,
+      cfg: s3Config.value,
       prefix: 'blog/posts/',
-      customDomain: config.customDomain
+      customDomain: s3Config.value.customDomain
+        ? (s3Config.value.customDomain.endsWith('/')
+            ? s3Config.value.customDomain
+            : s3Config.value.customDomain + '/')
+        : ''
     })
 
     if (urls.length > 0) {
       callback(urls)
       hideLoading()
-      await alert(`上传成功！共 ${urls.length} 张图片，链接已复制到剪贴板。`)
+      await alert(`上传成功！共 ${urls.length} 张图片`)
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(urls.join('\n'))
       }
@@ -74,7 +91,6 @@ async function handleUploadImg(files, callback) {
       hideLoading()
     }
   } catch (err) {
-    console.error('上传失败:', err)
     hideLoading()
     await alert('上传失败，请重试')
   }

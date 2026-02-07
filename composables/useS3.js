@@ -1,42 +1,15 @@
-import CryptoJS from 'crypto-js'
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { Upload } from "@aws-sdk/lib-storage"
 import { siteConfig } from '@/site.config.js'
 import { confirm } from '@/composables/useModal'
 
-export function useS3({ config, passphrase, onProgress } = {}) {
+export function useS3({ config, onProgress } = {}) {
     // 获取压缩配置
     const compressionConfig = siteConfig.imageCompression || {
         enabled: false,
         quality: 0.85,
         maxWidth: 1920,
         minSize: 80 * 1024
-    }
-
-    // 加密配置
-    function encryptConfig(configObj) {
-        const key = passphrase || (typeof window !== 'undefined' && window.location && window.location.hostname)
-        if (!key) {
-            console.warn('缺少 s3 配置加密密钥！')
-            return null
-        }
-        return CryptoJS.AES.encrypt(JSON.stringify(configObj), key).toString()
-    }
-
-    // 解密配置
-    function decryptConfig(cipherText) {
-        const key = passphrase || (typeof window !== 'undefined' && window.location && window.location.hostname)
-        if (!key) {
-            console.warn('缺少 s3 配置加密密钥！')
-            return {}
-        }
-        try {
-            const bytes = CryptoJS.AES.decrypt(cipherText, key)
-            return JSON.parse(bytes.toString(CryptoJS.enc.Utf8))
-        } catch (e) {
-            console.error('加载失败：', e)
-            return {}
-        }
     }
 
     // S3 客户端
@@ -49,16 +22,6 @@ export function useS3({ config, passphrase, onProgress } = {}) {
                 secretAccessKey: cfg.secretAccessKey
             }
         })
-    }
-
-    // 测试并保存配置
-    async function saveConfig(cfg) {
-        const client = getS3Client(cfg)
-        await client.send(new ListObjectsV2Command({ Bucket: cfg.bucket, MaxKeys: 1 }))
-        const encrypted = encryptConfig(cfg)
-        if (!encrypted) throw new Error('缺少 s3 配置加密密钥！')
-        localStorage.setItem('s3_config', encrypted)
-        return true
     }
 
     // 列出文件
@@ -129,16 +92,7 @@ export function useS3({ config, passphrase, onProgress } = {}) {
             reader.readAsDataURL(file)
         })
     }
-    
-    // 格式化文件大小
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes'
-        const k = 1024
-        const sizes = ['Bytes', 'KB', 'MB', 'GB']
-        const i = Math.floor(Math.log(bytes) / Math.log(k))
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-    }
-    
+
     // 显示图片对比弹窗
     async function showImageComparison(originalFile, compressedResult) {
         return new Promise((resolve) => {
@@ -313,7 +267,6 @@ export function useS3({ config, passphrase, onProgress } = {}) {
             
             // 检查压缩后大小
             if (compressedResult.compressedSize >= file.size) {
-                console.log(`图片 "${file.name}" 压缩后体积更大(${compressedResult.compressedSize} => ${file.size})，已使用原图上传`)
                 return { action: 'skip', file }
             }
             
@@ -321,13 +274,12 @@ export function useS3({ config, passphrase, onProgress } = {}) {
             const choice = await showImageComparison(file, compressedResult)
             
             return choice
-            
+
         } catch (error) {
-            console.error('压缩失败:', error)
             const useOriginal = await confirm(`文件 "${file.name}" 压缩失败，是否使用原文件上传？
 
 点击"确定"使用原文件上传，点击"取消"取消上传该文件`)
-            
+
             if (useOriginal) {
                 return { action: 'skip', file }
             } else {
@@ -396,10 +348,7 @@ export function useS3({ config, passphrase, onProgress } = {}) {
     }
 
     return {
-        encryptConfig,
-        decryptConfig,
         getS3Client,
-        saveConfig,
         listFiles,
         uploadFiles,
         deleteFile

@@ -1,27 +1,17 @@
 <template>
   <div class="p-8">
     <h1 class="text-2xl font-bold mb-6">图片管理</h1>
-    <div v-if="!isConfigured" class="max-w-md mx-auto bg-gray-100 p-6 rounded shadow">
-      <h2 class="text-xl font-semibold mb-4 text-center">配置 S3 存储信息</h2>
-      <p class="text-sm text-center">基于 Cloudflare R2 ，其他存储不保证可用性</p>
-      <div>
-        <form id="s3Config" class="space-y-3">
-          <input v-model="bucket" id="bucket" placeholder="Bucket" class="w-full p-2 box-border border rounded" />
-          <input v-model="endpoint" id="endpoint" placeholder="Endpoint" class="w-full p-2 box-border border rounded" />
-          <input v-model="region" id="region" placeholder="Region" autocomplete="off" class="w-full p-2 box-border border rounded" />
-          <input v-model="accessKeyId" id="accessKeyId" placeholder="Access Key ID" class="w-full p-2 box-border border rounded" />
-          <input v-model="secretAccessKey" id="secretAccessKey" placeholder="Access Key Secret" class="w-full p-2 box-border border rounded" type="current-password" />
-          <input v-model="customDomain" id="customDomain" placeholder="Custom Domain" class="w-full p-2 box-border border rounded" />
-        </form>
+    <div v-if="!isConfigured" class="flex items-center justify-center min-h-[60vh]">
+      <div class="max-w-md bg-gray-100 p-6 rounded shadow text-center">
+        <h2 class="text-xl font-semibold mb-4">未配置 S3 存储</h2>
+        <p class="text-sm text-gray-600 mb-4">请先在"设置"页面的"存储配置"标签页中配置 S3 存储信息</p>
+        <button
+          @click="goToSettings"
+          class="px-6 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
+        >
+          前往设置
+        </button>
       </div>
-      <button
-        @click="handleSaveConfig"
-        class="mt-4 w-full bg-blue-600 text-white py-2 rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
-        :disabled="loading"
-      >
-        {{ loading ? '验证中...' : '保存配置' }}
-      </button>
-      <p v-if="error" class="text-red-500 mt-3 text-sm">{{ error }}</p>
     </div>
     <div v-else>
       <div class="mb-4 flex gap-2 items-center">
@@ -61,12 +51,6 @@
               删除
             </button>
           </div>
-          <button
-            @click="clearConfig"
-            class="px-4 py-2 bg-red-500 text-white border-none rounded hover:bg-red-600 transition-colors cursor-pointer cursor-pointer"
-          >
-            删除配置
-          </button>
         </div>
       </div>
       <div
@@ -168,21 +152,18 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import { useS3 } from '@/composables/useS3.js'
-import { alert, confirm } from '@/composables/useModal'
+import { alert } from '@/composables/useModal'
 import { showLoading, hideLoading } from '@/composables/useLoading.js'
+import { useSettings } from '~/composables/useSettings.js'
 import { Fancybox } from '@fancyapps/ui'
 import '@fancyapps/ui/dist/fancybox/fancybox.css'
 
-const bucket = ref('')
-const endpoint = ref('')
-const region = ref('auto')
-const accessKeyId = ref('')
-const secretAccessKey = ref('')
+const { getConfig } = useSettings()
+
 const customDomain = ref('')
 const isConfigured = ref(false)
 const dragOver = ref(false)
 const loading = ref(false)
-const error = ref('')
 const files = ref([])
 const masonryContainer = ref(null)
 const uploadProgress = ref({})
@@ -225,55 +206,30 @@ function switchView(mode) {
 const s3Config = ref({})
 let s3 = null
 
-function loadConfig() {
+async function loadConfig() {
   if (import.meta.client) {
-    const saved = localStorage.getItem('s3_config')
-    if (saved) {
-      s3 = useS3()
-      const config = s3.decryptConfig(saved)
-      bucket.value = config.bucket || ''
-      endpoint.value = config.endpoint || ''
-      region.value = config.region || ''
-      accessKeyId.value = config.accessKeyId || ''
-      secretAccessKey.value = config.secretAccessKey || ''
-      customDomain.value = config.customDomain ? (config.customDomain.endsWith('/') ? config.customDomain : config.customDomain + '/') : ''
-      s3Config.value = config
-      if (bucket.value && endpoint.value && accessKeyId.value && secretAccessKey.value) {
-        isConfigured.value = true
-        listFiles()
+    try {
+      const result = await getConfig('s3_config')
+      if (result.success && result.data && result.data.value) {
+        const config = JSON.parse(result.data.value)
+        s3 = useS3()
+        customDomain.value = config.customDomain ? (config.customDomain.endsWith('/') ? config.customDomain : config.customDomain + '/') : ''
+        s3Config.value = config
+        if (config.bucket && config.endpoint && config.accessKeyId && config.secretAccessKey) {
+          isConfigured.value = true
+          listFiles()
+        }
       }
+    } catch (error) {
+      // 配置不存在或其他错误，显示未配置界面
     }
   }
 }
 
 onMounted(loadConfig)
 
-async function handleSaveConfig() {
-  error.value = ''
-  loading.value = true
-  try {
-    const config = {
-      bucket: bucket.value,
-      endpoint: endpoint.value,
-      region: region.value,
-      accessKeyId: accessKeyId.value,
-      secretAccessKey: secretAccessKey.value,
-      customDomain: customDomain.value
-    }
-    s3 = useS3()
-    await s3.saveConfig(config)
-    window.location.reload()
-  } catch (e) {
-    console.error(e)
-    error.value = '配置无效，请检查访问密钥或桶信息！'
-  } finally {
-    loading.value = false
-  }
-}
-
 async function listFiles() {
   loading.value = true
-  error.value = ''
   files.value = []
   showLoading('正在加载图片列表...')
   try {
@@ -283,8 +239,7 @@ async function listFiles() {
     await waitForImagesToLoad()
     await initMasonry()
   } catch (e) {
-    console.error(e)
-    error.value = '无法获取文件列表'
+    await alert('无法获取文件列表')
   } finally {
     loading.value = false
     hideLoading()
@@ -346,7 +301,6 @@ async function uploadFiles(selectedFiles) {
       await alert(`上传成功！共 ${urls.length} 张图片，链接已复制到剪贴板。`)
     }
   } catch (e) {
-    console.error(e)
     await alert('上传失败，请重试')
   } finally {
     hideLoading()
@@ -355,9 +309,7 @@ async function uploadFiles(selectedFiles) {
 
 async function handleDeleteFile(file) {
   showLoading('正在删除图片...')
-  error.value = ''
   try {
-    // 先检查文件是否存在
     const exists = await existsKey(file.key)
     if (exists !== true) {
       hideLoading()
@@ -378,9 +330,8 @@ async function handleDeleteFile(file) {
     }
     await listFiles()
   } catch (e) {
-    console.error(e)
     hideLoading()
-    error.value = '删除失败，请重试！'
+    await alert('删除失败，请重试！')
   }
 }
 
@@ -406,7 +357,7 @@ async function headCheck(key, retries = 2, interval = 300) {
       if (resp.status === 404) return false
       if (resp.ok) return true
     } catch (e) {
-      console.error('headCheck 出错:', e)
+      // ignore error
     }
     await sleep(interval)
   }
@@ -427,7 +378,6 @@ async function checkDeletion(key) {
         if (!found) {
           return 'deleted'
         }
-        // 进一步用 HEAD 确认
         const head = await headCheck(target, 1, 200)
         if (head === false) return 'deleted'
         if (head === true) {
@@ -439,7 +389,7 @@ async function checkDeletion(key) {
         if (head === true) return 'exists'
       }
     } catch (e) {
-      console.error('checkDeletion listFiles 出错:', e)
+      // ignore error
     }
     await sleep(interval)
     interval = Math.min(2000, Math.round(interval * 1.5))
@@ -450,7 +400,7 @@ async function checkDeletion(key) {
     if (finalHead === false) return 'deleted'
     if (finalHead === true) return 'exists'
   } catch (e) {
-    console.error('headCheck 失败:', e)
+    // ignore error
   }
 
   return 'unknown'
@@ -461,9 +411,8 @@ async function existsKey(key) {
   showLoading('正在检查文件...')
   const target = normalizeKey(key)
   let foundInList = false
-  
+
   try {
-    // 通过 listFiles 检查
     const list = await s3.listFiles({ prefix: target, cfg: s3Config.value })
     if (Array.isArray(list)) {
       foundInList = list.some(item => normalizeKey(item.key) === target)
@@ -473,21 +422,18 @@ async function existsKey(key) {
       }
     }
   } catch (e) {
-    console.error('existsKey listFiles 出错:', e)
+    // ignore error
   }
 
-  // HEAD 检查
   try {
     const head = await headCheck(target, 3, 300)
     hideLoading()
     if (head === true) return true
     if (head === false) return false
   } catch (e) {
-    console.error('existsKey headCheck 出错:', e)
     hideLoading()
   }
 
-  // 无法确认返回 false
   hideLoading()
   return false
 }
@@ -501,7 +447,6 @@ async function handleDeleteByUrl(passedUrl) {
 
   const key = extractKey(target)
 
-  // 先检查文件是否存在
   const exists = await existsKey(key)
   if (exists !== true) {
     await alert('文件不存在或无法确认，无法执行删除操作。')
@@ -525,7 +470,6 @@ async function handleDeleteByUrl(passedUrl) {
     deleteUrl.value = ''
     await listFiles()
   } catch (e) {
-    console.error(e)
     hideLoading()
     await alert('删除失败，请检查链接或权限是否正确')
   }
@@ -540,23 +484,18 @@ function extractKey(url) {
   }
 }
 
-async function clearConfig() {
-  const confirmed = await confirm('确定要删除配置吗？此操作不可逆，清除后需重新填写！')
-  if (confirmed) {
-    localStorage.removeItem('s3_config')
-    isConfigured.value = false
-    files.value = []
-  }
+function goToSettings() {
+  window.location.href = '/settings'
 }
 
 async function copyLink(link) {
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(link).then(async () => {
+    try {
+      await navigator.clipboard.writeText(link)
       await alert('链接已复制到剪贴板！')
-    }).catch(async (err) => {
-      console.error('复制失败:', err)
+    } catch {
       await alert('复制失败，请手动复制链接！')
-    })
+    }
   } else {
     await alert('您的浏览器不支持剪贴板API，请手动复制链接')
   }

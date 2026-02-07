@@ -365,6 +365,7 @@ import { onMounted, onBeforeUnmount, ref } from 'vue'
 import axios from 'axios'
 import { useTalks } from '@/composables/useTalks'
 import { useS3 } from '@/composables/useS3'
+import { useSettings } from '~/composables/useSettings.js'
 import { alert, confirm } from '@/composables/useModal'
 import { showLoading, hideLoading } from '@/composables/useLoading'
 
@@ -372,6 +373,8 @@ import { Fancybox } from '@fancyapps/ui'
 import '@fancyapps/ui/dist/fancybox/fancybox.css'
 
 const { talks, getTalks, editTalk, deleteTalk, addTalkInternal, importMemos, exportMemos, } = useTalks()
+const { getConfig } = useSettings()
+
 const newContent = ref('')
 const editingId = ref(null)
 const editingContent = ref('')
@@ -386,13 +389,17 @@ const s3Config = ref({})
 let s3 = null
 
 // 初始化 S3 配置
-function loadS3Config() {
+async function loadS3Config() {
   if (import.meta.client) {
-    const saved = localStorage.getItem('s3_config')
-    if (saved) {
-      s3 = useS3()
-      const config = s3.decryptConfig(saved)
-      s3Config.value = config
+    try {
+      const result = await getConfig('s3_config')
+      if (result.success && result.data && result.data.value) {
+        const config = JSON.parse(result.data.value)
+        s3 = useS3()
+        s3Config.value = config
+      }
+    } catch (error) {
+      // 配置不存在或其他错误
     }
   }
 }
@@ -457,12 +464,11 @@ const handleFileSelect = async (event, prefix = '', mode = 'new') => {
         editingContent.value += `\n![图片](${url})`
       }
     })
-    
+
     hideLoading()
   } catch (e) {
-    console.error(e)
     hideLoading()
-    await alert('⚠️ 上传失败，请重试')
+    await alert('上传失败，请重试')
   }
 }
 
@@ -860,14 +866,13 @@ const syncFromMemos = async () => {
                 await addTalkInternal(talk, false)
                 successCount++
             } catch (err) {
-                console.error('添加失败：', talk, err)
+                // ignore error
             }
         }
 
         await getTalks()
         await alert(`同步完成，共导入 ${successCount} 条说说。附件暂不支持导入！`)
     } catch (err) {
-        console.error(err)
         await alert('同步失败，请检查 API 地址或网络连接')
     }
 }
