@@ -1,88 +1,94 @@
 import { ref } from 'vue'
 import axios from 'axios'
-import { useRouter } from 'vue-router'
 import { siteConfig } from '@/site.config.js'
 import { withLoading } from './useLoading.js'
 import { useToken } from './useToken.js'
+import { useErrorHandler } from './useErrorHandler.js'
 
 export function useArticles() {
     const API_BASE = siteConfig.apiUrl
     const articles = ref([])
-    const router = useRouter()
     const { getToken, clearAuthData } = useToken()
+    const { handleError, extractErrorMessage } = useErrorHandler()
 
     function ensureKey() {
         const key = getToken()
         if (!key) {
             clearAuthData()
-            router.push('/login')
-            throw new Error('API key missing, redirecting to login page')
+            window.location.href = '/login'
+            throw new Error('API key missing')
         }
         return key
     }
 
     async function requestWithTurnstile(requestFn) {
-        let lastError = null
-
         // 第一次请求无需人机验证
         try {
             return await requestFn(null)
         } catch (err) {
-            lastError = err
-
             // 如果后端返回needTurnstile标志且启用了Turnstile则弹窗验证后重试
             if (err.response?.data?.needTurnstile && window.showTurnstileModal && siteConfig.turnstileSiteKey) {
                 try {
                     const token = await window.showTurnstileModal()
-                    // 带上人机验证令牌重试
                     return await requestFn(token)
                 } catch (verifyErr) {
-                    // 用户取消验证时直接抛出错误，不继续处理
                     const error = new Error('已取消人机验证')
                     error.isTurnstileCancelled = true
                     throw error
                 }
-            } else {
-                throw err
             }
+            throw err
         }
     }
 
     // 获取文章列表
     const getList = async () => {
-        const res = await withLoading(
-            () => axios.get(`${API_BASE}/api/article/list?posts=all`),
-            '加载文章列表中...'
-        )()
+        try {
+            const res = await withLoading(
+                () => axios.get(`${API_BASE}/api/article/list?posts=all`),
+                '加载文章列表中...'
+            )()
 
-        const response = res.data
-        if (response.success && response.data) {
-            articles.value = response.data.map(article => ({
-                slug: article.slug,
-                title: article.title || '无标题',
-                date: article.date || '未指定日期',
-                description: article.description || '暂无描述',
-                tags: article.tags || ['未指定标签'],
-                published: article.published !== undefined ? article.published : false
-            }))
+            const response = res.data
+            if (response.success && response.data) {
+                articles.value = response.data.map(article => ({
+                    slug: article.slug,
+                    title: article.title || '无标题',
+                    date: article.date || '未指定日期',
+                    description: article.description || '暂无描述',
+                    tags: article.tags || ['未指定标签'],
+                    published: article.published !== undefined ? article.published : false
+                }))
+                return { success: true }
+            }
+            return { success: false, error: '获取文章列表失败' }
+        } catch (err) {
+            handleError(err), { success: false, error: extractErrorMessage(err) }
+            return { success: false, error: extractErrorMessage(err) }
         }
     }
 
     // 获取文章内容
     const getArticle = async (slug) => {
-        const res = await withLoading(
-            () => axios.get(`${API_BASE}/api/article/get`, { params: { slug } }),
-            '加载文章内容中...'
-        )()
+        try {
+            const res = await withLoading(
+                () => axios.get(`${API_BASE}/api/article/get`, { params: { slug } }),
+                '加载文章内容中...'
+            )()
 
-        const response = res.data
-        if (response.success) {
-            return {
-                frontmatter: response.frontmatter,
-                content: response.content
+            const response = res.data
+            if (response.success) {
+                return {
+                    success: true,
+                    frontmatter: response.frontmatter,
+                    content: response.content
+                }
             }
+            return { success: false, error: '获取文章内容失败' }
+        } catch (err) {
+            handleError(err), { success: false, error: extractErrorMessage(err) }
+            return { success: false, error: extractErrorMessage(err) }
         }
-        return null
     }
 
     // 新建文章
@@ -106,18 +112,20 @@ export function useArticles() {
 
             const response = res.data
             if (response.success && response.article) {
-                return response.article
+                return { success: true, article: response.article, message: response.message || '文章创建成功' }
             }
-            return null
+            return { success: false, error: response.error || '文章创建失败' }
         } catch (err) {
-            handleError(err)
-            return null
+            handleError(err), { success: false, error: extractErrorMessage(err) }
+            return { success: false, error: extractErrorMessage(err) }
         }
     }
 
     // 更新文章
     const editArticle = async (article) => {
-        if (!article.slug) return alert('缺少 slug，无法更新文章'), null
+        if (!article.slug) {
+            return alert('缺少 slug，无法更新文章'), { success: false, error: '缺少 slug' }
+        }
 
         const payload = { slug: article.slug }
         if (article.title) payload.title = article.title
@@ -146,18 +154,20 @@ export function useArticles() {
 
             const response = res.data
             if (response.success && response.article) {
-                return response.article
+                return { success: true, article: response.article, message: response.message || '文章更新成功' }
             }
-            return null
+            return { success: false, error: response.error || '文章更新失败' }
         } catch (err) {
-            handleError(err)
-            return null
+            handleError(err), { success: false, error: extractErrorMessage(err) }
+            return { success: false, error: extractErrorMessage(err) }
         }
     }
 
     // 修改文章 slug
     const editSlug = async (oldSlug, newSlug) => {
-        if (!oldSlug || !newSlug) return alert('旧 slug 或新 slug 不能为空'), null
+        if (!oldSlug || !newSlug) {
+            return alert('旧 slug 或新 slug 不能为空'), { success: false, error: 'slug 不能为空' }
+        }
 
         try {
             const key = ensureKey()
@@ -178,12 +188,12 @@ export function useArticles() {
 
             const response = res.data
             if (response.success && response.article) {
-                return response.article
+                return { success: true, article: response.article, message: response.message || 'slug 修改成功' }
             }
-            return null
+            return { success: false, error: response.error || 'slug 修改失败' }
         } catch (err) {
-            handleError(err)
-            return null
+            handleError(err), { success: false, error: extractErrorMessage(err) }
+            return { success: false, error: extractErrorMessage(err) }
         }
     }
 
@@ -192,7 +202,7 @@ export function useArticles() {
         try {
             const key = ensureKey()
 
-            await requestWithTurnstile(async (turnstileToken) => {
+            const res = await requestWithTurnstile(async (turnstileToken) => {
                 const headers = {
                     'Authorization': `Bearer ${key}`
                 }
@@ -209,43 +219,10 @@ export function useArticles() {
                 )()
             })
 
-            return { success: true }
+            return { success: true, message: res.data?.message || '文章删除成功' }
         } catch (err) {
-            handleError(err)
-            return null
-        }
-    }
-
-    // 通用错误处理
-    function handleError(err) {
-        // 如果是用户取消人机验证，则不显示错误提示
-        if (err.isTurnstileCancelled) {
-            return
-        }
-
-        if (err.response) {
-            // 如果需要人机验证，显示统一的验证错误提示
-            if (err.response?.data?.needTurnstile) {
-                alert(err.response.data.error || '请完成人机验证后重试')
-                return
-            }
-
-            const { status } = err.response
-            if (status === 401) {
-                alert('登录已过期，请重新登录')
-                clearAuthData()
-                router.push('/login')
-            } else if (status === 404) {
-                alert('文章不存在，请检查 slug 是否正确')
-            } else if (status === 409) {
-                alert('slug 已存在，请更换后重试')
-            } else if (status === 400) {
-                alert('slug 是必填项，请检查后重试')
-            } else {
-                alert('操作失败，请稍后重试')
-            }
-        } else {
-            alert('网络错误或服务器异常')
+            handleError(err), { success: false, error: extractErrorMessage(err) }
+            return { success: false, error: extractErrorMessage(err) }
         }
     }
 

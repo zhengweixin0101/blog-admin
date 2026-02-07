@@ -1,70 +1,65 @@
 import { ref } from 'vue'
 import axios from 'axios'
-import { useRouter } from 'vue-router'
 import { siteConfig } from '@/site.config.js'
 import { withLoading } from './useLoading.js'
 import { alert, confirm } from '@/composables/useModal'
 import { useToken } from './useToken.js'
+import { useErrorHandler } from './useErrorHandler.js'
 
 export function useTalks() {
     const API_BASE = siteConfig.apiUrl
     const talks = ref([])
-    const router = useRouter()
     const { getToken, clearAuthData } = useToken()
+    const { handleError, extractErrorMessage } = useErrorHandler()
 
     function ensureKey() {
         const key = getToken()
         if (!key) {
             clearAuthData()
-            router.push('/login')
-            throw new Error('API key missing, redirecting to login page')
+            window.location.href = '/login'
+            throw new Error('API key missing')
         }
         return key
     }
 
     async function requestWithTurnstile(requestFn) {
-        let lastError = null
-
-        // 第一次请求无需人机验证
         try {
             return await requestFn(null)
         } catch (err) {
-            lastError = err
-
-            // 如果后端返回needTurnstile标志且启用了Turnstile则弹窗验证后重试
             if (err.response?.data?.needTurnstile && window.showTurnstileModal && siteConfig.turnstileSiteKey) {
                 try {
                     const token = await window.showTurnstileModal()
-                    // 带上人机验证令牌重试
                     return await requestFn(token)
                 } catch (verifyErr) {
-                    // 用户取消验证时直接抛出错误，不继续处理
                     const error = new Error('已取消人机验证')
                     error.isTurnstileCancelled = true
                     throw error
                 }
-            } else {
-                throw err
             }
+            throw err
         }
     }
 
     const getTalks = async (params = {}) => {
-        const res = await withLoading(
-            () => axios.get(`${API_BASE}/api/talks/get`, { params }),
-            '加载说说中...'
-        )()
+        try {
+            const res = await withLoading(
+                () => axios.get(`${API_BASE}/api/talks/get`, { params }),
+                '加载说说中...'
+            )()
 
-        const response = res.data
-        if (response.success && response.data) {
-            if (params.page && params.page > 1) {
-                talks.value.push(...response.data)
-            } else {
-                talks.value = response.data
+            const response = res.data
+            if (response.success && response.data) {
+                if (params.page && params.page > 1) {
+                    talks.value.push(...response.data)
+                } else {
+                    talks.value = response.data
+                }
             }
+            return response
+        } catch (err) {
+            handleError(err), { success: false, error: extractErrorMessage(err), data: [] }
+            return { success: false, error: extractErrorMessage(err), data: [] }
         }
-
-        return response
     }
 
     // 添加说说
@@ -96,20 +91,19 @@ export function useTalks() {
                 )()
             })
 
-            if (showAlert) await alert('说说添加成功！')
+            if (showAlert) alert('说说添加成功！'), null
             const response = res.data
-            return { success: true, talk: response.talk, message: response.message }
+            return { success: true, talk: response.talk, message: response.message || '说说添加成功' }
         } catch (err) {
-            handleError(err)
-            return null
+            handleError(err), { success: false, error: extractErrorMessage(err) }
+            return { success: false, error: extractErrorMessage(err) }
         }
     }
 
     // 编辑说说
     const editTalk = async (talk) => {
         if (!talk.id) {
-            await alert('缺少 ID，无法更新说说')
-            return null
+            return alert('缺少 ID，无法更新说说'), { success: false, error: '缺少 ID' }
         }
         try {
             const key = ensureKey()
@@ -132,12 +126,12 @@ export function useTalks() {
                 )()
             })
 
-            await alert('说说修改成功！')
+            alert('说说修改成功！'), null
             const response = res.data
-            return { success: true, talk: response.talk, message: response.message }
+            return { success: true, talk: response.talk, message: response.message || '说说修改成功' }
         } catch (err) {
-            handleError(err)
-            return null
+            handleError(err), { success: false, error: extractErrorMessage(err) }
+            return { success: false, error: extractErrorMessage(err) }
         }
     }
 
@@ -146,7 +140,7 @@ export function useTalks() {
         try {
             const key = ensureKey()
 
-            await requestWithTurnstile(async (turnstileToken) => {
+            const res = await requestWithTurnstile(async (turnstileToken) => {
                 const headers = {
                     'Authorization': `Bearer ${key}`
                 }
@@ -163,11 +157,11 @@ export function useTalks() {
                 )()
             })
 
-            await alert('说说删除成功！')
-            return { success: true }
+            alert('说说删除成功！'), null
+            return { success: true, message: res.data?.message || '说说删除成功' }
         } catch (err) {
-            handleError(err)
-            return null
+            handleError(err), { success: false, error: extractErrorMessage(err) }
+            return { success: false, error: extractErrorMessage(err) }
         }
     }
 
@@ -261,39 +255,6 @@ export function useTalks() {
         input.click()
     }
 
-
-    function getApiError(error) {
-        return error?.response?.data?.error || error?.response?.data?.message || '未知错误'
-    }
-
-    async function handleError(err) {
-        // 如果是用户取消人机验证，则不显示错误提示
-        if (err.isTurnstileCancelled) {
-            return
-        }
-
-        if (err.response) {
-            // 如果需要人机验证，显示统一的验证错误提示
-            if (err.response?.data?.needTurnstile) {
-                alert(err.response.data.error || '请完成人机验证后重试')
-                return
-            }
-
-            const { status } = err.response
-            if (status === 401) {
-                await alert('登录已过期，请重新登录')
-                clearAuthData()
-                router.push('/login')
-            } else if (status === 404) {
-                await alert('说说不存在，请检查 ID 是否正确')
-            } else {
-                const errorMsg = getApiError(err)
-                await alert(errorMsg || '操作失败，请稍后重试')
-            }
-        } else {
-            await alert('网络错误或服务器异常')
-        }
-    }
 
     return { talks, getTalks, addTalkInternal, editTalk, deleteTalk, exportMemos, importMemos }
 }

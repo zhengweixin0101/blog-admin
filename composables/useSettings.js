@@ -2,10 +2,12 @@ import axios from 'axios'
 import { siteConfig } from '@/site.config.js'
 import { withLoading } from './useLoading.js'
 import { useToken } from './useToken.js'
+import { useErrorHandler } from './useErrorHandler.js'
 
 export function useSettings() {
     const API_BASE = siteConfig.apiUrl
     const { getToken, clearAuthData } = useToken()
+    const { handleError, extractErrorMessage } = useErrorHandler()
 
     function ensureKey() {
         const key = getToken()
@@ -15,23 +17,6 @@ export function useSettings() {
             throw new Error('API key missing')
         }
         return key
-    }
-
-    // 通用错误处理
-    async function handleError(error) {
-        if (error.response) {
-            const { status, data } = error.response
-            if (status === 401) {
-                await alert('登录已过期，请重新登录')
-                clearAuthData()
-                window.location.href = '/login'
-                return { success: false, error: '登录已过期' }
-            }
-            return data || { success: false, error: '操作失败' }
-        } else if (error.message === 'API key missing') {
-            return { success: false, error: '未登录' }
-        }
-        return { success: false, error: '网络错误或服务器异常' }
     }
 
     // 更新账号信息（用户名或密码）
@@ -51,9 +36,10 @@ export function useSettings() {
                     }
                 })
             }, '更新中...')()
-            return response.data
+            return { success: true, ...response.data }
         } catch (error) {
-            return await handleError(error)
+            handleError(error), { success: false, error: extractErrorMessage(error) }
+            return { success: false, error: extractErrorMessage(error) }
         }
     }
 
@@ -67,9 +53,10 @@ export function useSettings() {
                     'Authorization': `Bearer ${key}`
                 }
             })
-            return response.data
+            return { success: true, ...response.data }
         } catch (error) {
-            return await handleError(error)
+            handleError(error, { showAlert: false }), { success: false, error: extractErrorMessage(error) }
+            return { success: false, error: extractErrorMessage(error) }
         }
     }
 
@@ -90,9 +77,10 @@ export function useSettings() {
                     }
                 })
             }, '创建中...')()
-            return response.data
+            return { success: true, ...response.data }
         } catch (error) {
-            return await handleError(error)
+            handleError(error), { success: false, error: extractErrorMessage(error) }
+            return { success: false, error: extractErrorMessage(error) }
         }
     }
 
@@ -110,9 +98,10 @@ export function useSettings() {
                     }
                 })
             }, '删除中...')()
-            return response.data
+            return { success: true, ...response.data }
         } catch (error) {
-            return await handleError(error)
+            handleError(error), { success: false, error: extractErrorMessage(error) }
+            return { success: false, error: extractErrorMessage(error) }
         }
     }
 
@@ -127,9 +116,10 @@ export function useSettings() {
                     'Authorization': `Bearer ${authKey}`
                 }
             })
-            return response.data
+            return { success: true, ...response.data }
         } catch (error) {
-            return await handleError(error)
+            handleError(error, { showAlert: false }), { success: false, error: extractErrorMessage(error) }
+            return { success: false, error: extractErrorMessage(error) }
         }
     }
 
@@ -150,9 +140,10 @@ export function useSettings() {
                     }
                 })
             }, '保存中...')()
-            return response.data
+            return { success: true, ...response.data }
         } catch (error) {
-            return await handleError(error)
+            handleError(error), { success: false, error: extractErrorMessage(error) }
+            return { success: false, error: extractErrorMessage(error) }
         }
     }
 

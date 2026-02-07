@@ -2,8 +2,10 @@ import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/cl
 import { Upload } from "@aws-sdk/lib-storage"
 import { siteConfig } from '@/site.config.js'
 import { confirm } from '@/composables/useModal'
+import { useErrorHandler } from './useErrorHandler.js'
 
 export function useS3({ config, onProgress } = {}) {
+    const { handleError } = useErrorHandler()
     // 获取压缩配置
     const compressionConfig = siteConfig.imageCompression || {
         enabled: false,
@@ -26,18 +28,26 @@ export function useS3({ config, onProgress } = {}) {
 
     // 列出文件
     async function listFiles({ prefix = '', cfg = config } = {}) {
-        const client = getS3Client(cfg)
-        const res = await client.send(
-            new ListObjectsV2Command({ Bucket: cfg.bucket, Prefix: prefix })
-        )
-        return (res.Contents || [])
-            .map(f => ({
-                key: f.Key,
-                size: f.Size,
-                lastModified: f.LastModified,
-                timestamp: f.LastModified ? new Date(f.LastModified).getTime() : 0
-            }))
-            .sort((a, b) => b.timestamp - a.timestamp)
+        try {
+            const client = getS3Client(cfg)
+            const res = await client.send(
+                new ListObjectsV2Command({ Bucket: cfg.bucket, Prefix: prefix })
+            )
+            return (res.Contents || [])
+                .map(f => ({
+                    key: f.Key,
+                    size: f.Size,
+                    lastModified: f.LastModified,
+                    timestamp: f.LastModified ? new Date(f.LastModified).getTime() : 0
+                }))
+                .sort((a, b) => b.timestamp - a.timestamp)
+        } catch (error) {
+            await handleError(error, {
+                showAlert: false,
+                onError: () => console.error('S3 listFiles error:', error)
+            })
+            return []
+        }
     }
 
     // 压缩图片
@@ -50,7 +60,7 @@ export function useS3({ config, onProgress } = {}) {
                 img.onload = () => {
                     const canvas = document.createElement('canvas')
                     const ctx = canvas.getContext('2d')
-                    
+
                     // 计算新尺寸
                     let { width, height } = img
                     if (width > maxWidth) {
@@ -58,25 +68,25 @@ export function useS3({ config, onProgress } = {}) {
                         width = maxWidth
                         height = height * ratio
                     }
-                    
+
                     canvas.width = width
                     canvas.height = height
-                    
+
                     // 绘制图片
                     ctx.drawImage(img, 0, 0, width, height)
-                    
+
                     // 转换为压缩后的文件
                     canvas.toBlob((blob) => {
                         if (!blob) {
                             reject(new Error('图片压缩失败'))
                             return
                         }
-                        
+
                         const compressedFile = new File([blob], file.name, {
                             type: 'image/jpeg',
                             lastModified: Date.now()
                         })
-                        
+
                         resolve({
                             file: compressedFile,
                             originalSize: file.size,
@@ -166,7 +176,7 @@ export function useS3({ config, onProgress } = {}) {
                             ✕
                         </button>
                     </div>
-                    
+
                     <div>
                         <p class="text-sm text-gray-600 mb-2 truncate" title="${originalFile.name}">文件名：${originalFile.name}</p>
                         <div class="flex gap-3 text-sm bg-blue-50 p-2 rounded">
@@ -181,7 +191,6 @@ export function useS3({ config, onProgress } = {}) {
                                 <p>尺寸：<span id="compressed-dimensions">${compressedDimensions}</span></p>
                             </div>
                         </div>
-                        <!-- p class="text-green-600 text-sm font-semibold">压缩率：${compressedResult.compressionRatio.toFixed(1)}%</p -->
                     </div>
 
                     <div class="flex mt-3 mb-6 justify-center">
@@ -225,9 +234,7 @@ export function useS3({ config, onProgress } = {}) {
                 cleanup()
                 resolve({ action: 'cancel', file: originalFile })
             }
-            
 
-            
             function cleanup() {
                 URL.revokeObjectURL(originalUrl)
                 URL.revokeObjectURL(compressedUrl)
@@ -291,60 +298,73 @@ export function useS3({ config, onProgress } = {}) {
     // 上传文件
     async function uploadFiles({ files, cfg = config, prefix = '', customDomain = '', onProgressCb = onProgress }) {
         if (!files || files.length === 0) return []
-        
+
         // 处理文件压缩
         const processedFiles = []
-        
+
         for (const file of files) {
             const result = await processFileCompression(file)
             if (result.action === 'cancel') {
-                // 跳过该文件继续处理其他文件
                 continue
             }
-            if (result.action !== 'cancel') {
-                processedFiles.push(result.file)
-            }
+            processedFiles.push(result.file)
         }
-        
+
         if (processedFiles.length === 0) {
             return []
         }
-        
-        const client = getS3Client(cfg)
-        const uploadedUrls = []
 
-        if (prefix && !prefix.endsWith('/')) prefix += '/'
+        try {
+            const client = getS3Client(cfg)
+            const uploadedUrls = []
 
-        for (const file of processedFiles) {
-            const ext = file.name.substring(file.name.lastIndexOf('.')) || ''
-            const timestamp = Date.now()
-            const randomId = crypto.randomUUID().replace(/-/g, '')
-            const key = `${prefix}${timestamp}_${randomId}${ext}`
-            const url = `${customDomain}${key}`
+            if (prefix && !prefix.endsWith('/')) prefix += '/'
 
-            const parallelUpload = new Upload({
-                client,
-                params: {
-                    Bucket: cfg.bucket,
-                    Key: key,
-                    Body: file,
-                    ContentType: file.type
-                }
+            for (const file of processedFiles) {
+                const ext = file.name.substring(file.name.lastIndexOf('.')) || ''
+                const timestamp = Date.now()
+                const randomId = crypto.randomUUID().replace(/-/g, '')
+                const key = `${prefix}${timestamp}_${randomId}${ext}`
+                const url = `${customDomain}${key}`
+
+                const parallelUpload = new Upload({
+                    client,
+                    params: {
+                        Bucket: cfg.bucket,
+                        Key: key,
+                        Body: file,
+                        ContentType: file.type
+                    }
+                })
+                parallelUpload.on("httpUploadProgress", (progress) => {
+                    onProgressCb && onProgressCb(file.name, Math.round((progress.loaded / progress.total) * 100))
+                })
+                await parallelUpload.done()
+                uploadedUrls.push(url)
+            }
+            return uploadedUrls
+        } catch (error) {
+            await handleError(error, {
+                showAlert: true,
+                onError: () => console.error('S3 uploadFiles error:', error)
             })
-            parallelUpload.on("httpUploadProgress", (progress) => {
-                onProgressCb && onProgressCb(file.name, Math.round((progress.loaded / progress.total) * 100))
-            })
-            await parallelUpload.done()
-            uploadedUrls.push(url)
+            return []
         }
-        return uploadedUrls
     }
 
     // 删除文件
     async function deleteFile({ fileKey, cfg = config }) {
-        const client = getS3Client(cfg)
-        await client.send(new DeleteObjectCommand({ Bucket: cfg.bucket, Key: fileKey }))
-        return true
+        try {
+            const client = getS3Client(cfg)
+            await client.send(new DeleteObjectCommand({ Bucket: cfg.bucket, Key: fileKey }))
+            return { success: true }
+        } catch (error) {
+            await handleError(error, {
+                showAlert: false,
+                onError: () => console.error('S3 deleteFile error:', error)
+            })
+            return { success: false }
+        }
     }
 
     return {

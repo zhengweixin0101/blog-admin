@@ -1,20 +1,20 @@
 import axios from 'axios'
-import { useRouter } from 'vue-router'
 import { siteConfig } from '@/site.config.js'
 import { withLoading } from './useLoading.js'
 import { useToken } from './useToken.js'
+import { useErrorHandler } from './useErrorHandler.js'
 
 export function useArticleImportExport() {
     const API_BASE = siteConfig.apiUrl
-    const router = useRouter()
     const { getToken, clearAuthData } = useToken()
+    const { handleError, extractErrorMessage } = useErrorHandler()
 
     function ensureKey() {
         const key = getToken()
         if (!key) {
             clearAuthData()
-            router.push('/login')
-            throw new Error('Token missing, redirecting to login page')
+            window.location.href = '/login'
+            throw new Error('API key missing')
         }
         return key
     }
@@ -62,31 +62,8 @@ export function useArticleImportExport() {
 
             return { data: all, page: 1, pageSize, total, totalPages }
         } catch (err) {
-            handleError(err)
-            return null
-        }
-    }
-
-    // 通用错误处理
-    function handleError(err) {
-        if (err.response) {
-            const { status } = err.response
-            if (status === 401) {
-                alert('登录已过期，请重新登录')
-                clearAuthData()
-                router.push('/login')
-            } else if (status === 404) {
-                alert('文章不存在，请检查 slug 是否正确')
-            } else if (status === 409) {
-                alert('slug 已存在，请更换后重试')
-            } else if (status === 400) {
-                alert('slug 是必填项，请检查后重试')
-            } else {
-                alert('操作失败，请稍后重试')
-            }
-        } else {
-            console.error(err)
-            alert('网络错误或服务器异常')
+            handleError(err), { success: false, error: extractErrorMessage(err) }
+            return { success: false, error: extractErrorMessage(err) }
         }
     }
 
@@ -95,8 +72,7 @@ export function useArticleImportExport() {
         try {
             const result = await exportAllArticles(10)
             if (!result || !result.data || result.data.length === 0) {
-                alert('没有文章可以导出')
-                return
+                return alert('没有文章可以导出'), { success: false }
             }
 
             // 导入 JSZip
@@ -143,8 +119,8 @@ published: ${article.published !== undefined ? article.published : false}
             return { success: true }
         } catch (err) {
             console.error('导出失败:', err)
-            alert('导出失败，请稍后重试')
-            return null
+            await alert('导出失败，请稍后重试')
+            return { success: false, error: extractErrorMessage(err) }
         }
     }
 
@@ -153,8 +129,8 @@ published: ${article.published !== undefined ? article.published : false}
         try {
             const result = await exportAllArticles(10)
             if (!result || !result.data || result.data.length === 0) {
-                alert('没有文章可以导出')
-                return
+                await alert('没有文章可以导出')
+                return { success: false }
             }
 
             const jsonData = JSON.stringify(result.data, null, 2)
@@ -171,8 +147,8 @@ published: ${article.published !== undefined ? article.published : false}
             return { success: true }
         } catch (err) {
             console.error('导出JSON失败:', err)
-            alert('导出JSON失败，请稍后重试')
-            return null
+            await alert('导出JSON失败，请稍后重试')
+            return { success: false, error: extractErrorMessage(err) }
         }
     }
 
@@ -285,15 +261,14 @@ published: ${article.published !== undefined ? article.published : false}
             }
             
             if (successCount === 0 && failCount === 0) {
-                alert('压缩包中没有找到 Markdown 文件')
-                return null
+                return alert('压缩包中没有找到 Markdown 文件'), { success: false, error: '未找到 Markdown 文件' }
             }
-            
+
             return { success: true, successCount, failCount, results }
         } catch (err) {
             console.error('解压 ZIP 文件失败:', err)
             alert('无法解压 ZIP 文件，请检查文件是否损坏')
-            return null
+            return { success: false, error: extractErrorMessage(err) }
         }
     }
 
@@ -302,18 +277,16 @@ published: ${article.published !== undefined ? article.published : false}
         try {
             const text = await file.text()
             const parsed = parseFrontmatter(text)
-            
+
             if (!parsed) {
-                alert('无法解析 Markdown 文件的 frontmatter')
-                return null
+                return alert('无法解析 Markdown 文件的 frontmatter'), { success: false, error: '无法解析 frontmatter' }
             }
-            
+
             // 验证必填字段
             if (!parsed.slug) {
-                alert('Markdown 文件缺少 slug 字段')
-                return null
+                return alert('Markdown 文件缺少 slug 字段'), { success: false, error: '缺少 slug 字段' }
             }
-            
+
             // 调用 API 创建文章
             const key = ensureKey()
             const res = await withLoading(
@@ -322,11 +295,11 @@ published: ${article.published !== undefined ? article.published : false}
                 }),
                 '导入 Markdown 文章中...'
             )()
-            
+
             return { success: true, data: res.data }
         } catch (err) {
-            handleError(err)
-            return null
+            handleError(err), { success: false, error: extractErrorMessage(err) }
+            return { success: false, error: extractErrorMessage(err) }
         }
     }
 
@@ -335,18 +308,17 @@ published: ${article.published !== undefined ? article.published : false}
         try {
             const text = await file.text()
             const articles = JSON.parse(text)
-            
+
             // 确保是数组
             const articlesArray = Array.isArray(articles) ? articles : [articles]
-            
+
             if (articlesArray.length === 0) {
-                alert('JSON 文件中没有文章数据')
-                return null
+                return alert('JSON 文件中没有文章数据'), { success: false, error: '没有文章数据' }
             }
-            
+
             const key = ensureKey()
             const results = []
-            
+
             for (const article of articlesArray) {
                 try {
                     // 验证必填字段
@@ -354,38 +326,38 @@ published: ${article.published !== undefined ? article.published : false}
                         console.warn('跳过没有 slug 的文章:', article.title || '无标题')
                         continue
                     }
-                    
+
                     const res = await withLoading(
                         () => axios.post(`${API_BASE}/api/article/add`, article, {
                             headers: { 'Authorization': `Bearer ${key}` }
                         }),
                         `导入文章: ${article.title || article.slug}...`
                     )()
-                    
+
                     results.push({ success: true, data: res.data, slug: article.slug })
                 } catch (err) {
                     console.error(`导入文章 ${article.slug} 失败:`, err)
-                    results.push({ success: false, error: err.message, slug: article.slug })
+                    results.push({ success: false, error: extractErrorMessage(err), slug: article.slug })
                 }
             }
-            
+
             const successCount = results.filter(r => r.success).length
             const failCount = results.length - successCount
-            
+
             if (failCount > 0) {
-                alert(`导入完成！成功 ${successCount} 篇，失败 ${failCount} 篇。请查看控制台了解详情。`)
+                alert(`导入完成！成功 ${successCount} 篇，失败 ${failCount} 篇。请查看控制台了解详情。`), null
             } else {
-                alert(`导入成功！共导入 ${successCount} 篇文章。`)
+                alert(`导入成功！共导入 ${successCount} 篇文章。`), null
             }
-            
+
             return { success: true, results }
         } catch (err) {
             if (err instanceof SyntaxError) {
-                alert('JSON 文件格式错误，请检查文件内容')
+                return alert('JSON 文件格式错误，请检查文件内容'), { success: false, error: 'JSON 格式错误' }
             } else {
-                handleError(err)
+                handleError(err), { success: false, error: extractErrorMessage(err) }
+                return { success: false, error: extractErrorMessage(err) }
             }
-            return null
         }
     }
 
