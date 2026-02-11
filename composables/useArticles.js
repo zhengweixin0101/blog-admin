@@ -63,7 +63,7 @@ export function useArticles() {
             }
             return { success: false, error: '获取文章列表失败' }
         } catch (err) {
-            handleError(err), { success: false, error: extractErrorMessage(err) }
+            handleError(err)
             return { success: false, error: extractErrorMessage(err) }
         }
     }
@@ -86,7 +86,7 @@ export function useArticles() {
             }
             return { success: false, error: '获取文章内容失败' }
         } catch (err) {
-            handleError(err), { success: false, error: extractErrorMessage(err) }
+            handleError(err)
             return { success: false, error: extractErrorMessage(err) }
         }
     }
@@ -116,7 +116,7 @@ export function useArticles() {
             }
             return { success: false, error: response.error || '文章创建失败' }
         } catch (err) {
-            handleError(err), { success: false, error: extractErrorMessage(err) }
+            handleError(err)
             return { success: false, error: extractErrorMessage(err) }
         }
     }
@@ -158,7 +158,7 @@ export function useArticles() {
             }
             return { success: false, error: response.error || '文章更新失败' }
         } catch (err) {
-            handleError(err), { success: false, error: extractErrorMessage(err) }
+            handleError(err)
             return { success: false, error: extractErrorMessage(err) }
         }
     }
@@ -192,7 +192,7 @@ export function useArticles() {
             }
             return { success: false, error: response.error || 'slug 修改失败' }
         } catch (err) {
-            handleError(err), { success: false, error: extractErrorMessage(err) }
+            handleError(err)
             return { success: false, error: extractErrorMessage(err) }
         }
     }
@@ -221,7 +221,7 @@ export function useArticles() {
 
             return { success: true, message: res.data?.message || '文章删除成功' }
         } catch (err) {
-            handleError(err), { success: false, error: extractErrorMessage(err) }
+            handleError(err)
             return { success: false, error: extractErrorMessage(err) }
         }
     }
