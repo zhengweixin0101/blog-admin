@@ -36,6 +36,7 @@
             </select>
             <input v-model="newToken.description" id="tokenDescription" type="text" placeholder="Token 描述（可选）" class="w-full p-2 box-border border rounded" />
             <button
+              type="button"
               @click="handleCreateToken"
               class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
             >
@@ -222,7 +223,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useSettings } from '~/composables/useSettings.js'
 import { alert, confirm, prompt } from '@/composables/useModal'
 import { useToken } from '~/composables/useToken.js'
@@ -270,21 +271,40 @@ const s3Config = ref({
 const loadingS3Config = ref(false)
 const isEditingS3 = ref(false)
 const s3ConfigBackup = ref({})
+const s3ConfigLoaded = ref(false)
+const tokensLoaded = ref(false)
 
 // 加载 Token 列表
 const loadTokens = async () => {
+  showLoading('正在加载 Token 列表...')
   const result = await getTokensList()
+  hideLoading()
   if (result.success) {
     tokens.value = result.data || []
+    tokensLoaded.value = true
   } else {
     await alert(result.error || '获取 Token 列表失败')
   }
 }
 
 onMounted(() => {
-  loadTokens()
-  loadS3Config()
+  // 根据当前激活的标签页加载对应数据
+  loadTabData(activeTab.value)
 })
+
+// 监听标签页变化，加载对应数据
+watch(activeTab, (newTab) => {
+  loadTabData(newTab)
+})
+
+// 根据标签页加载对应数据
+const loadTabData = (tab) => {
+  if (tab === 'account') {
+    loadTokens()
+  } else if (tab === 'storage') {
+    loadS3Config()
+  }
+}
 
 // 修改用户名
 const handleUpdateUsername = async () => {
@@ -435,6 +455,7 @@ const handleLogout = async () => {
 
 // 加载 S3 配置
 const loadS3Config = async () => {
+  if (s3ConfigLoaded.value) return
   showLoading('正在加载 S3 配置...')
   try {
     const result = await getConfig('s3_config')
@@ -449,6 +470,7 @@ const loadS3Config = async () => {
         customDomain: config.customDomain || ''
       }
     }
+    s3ConfigLoaded.value = true
   } catch (error) {
   } finally {
     hideLoading()
