@@ -1,7 +1,10 @@
 <template>
   <div class="p-8">
     <h1 class="text-2xl font-bold mb-6">图片管理</h1>
-    <div v-if="!isConfigured" class="flex items-center justify-center min-h-[60vh]">
+    <div v-if="isLoadingConfig" class="flex items-center justify-center min-h-[60vh]">
+      <!-- 首屏内容 -->
+    </div>
+    <div v-else-if="!isConfigured" class="flex items-center justify-center min-h-[60vh]">
       <div class="max-w-md bg-gray-100 p-6 rounded shadow text-center">
         <h2 class="text-xl font-semibold mb-4">未配置 S3 存储</h2>
         <p class="text-sm text-gray-600 mb-4">请先在"设置"页面的"存储配置"标签页中配置 S3 存储信息</p>
@@ -162,6 +165,7 @@ const { getConfig } = useSettings()
 
 const customDomain = ref('')
 const isConfigured = ref(false)
+const isLoadingConfig = ref(true)
 const dragOver = ref(false)
 const loading = ref(false)
 const files = ref([])
@@ -208,6 +212,7 @@ let s3 = null
 
 async function loadConfig() {
   if (import.meta.client) {
+    showLoading('正在加载配置...')
     try {
       const result = await getConfig('s3_config')
       if (result.success && result.data && result.data.value) {
@@ -217,12 +222,17 @@ async function loadConfig() {
         s3Config.value = config
         if (config.bucket && config.endpoint && config.accessKeyId && config.secretAccessKey) {
           isConfigured.value = true
+          isLoadingConfig.value = false
+          hideLoading()
           listFiles()
+          return
         }
       }
     } catch (error) {
       // 配置不存在或其他错误，显示未配置界面
     }
+    isLoadingConfig.value = false
+    hideLoading()
   }
 }
 

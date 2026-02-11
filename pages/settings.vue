@@ -126,28 +126,88 @@
 
         <div>
           <form id="s3Config" class="space-y-3">
-            <input v-model="s3Config.bucket" id="bucket" placeholder="Bucket" class="w-full p-2 box-border border rounded" />
-            <input v-model="s3Config.endpoint" id="endpoint" placeholder="Endpoint" class="w-full p-2 box-border border rounded" />
-            <input v-model="s3Config.region" id="region" placeholder="Region" class="w-full p-2 box-border border rounded" />
-            <input v-model="s3Config.accessKeyId" id="accessKeyId" placeholder="Access Key ID" class="w-full p-2 box-border border rounded" />
-            <input v-model="s3Config.secretAccessKey" id="secretAccessKey" placeholder="Access Key Secret" class="w-full p-2 box-border border rounded"/>
-            <input v-model="s3Config.customDomain" id="customDomain" placeholder="Custom Domain" class="w-full p-2 box-border border rounded" />
+            <input
+              v-model="s3Config.bucket"
+              id="bucket"
+              placeholder="Bucket"
+              :disabled="!isEditingS3"
+              :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
+              class="w-full p-2 box-border border rounded"
+            />
+            <input
+              v-model="s3Config.endpoint"
+              id="endpoint"
+              placeholder="Endpoint"
+              :disabled="!isEditingS3"
+              :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
+              class="w-full p-2 box-border border rounded"
+            />
+            <input
+              v-model="s3Config.region"
+              id="region"
+              placeholder="Region"
+              :disabled="!isEditingS3"
+              :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
+              class="w-full p-2 box-border border rounded"
+            />
+            <input
+              v-model="s3Config.accessKeyId"
+              id="accessKeyId"
+              placeholder="Access Key ID"
+              :disabled="!isEditingS3"
+              :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
+              class="w-full p-2 box-border border rounded"
+            />
+            <input
+              v-model="s3Config.secretAccessKey"
+              id="secretAccessKey"
+              placeholder="Access Key Secret"
+              :disabled="!isEditingS3"
+              :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
+              class="w-full p-2 box-border border rounded"
+            />
+            <input
+              v-model="s3Config.customDomain"
+              id="customDomain"
+              placeholder="Custom Domain"
+              :disabled="!isEditingS3"
+              :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
+              class="w-full p-2 box-border border rounded"
+            />
           </form>
         </div>
 
-        <div class="flex gap-2 mt-4">
+        <div class="flex justify-between mt-4">
+          <div class="flex gap-2">
+            <button
+              v-if="isEditingS3"
+              @click="handleCancelS3Edit"
+              class="px-4 py-2 bg-gray-500 text-white rounded border-none hover:bg-gray-600 transition-colors cursor-pointer"
+            >
+              取消
+            </button>
+            <button
+              v-if="!isEditingS3"
+              @click="handleEditS3"
+              class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
+            >
+              编辑
+            </button>
+            <button
+              v-if="isEditingS3"
+              @click="handleSaveS3Config"
+              :disabled="loadingS3Config"
+              class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ loadingS3Config ? '保存中...' : '保存' }}
+            </button>
+          </div>
           <button
-            @click="handleSaveS3Config"
-            :disabled="loadingS3Config"
-            class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ loadingS3Config ? '保存中...' : '保存配置' }}
-          </button>
-          <button
+            v-if="isEditingS3"
             @click="handleClearS3Config"
             class="px-4 py-2 bg-red-500 text-white rounded border-none hover:bg-red-600 transition-colors cursor-pointer"
           >
-            清除配置
+            清除
           </button>
         </div>
       </div>
@@ -166,6 +226,7 @@ import { ref, onMounted } from 'vue'
 import { useSettings } from '~/composables/useSettings.js'
 import { alert, confirm, prompt } from '@/composables/useModal'
 import { useToken } from '~/composables/useToken.js'
+import { showLoading, hideLoading } from '@/composables/useLoading.js'
 
 const { updateAccount, getTokensList, createToken, deleteToken, getConfig, setConfig } = useSettings()
 const { removeToken, removeTokenExpires } = useToken()
@@ -207,6 +268,8 @@ const s3Config = ref({
   customDomain: ''
 })
 const loadingS3Config = ref(false)
+const isEditingS3 = ref(false)
+const s3ConfigBackup = ref({})
 
 // 加载 Token 列表
 const loadTokens = async () => {
@@ -372,6 +435,7 @@ const handleLogout = async () => {
 
 // 加载 S3 配置
 const loadS3Config = async () => {
+  showLoading('正在加载 S3 配置...')
   try {
     const result = await getConfig('s3_config')
     if (result.success && result.data) {
@@ -386,7 +450,21 @@ const loadS3Config = async () => {
       }
     }
   } catch (error) {
+  } finally {
+    hideLoading()
   }
+}
+
+// 进入编辑模式
+const handleEditS3 = () => {
+  s3ConfigBackup.value = { ...s3Config.value }
+  isEditingS3.value = true
+}
+
+// 取消编辑
+const handleCancelS3Edit = () => {
+  s3Config.value = { ...s3ConfigBackup.value }
+  isEditingS3.value = false
 }
 
 // 保存 S3 配置
@@ -396,6 +474,7 @@ const handleSaveS3Config = async () => {
     return
   }
 
+  loadingS3Config.value = true
   const result = await setConfig({
     key: 's3_config',
     value: JSON.stringify({
@@ -408,9 +487,11 @@ const handleSaveS3Config = async () => {
     }),
     description: 'S3 存储配置'
   })
+  loadingS3Config.value = false
 
   if (result.success) {
     await alert('S3 配置保存成功！')
+    isEditingS3.value = false
   } else {
     await alert(result.error || '保存配置失败')
   }
@@ -436,6 +517,7 @@ const handleClearS3Config = async () => {
       secretAccessKey: '',
       customDomain: ''
     }
+    isEditingS3.value = false
     await alert('S3 配置已清除！')
   } else {
     await alert(result.error || '清除配置失败')
