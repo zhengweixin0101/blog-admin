@@ -61,7 +61,7 @@ export function useSettings() {
     }
 
     // 创建新 Token
-    const createToken = async ({ name, description, expiresIn }) => {
+    const createToken = async ({ name, description, expiresIn, permissions }) => {
         const key = ensureKey()
 
         try {
@@ -69,7 +69,8 @@ export function useSettings() {
                 return await axios.post(`${API_BASE}/api/tokens/create`, {
                     name,
                     description,
-                    expiresIn
+                    expiresIn,
+                    permissions
                 }, {
                     headers: {
                         'Authorization': `Bearer ${key}`,

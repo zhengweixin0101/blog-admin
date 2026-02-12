@@ -35,6 +35,25 @@
               <option :value="315360000000">10 年</option>
             </select>
             <input v-model="newToken.description" id="tokenDescription" type="text" placeholder="Token 描述（可选）" class="w-full p-2 box-border border rounded" />
+            <div class="flex items-center flex-wrap">
+              <span class="text-sm text-gray-600">权限配置：</span>
+              <label class="flex items-center text-sm cursor-pointer mr-3">
+                <input type="checkbox" v-model="newToken.permissions" value="article:write" class="cursor-pointer w-3 h-3" />
+                <span>文章编辑</span> 
+              </label>
+              <label class="flex items-center text-sm cursor-pointer mr-3">
+                <input type="checkbox" v-model="newToken.permissions" value="article:delete" class="cursor-pointer w-3 h-3" />
+                <span>文章删除</span>
+              </label>
+              <label class="flex items-center text-sm cursor-pointer mr-3">
+                <input type="checkbox" v-model="newToken.permissions" value="talk:write" class="cursor-pointer w-3 h-3" />
+                <span>说说编辑</span>
+              </label>
+              <label class="flex items-center text-sm cursor-pointer">
+                <input type="checkbox" v-model="newToken.permissions" value="talk:delete" class="cursor-pointer w-3 h-3" />
+                <span>说说删除</span>
+              </label>
+            </div>
             <button
               type="button"
               @click="handleCreateToken"
@@ -52,6 +71,7 @@
               <tr class="border-b border-gray-200">
                 <th class="text-left py-2 px-2 font-medium">名称</th>
                 <th class="text-left py-2 px-2 font-medium">描述</th>
+                <th class="text-left py-2 px-2 font-medium">权限</th>
                 <th class="text-left py-2 px-2 font-medium">创建时间</th>
                 <th class="text-left py-2 px-2 font-medium">过期时间</th>
                 <th class="text-left py-2 px-2 font-medium">状态</th>
@@ -60,11 +80,14 @@
             </thead>
             <tbody>
               <tr v-if="tokens.length === 0">
-                <td colspan="6" class="text-center py-8 text-gray-500">暂无 Token</td>
+                <td colspan="7" class="text-center py-8 text-gray-500">暂无 Token</td>
               </tr>
               <tr v-for="token in tokens" :key="token.id" class="border-b border-gray-100 hover:bg-gray-50">
                 <td class="py-2 px-2">{{ token.name || '-' }}</td>
                 <td class="py-2 px-2">{{ token.description || '-' }}</td>
+                <td class="py-2 px-2">
+                  <span class="text-xs">{{ formatPermissions(token.permissions) }}</span>
+                </td>
                 <td class="py-2 px-2">{{ formatDate(token.createdAt) }}</td>
                 <td class="py-2 px-2">{{ token.expiresAt ? formatDate(token.expiresAt) : '永不过期' }}</td>
                 <td class="py-2 px-2">
@@ -256,7 +279,8 @@ const tokens = ref([])
 const newToken = ref({
   name: '',
   description: '',
-  expiresIn: 86400000
+  expiresIn: 86400000,
+  permissions: ['article:write', 'article:delete', 'talk:write', 'talk:delete']
 })
 
 // S3 配置相关数据
@@ -374,15 +398,21 @@ const handleCreateToken = async () => {
     return
   }
 
+  if (!newToken.value.permissions || newToken.value.permissions.length === 0) {
+    await alert('请至少选择一个权限')
+    return
+  }
+
   const result = await createToken({
     name: newToken.value.name.trim(),
     description: newToken.value.description.trim(),
-    expiresIn: newToken.value.expiresIn
+    expiresIn: newToken.value.expiresIn,
+    permissions: newToken.value.permissions
   })
 
   if (result.success) {
     await alert(`Token 创建成功！\n\n${result.data.token}`)
-    newToken.value = { name: '', description: '', expiresIn: 86400000 }
+    newToken.value = { name: '', description: '', expiresIn: 86400000, permissions: ['article:write', 'article:delete', 'talk:write', 'talk:delete'] }
     loadTokens()
   } else {
     await alert(result.error || '创建 Token 失败')
@@ -441,6 +471,21 @@ const formatDate = (dateString) => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+// 格式化权限显示
+const formatPermissions = (permissions) => {
+  if (!permissions || !Array.isArray(permissions)) return '-'
+
+  const permissionLabels = {
+    'article:write': '文章编辑',
+    'article:delete': '文章删除',
+    'talk:write': '说说编辑',
+    'talk:delete': '说说删除',
+    'super': 'Super'
+  }
+
+  return permissions.map(p => permissionLabels[p] || p).join(', ')
 }
 
 // 退出登录

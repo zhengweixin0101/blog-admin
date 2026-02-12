@@ -77,6 +77,7 @@ export function useErrorHandler() {
         const result = {
             isNetworkError: false,
             isAuthError: false,
+            isPermissionError: false,
             isValidationError: false,
             isConflictError: false,
             isNotFoundError: false,
@@ -95,6 +96,9 @@ export function useErrorHandler() {
         switch (status) {
             case 401:
                 result.isAuthError = true
+                break
+            case 403:
+                result.isPermissionError = true
                 break
             case 400:
                 result.isValidationError = true
@@ -129,12 +133,21 @@ export function useErrorHandler() {
     }
 
     /**
+     * 处理权限错误
+     */
+    function handlePermissionError() {
+        // 权限不足，不自动跳转，仅提示用户
+        // 如果真权限不足了，那不是bug就是bug了
+    }
+
+    /**
      * 核心错误处理函数
      * @param {Error} err - 错误对象
      * @param {Object} options - 处理选项
      * @param {boolean} options.showAlert - 是否显示弹窗提示，默认true
      * @param {boolean} options.silent - 是否静默处理，默认false
      * @param {Function} options.onAuthError - 认证错误回调
+     * @param {Function} options.onPermissionError - 权限错误回调
      * @param {Function} options.onError - 通用错误回调
      * @returns {Object} 处理结果
      */
@@ -143,6 +156,7 @@ export function useErrorHandler() {
             showAlert = true,
             silent = false,
             onAuthError,
+            onPermissionError,
             onError
         } = options
 
@@ -184,6 +198,15 @@ export function useErrorHandler() {
                 onAuthError()
             } else {
                 handleAuthError()
+            }
+        }
+
+        // 处理权限错误
+        if (classification.isPermissionError) {
+            if (onPermissionError) {
+                onPermissionError()
+            } else {
+                handlePermissionError()
             }
         }
 
