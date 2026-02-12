@@ -85,15 +85,12 @@
               <tr v-for="token in tokens" :key="token.id" class="border-b border-gray-100 hover:bg-gray-50">
                 <td class="py-2 px-2">{{ token.name || '-' }}</td>
                 <td class="py-2 px-2">{{ token.description || '-' }}</td>
-                <td class="py-2 px-2">
-                  <span class="text-xs">{{ formatPermissions(token.permissions) }}</span>
-                </td>
+                <td class="py-2 px-2">{{ formatPermissions(token.permissions) }}</td>
                 <td class="py-2 px-2">{{ formatDate(token.createdAt) }}</td>
                 <td class="py-2 px-2">{{ token.expiresAt ? formatDate(token.expiresAt) : '永不过期' }}</td>
                 <td class="py-2 px-2">
                   <span
                     :class="getRemainingTime(token.expiresAt).isExpired ? 'text-red-500' : 'text-green-500'"
-                    class="text-xs"
                   >
                     {{ getRemainingTime(token.expiresAt).text }}
                   </span>
@@ -411,7 +408,7 @@ const handleCreateToken = async () => {
   })
 
   if (result.success) {
-    await alert(`Token 创建成功！\n\n${result.data.token}`)
+    await alert(`Token 创建成功！\n\n${result.data.token}\n\n(请妥善保存，关闭后将无法再次查看)`)
     newToken.value = { name: '', description: '', expiresIn: 86400000, permissions: ['article:write', 'article:delete', 'talk:write', 'talk:delete'] }
     loadTokens()
   } else {
