@@ -111,8 +111,8 @@ const handleDelete = async (slug) => {
   if (!confirmed) return
   const result = await deleteArticle(slug)
   if (!result) return
+  await getList()
   await alert('删除成功')
-  getList()
 }
 
 // 删除全部文章
@@ -191,8 +191,8 @@ const handleEditSlug = async (article) => {
 
   const result = await editSlug(article.slug, newSlug)
   if (!result) return
+  await getList()
   await alert('修改成功')
-  getList()
 }
 
 // 导入导出相关

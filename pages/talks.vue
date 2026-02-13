@@ -771,13 +771,11 @@ const addNewTalk = async () => {
   }
 
   const { pureContent, location, tags, links, imgs } = parseContent(newContent.value)
-  const addTalk = async (talk) => {
-    return addTalkInternal(talk, true)
-  }
-  const res = await addTalk({ content: pureContent, location, tags, links, imgs })
+  const res = await addTalkInternal({ content: pureContent, location, tags, links, imgs })
   if (res && (res.success || res.talk)) {
     newContent.value = ''
     await loadTalks()
+    await alert('说说添加成功！')
   }
 }
 
@@ -788,6 +786,7 @@ const removeTalk = async (id) => {
   const res = await deleteTalk(id)
   if (res && res.success) {
     await loadTalks()
+    await alert('说说删除成功！')
   }
 }
 
@@ -828,6 +827,7 @@ const saveEdit = async (id) => {
     editingId.value = null
     editingContent.value = ''
     await loadTalks()
+    await alert('说说修改成功！')
   }
 }
 

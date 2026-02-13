@@ -91,7 +91,6 @@ export function useTalks() {
                 )()
             })
 
-            if (showAlert) alert('说说添加成功！'), null
             const response = res.data
             return { success: true, talk: response.talk, message: response.message || '说说添加成功' }
         } catch (err) {
@@ -126,7 +125,6 @@ export function useTalks() {
                 )()
             })
 
-            alert('说说修改成功！'), null
             const response = res.data
             return { success: true, talk: response.talk, message: response.message || '说说修改成功' }
         } catch (err) {
@@ -157,7 +155,6 @@ export function useTalks() {
                 )()
             })
 
-            alert('说说删除成功！'), null
             return { success: true, message: res.data?.message || '说说删除成功' }
         } catch (err) {
             handleError(err), { success: false, error: extractErrorMessage(err) }

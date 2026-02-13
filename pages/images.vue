@@ -323,14 +323,15 @@ async function handleDeleteFile(file) {
     const exists = await existsKey(file.key)
     if (exists !== true) {
       hideLoading()
-      await alert('文件不存在或无法确认。')
       await listFiles()
+      await alert('文件不存在或无法确认。')
       return
     }
 
     await s3.deleteFile({ fileKey: file.key, cfg: s3Config.value })
     const status = await checkDeletion(file.key)
     hideLoading()
+    await listFiles()
     if (status === 'deleted') {
       await alert('图片删除成功！')
     } else if (status === 'exists') {
@@ -338,7 +339,6 @@ async function handleDeleteFile(file) {
     } else {
       await alert('已发送删除请求，但无法确认删除状态，请自行检查。')
     }
-    await listFiles()
   } catch (e) {
     hideLoading()
     await alert('删除失败，请重试！')
@@ -470,6 +470,8 @@ async function handleDeleteByUrl(passedUrl) {
     await s3.deleteFile({ fileKey: key, cfg: s3Config.value })
     const status = await checkDeletion(key)
     hideLoading()
+    deleteUrl.value = ''
+    await listFiles()
     if (status === 'deleted') {
       await alert('图片删除成功！')
     } else if (status === 'exists') {
@@ -477,8 +479,6 @@ async function handleDeleteByUrl(passedUrl) {
     } else {
       await alert('已执行删除操作，但无法确认文件已被删除，请稍后检查。')
     }
-    deleteUrl.value = ''
-    await listFiles()
   } catch (e) {
     hideLoading()
     await alert('删除失败，请检查链接或权限是否正确')

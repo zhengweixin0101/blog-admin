@@ -408,9 +408,9 @@ const handleCreateToken = async () => {
   })
 
   if (result.success) {
-    await alert(`Token 创建成功！\n\n${result.data.token}\n\n(请妥善保存，关闭后将无法再次查看)`)
     newToken.value = { name: '', description: '', expiresIn: 86400000, permissions: ['article:write', 'article:delete', 'talk:write', 'talk:delete'] }
-    loadTokens()
+    await loadTokens()
+    await alert(`Token 创建成功！\n\n${result.data.token}\n\n(请妥善保存，关闭后将无法再次查看)`)
   } else {
     await alert(result.error || '创建 Token 失败')
   }
@@ -423,8 +423,8 @@ const handleDeleteToken = async (token) => {
 
   const result = await deleteToken(token.id)
   if (result.success) {
-    await alert(result.message || 'Token 删除成功')
     await loadTokens()
+    await alert(result.message || 'Token 删除成功')
   } else {
     await alert(result.error || '删除 Token 失败')
   }
