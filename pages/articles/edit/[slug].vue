@@ -3,39 +3,47 @@
     <main class="p-8 flex-1">
       <h1 class="text-2xl font-bold mb-4">编辑文章</h1>
 
-      <!-- 标题 -->
-      <div class="flex gap-2 mb-4">
-        <input v-model="article.title" id="title" placeholder="标题" class="border p-2 flex-1"/>
-        <button @click="generateTitle" class="-mr-4">AI生成</button>
+      <div class="space-y-3">
+        <!-- 标题 -->
+        <div class="flex gap-2">
+          <input v-model="article.title" id="title" placeholder="标题" class="border rounded p-2 flex-1"/>
+          <button @click="generateTitle">AI生成</button>
+        </div>
+
+        <!-- 描述 -->
+        <div class="flex gap-2">
+          <input v-model="article.description" id="description" placeholder="描述" class="border rounded p-2 flex-1"/>
+          <button @click="generateSummary">AI生成</button>
+        </div>
+
+        <!-- 日期 -->
+        <input v-model="article.date" id="date" type="date" class="border box-border rounded p-2 w-full"/>
+
+        <!-- 标签 -->
+        <input v-model="tagsString" id="tags" placeholder="标签（逗号分隔）" class="border box-border rounded p-2 w-full"/>
+
+        <!-- Slug (只读) -->
+        <input v-model="article.slug" id="slug" placeholder="Slug" class="border rounded box-border p-2 w-full" readonly/>
+
+        <!-- 发布状态 -->
+        <div class="flex gap-4">
+          <label class="flex items-center">
+            <input type="radio" name="published" :value="true" v-model="article.published"/>
+            发布
+          </label>
+          <label class="flex items-center">
+            <input type="radio" name="published" :value="false" v-model="article.published"/>
+            草稿
+          </label>
+        </div>
       </div>
-
-      <!-- 描述 -->
-      <div class="flex gap-2 mb-4">
-        <input v-model="article.description" id="description" placeholder="描述" class="border p-2 flex-1"/>
-        <button @click="generateSummary" class="-mr-4">AI生成</button>
-      </div>
-
-      <!-- 日期 -->
-      <input v-model="article.date" id="date" type="date" class="border p-2 w-full mb-4"/>
-
-      <!-- 标签 -->
-      <input v-model="tagsString" id="tags" placeholder="标签（逗号分隔）" class="border p-2 w-full mb-4"/>
-
-      <!-- Slug (只读) -->
-      <input v-model="article.slug" id="slug" placeholder="Slug" class="border p-2 w-full mb-4" readonly/>
-
-      <!-- 已发布 -->
-      <label class="flex items-center gap-2 mb-4">
-        <input id="published" type="checkbox" v-model="article.published"/>
-        已发布
-      </label>
 
       <!-- Markdown 内容 -->
-      <MarkdownEditor 
+      <MarkdownEditor
         v-model="article.content"
         @onSave="handleSave"
+        class="mt-4 rounded"
       />
-
       <div class="mt-4 flex gap-2">
         <button @click="save">保存</button>
         <button @click="goBack">返回列表</button>

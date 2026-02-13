@@ -2,7 +2,7 @@
   <div class="flex">
     <main class="p-8 flex-1">
       <div class="flex items-center">
-        <h1 class="text-2xl font-bold mb-4">文章列表</h1>
+        <h1 class="text-2xl font-bold mb-4">文章管理</h1>
         <div v-if="articles && articles.length" class="ml-auto transition-color">
           <button @click="deleteAll" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">全部删除</button>
           <button @click="openPanel('import')" class="cursor-pointer bg-transparent border-none text-gray-400 hover:text-blue-500 cursor-pointer">导入文章</button>
@@ -10,8 +10,36 @@
         </div>
       </div>
 
-      <div v-if="articles && articles.length" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div v-for="article in articles" :key="article.slug" class="px-4 order rounded shadow">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- 创建文章卡片 -->
+        <div 
+          class="px-4 py-2 order rounded shadow border-2 border-dashed relative min-h-54 transition-colors"
+          :class="hasNewArticleInput ? 'border-blue-300 bg-blue-50/50' : 'border-gray-300 bg-gray-50/80'"
+        >
+          <h2 class="text-lg font-bold mb-3" :class="hasNewArticleInput ? 'text-blue-600' : 'text-gray-600'">+ 新文章</h2>
+
+          <div class="space-y-2">
+            <div class="flex gap-2">
+              <input v-model="newArticle.title" placeholder="标题" class="w-3/5 text-sm border rounded px-2 py-1"/>
+              <input v-model="newArticle.slug" placeholder="Slug" class="w-2/5 text-sm border rounded px-2 py-1"/>
+            </div>
+
+            <div class="flex gap-2">
+              <input v-model="newArticleTagsString" placeholder="标签" class="w-3/5 text-sm border rounded px-2 py-1"/>
+              <input v-model="newArticle.date" type="date" class="w-2/5 text-sm border rounded px-2 py-1"/>
+            </div>
+
+            <input v-model="newArticle.description" placeholder="描述" class="w-full box-border text-sm border rounded px-2 py-1"/>
+          </div>
+
+          <div class="absolute bottom-4 right-4 flex gap-2">
+            <button @click="resetNewArticle" :disabled="!hasNewArticleInput" :class="hasNewArticleInput ? 'bg-gray-500 hover:bg-gray-600 cursor-pointer' : 'bg-gray-400 cursor-not-allowed'" class="px-3 py-1 text-white rounded border-none transition-colors text-sm">清空</button>
+            <button @click="handleCreate" class="px-3 py-1 bg-blue-500 text-white rounded border-none hover:bg-blue-600 transition-colors cursor-pointer text-sm">创建</button>
+          </div>
+        </div>
+
+        <!-- 文章列表卡片 -->
+        <div v-for="article in articles" :key="article.slug" class="px-4 py-2 order rounded shadow relative min-h-48">
           <h2 class="text-lg font-bold mb-2">{{ article.title }}</h2>
           <p class="text-sm text-gray-500 mb-2 flex items-center">
             {{ article.date }} |
@@ -27,7 +55,7 @@
             </button>
           </p>
 
-          <p class="text-sm text-gray-700 mb-2">{{ article.description }}</p>
+          <p class="text-sm text-gray-700 mb-2 line-clamp-1">{{ article.description }}</p>
 
           <div class="text-sm text-gray-600 mb-2">
             <strong>标签:</strong>
@@ -43,26 +71,10 @@
             </span>
           </div>
 
-          <div class="flex gap-2 mb-4 justify-end">
+          <div class="absolute bottom-4 right-4 flex gap-2">
             <button @click="handleDelete(article.slug)" class="cursor-pointer px-3 py-1 bg-red-500 text-white rounded border-none hover:bg-red-600 transition-colors">删除</button>
             <NuxtLink :to="`/articles/edit/${article.slug}`" class="text-14px no-underline px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">编辑</NuxtLink>
           </div>
-        </div>
-      </div>
-
-      <div v-else class="flex flex-col items-center justify-center w-full my-60">
-        <div class="text-center text-gray-500">
-          <svg class="mx-auto mb-4" width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 6H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M3 12H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M3 18H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <p class="text-lg font-medium">暂无文章</p>
-          <p class="text-sm mt-2">您可以导入或创建第一篇文章。</p>
-        </div>
-        <div class="mt-4 flex items-center gap-3">
-          <button @click="goCreate" class="px-4 py-2 bg-gray-100 text-gray-700 rounded border-1 hover:bg-gray-200 transition-colors cursor-pointer">创建文章</button>
-          <button @click="openPanel('import')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded border-1 hover:bg-gray-200 transition-colors cursor-pointer">导入文章</button>
         </div>
       </div>
     </main>
@@ -86,19 +98,68 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useArticles } from '~/composables/useArticles.js'
 import { useArticleImportExport } from '~/composables/useArticleImportExport.js'
 import { alert, confirm } from '@/composables/useModal'
 import { siteConfig } from '@/site.config.js'
 import { useRouter } from 'vue-router'
 
-const { articles, getList, deleteArticle, editSlug } = useArticles()
+const router = useRouter()
+
+const { articles, getList, deleteArticle, editSlug, addArticle } = useArticles()
 const { exportToMarkdown, exportToJSON, importFromMarkdown, importFromMarkdownZip, importFromJSON } = useArticleImportExport()
 
-const router = useRouter()
-const goCreate = () => {
-  router.push('/articles/create')
+// 新文章表单
+const newArticle = ref({
+  title: '',
+  slug: '',
+  date: new Date().toISOString().split('T')[0],
+  description: '',
+  tags: [],
+  published: false
+})
+
+// 标签字符串转换
+const newArticleTagsString = computed({
+  get: () => newArticle.value.tags.join(','),
+  set: val => {
+    newArticle.value.tags = val.split(/[,，]/).map(t => t.trim()).filter(Boolean)
+  }
+})
+
+// 检查新文章表单是否有输入
+const hasNewArticleInput = computed(() => {
+  return !!(newArticle.value.title || newArticle.value.slug || newArticle.value.description || newArticle.value.tags.length > 0)
+})
+
+// 创建新文章
+const handleCreate = async () => {
+  if (!newArticle.value.title || !newArticle.value.slug) {
+    await alert('标题和 Slug 不能为空')
+    return
+  }
+
+  const slug = newArticle.value.slug
+  const result = await addArticle(newArticle.value)
+  if (!result) return
+
+  resetNewArticle()
+  await getList()
+  await alert('创建成功')
+  router.push(`/articles/edit/${slug}`)
+}
+
+// 重置新文章表单
+const resetNewArticle = () => {
+  newArticle.value = {
+    title: '',
+    slug: '',
+    date: new Date().toISOString().split('T')[0],
+    description: '',
+    tags: [],
+    published: false
+  }
 }
 
 onMounted(() => {
