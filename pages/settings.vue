@@ -234,6 +234,146 @@
       </div>
     </div>
 
+    <!-- AI 配置板块 -->
+    <div v-show="activeTab === 'ai'" class="space-y-3">
+      <div class="p-3 rounded shadow">
+        <h2 class="text-lg font-bold mb-4">AI 配置</h2>
+        <p class="text-sm text-gray-500 mb-4">支持 OpenAI 兼容 API，如 OpenAI、SiliconFlow、Poixe AI、OpenRouter、DeepSeek 等</p>
+
+        <div>
+          <form id="aiConfig" class="space-y-3">
+            <div class="flex items-center">
+              <label class="text-sm font-medium text-gray-700 mr-2">启用 AI 服务</label>
+              <input
+                v-model="aiConfig.enabled"
+                type="checkbox"
+                id="aiEnabled"
+                :disabled="!isEditingAI"
+                :class="!isEditingAI ? 'cursor-not-allowed' : 'cursor-pointer'"
+                class="w-4 h-4"
+              />
+            </div>
+            <div>
+              <label class="text-sm text-gray-600 mb-1 block">API Endpoint <span class="text-red-500">*</span></label>
+              <input
+                v-model="aiConfig.endpoint"
+                id="aiEndpoint"
+                placeholder="例如: https://api.openai.com/v1"
+                :disabled="!isEditingAI"
+                :class="!isEditingAI ? 'bg-gray-100 cursor-not-allowed' : ''"
+                class="w-full p-2 box-border border rounded"
+              />
+              <p class="text-xs text-gray-400 mt-1">API 基础地址，例如:https://api.openai.com/v1</p>
+            </div>
+            <div>
+              <label class="text-sm text-gray-600 mb-1 block">API Key <span class="text-red-500">*</span></label>
+              <input
+                v-model="aiConfig.apiKey"
+                id="aiApiKey"
+                placeholder="API Key"
+                :disabled="!isEditingAI"
+                :class="!isEditingAI ? 'bg-gray-100 cursor-not-allowed' : ''"
+                class="w-full p-2 box-border border rounded"
+              />
+            </div>
+            <div>
+              <label class="text-sm text-gray-600 mb-1 block">Model <span class="text-red-500">*</span></label>
+              <div class="model-search-container flex items-center gap-2 relative">
+                <input
+                  v-model="modelSearchText"
+                  :placeholder="availableModels.length > 0 ? '搜索模型...' : '请选择模型'"
+                  :disabled="!isEditingAI || loadingModels"
+                  :class="(!isEditingAI || loadingModels) ? 'bg-gray-100 cursor-not-allowed' : ''"
+                  class="flex-1 p-2 box-border border rounded"
+                  @focus="showModelDropdown = true"
+                />
+                <div
+                  v-if="isEditingAI"
+                  @click="handleLoadModels"
+                  :class="{ 'opacity-50 cursor-not-allowed': loadingModels || !aiConfig.endpoint || !aiConfig.apiKey, 'cursor-pointer': !(loadingModels || !aiConfig.endpoint || !aiConfig.apiKey) }"
+                  class="text-gray-600 hover:text-gray-800 transition-colors"
+                  :title="loadingModels ? '加载中...' : '刷新模型列表'"
+                >
+                  <svg v-if="loadingModels" class="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <svg v-else class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </div>
+
+                <!-- 模型下拉列表 -->
+                <div
+                  v-show="showModelDropdown && isEditingAI"
+                  class="absolute top-full left-0 right-0 mt-1 z-10 w-full max-h-60 overflow-y-auto bg-white border rounded shadow-lg"
+                >
+                  <div
+                    v-if="filteredModels.length === 0"
+                    class="p-3 text-center text-gray-500 text-sm"
+                  >
+                    {{ availableModels.length === 0 ? '暂无可用模型，请先刷新' : '未找到匹配的模型' }}
+                  </div>
+                  <div
+                    v-for="model in filteredModels"
+                    :key="model.id"
+                    @click="selectModel(model.id)"
+                    class="p-2 cursor-pointer hover:bg-gray-100 transition-colors text-sm"
+                    :class="{ 'bg-blue-50': aiConfig.model === model.id }"
+                  >
+                    {{ model.id }}
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 mt-1">填写 API Endpoint 和 API Key 后，点击刷新获取可用模型</p>
+            </div>
+          </form>
+        </div>
+
+        <div class="flex justify-between mt-4">
+          <div class="flex gap-2">
+            <button
+              v-if="isEditingAI"
+              @click="handleCancelAIEdit"
+              class="px-4 py-2 bg-gray-500 text-white rounded border-none hover:bg-gray-600 transition-colors cursor-pointer"
+            >
+              取消
+            </button>
+            <button
+              v-if="!isEditingAI"
+              @click="handleEditAI"
+              class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
+            >
+              编辑
+            </button>
+            <button
+              v-if="isEditingAI"
+              @click="handleTestAIConnection"
+              :disabled="testingAI"
+              class="px-4 py-2 bg-green-600 text-white rounded border-none hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ testingAI ? '测试中...' : '测试连接' }}
+            </button>
+            <button
+              v-if="isEditingAI"
+              @click="handleSaveAIConfig"
+              :disabled="loadingAIConfig"
+              class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ loadingAIConfig ? '保存中...' : '保存' }}
+            </button>
+          </div>
+          <button
+            v-if="isEditingAI"
+            @click="handleClearAIConfig"
+            class="px-4 py-2 bg-red-500 text-white rounded border-none hover:bg-red-600 transition-colors cursor-pointer"
+          >
+            清除
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 预留其他配置部分 -->
     <div v-show="activeTab === 'other'" class="p-3 rounded shadow">
       <h2 class="text-lg font-bold mb-4">其他配置</h2>
@@ -243,14 +383,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useSettings } from '~/composables/useSettings.js'
+import { useAI } from '~/composables/useAI.js'
 import { alert, confirm, prompt } from '@/composables/useModal'
 import { useToken } from '~/composables/useToken.js'
 import { showLoading, hideLoading } from '@/composables/useLoading.js'
 
 const { updateAccount, getTokensList, createToken, deleteToken, getConfig, setConfig } = useSettings()
 const { removeToken, removeTokenExpires } = useToken()
+const { getModels, sendMessage } = useAI()
 
 // 当前激活的标签页
 const activeTab = ref('account')
@@ -264,6 +406,10 @@ const tabs = [
   {
     id: 'storage',
     label: '存储配置'
+  },
+  {
+    id: 'ai',
+    label: 'AI 配置'
   },
   {
     id: 'other',
@@ -293,7 +439,41 @@ const loadingS3Config = ref(false)
 const isEditingS3 = ref(false)
 const s3ConfigBackup = ref({})
 const s3ConfigLoaded = ref(false)
+
+// AI 配置相关数据
+const aiConfig = ref({
+  enabled: false,
+  endpoint: '',
+  apiKey: '',
+  model: ''
+})
+const loadingAIConfig = ref(false)
+const isEditingAI = ref(false)
+const aiConfigBackup = ref({})
+const aiConfigLoaded = ref(false)
 const tokensLoaded = ref(false)
+const availableModels = ref([])
+const loadingModels = ref(false)
+const modelSearchText = ref('')
+const showModelDropdown = ref(false)
+
+// 过滤后的模型列表
+const filteredModels = computed(() => {
+  if (!modelSearchText.value) {
+    return availableModels.value
+  }
+  const searchLower = modelSearchText.value.toLowerCase()
+  return availableModels.value.filter(model =>
+    model.id.toLowerCase().includes(searchLower)
+  )
+})
+
+// 选择模型
+const selectModel = (modelId) => {
+  aiConfig.value.model = modelId
+  modelSearchText.value = modelId
+  showModelDropdown.value = false
+}
 
 // 加载 Token 列表
 const loadTokens = async () => {
@@ -308,9 +488,24 @@ const loadTokens = async () => {
   }
 }
 
+// 点击外部关闭下拉列表
+const handleClickOutside = (e) => {
+  const dropdown = document.querySelector('.model-search-container')
+  if (dropdown && !dropdown.contains(e.target)) {
+    showModelDropdown.value = false
+  }
+}
+
 onMounted(() => {
   // 根据当前激活的标签页加载对应数据
   loadTabData(activeTab.value)
+  // 添加点击外部关闭下拉列表的监听
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  // 清理事件监听
+  document.removeEventListener('click', handleClickOutside)
 })
 
 // 监听标签页变化，加载对应数据
@@ -324,6 +519,8 @@ const loadTabData = (tab) => {
     loadTokens()
   } else if (tab === 'storage') {
     loadS3Config()
+  } else if (tab === 'ai') {
+    loadAIConfig()
   }
 }
 
@@ -584,6 +781,152 @@ const handleClearS3Config = async () => {
     isEditingS3.value = false
     await alert('S3 配置已清除！')
   } else {
+    await alert(result.error || '清除配置失败')
+  }
+}
+
+// 加载 AI 配置
+const loadAIConfig = async () => {
+  if (aiConfigLoaded.value) return
+  showLoading('正在加载 AI 配置...')
+  try {
+    const result = await getConfig('ai_config')
+    if (result.success && result.data) {
+      const config = JSON.parse(result.data.value)
+      aiConfig.value = {
+        enabled: config.enabled ?? false,
+        endpoint: config.endpoint || '',
+        apiKey: config.apiKey || '',
+        model: config.model || ''
+      }
+      // 更新搜索框显示的模型名称
+      modelSearchText.value = config.model || ''
+    }
+    aiConfigLoaded.value = true
+  } catch (error) {
+  } finally {
+    hideLoading()
+  }
+}
+
+// 进入编辑模式
+const handleEditAI = () => {
+  aiConfigBackup.value = { ...aiConfig.value }
+  isEditingAI.value = true
+  // 如果已有配置，自动加载模型列表
+  if (aiConfig.value.endpoint && aiConfig.value.apiKey) {
+    handleLoadModels()
+  }
+}
+
+// 取消编辑
+const handleCancelAIEdit = () => {
+  aiConfig.value = { ...aiConfigBackup.value }
+  isEditingAI.value = false
+  availableModels.value = []
+}
+
+// 测试 AI 连接
+const testingAI = ref(false)
+const handleTestAIConnection = async () => {
+  if (!aiConfig.value.endpoint || !aiConfig.value.apiKey || !aiConfig.value.model) {
+    await alert('请先填写完整的 AI 配置信息')
+    return
+  }
+
+  testingAI.value = true
+  const result = await sendMessage({
+    messages: [
+      {
+        role: 'user',
+        content: '请简单回复"连接成功"'
+      }
+    ]
+  })
+  testingAI.value = false
+
+  if (result.success) {
+    await alert(`连接测试成功！\n\n模型回复: ${result.content}`)
+  } else {
+    await alert(`连接测试失败：\n${result.error}`)
+  }
+}
+
+// 加载可用模型列表
+const handleLoadModels = async () => {
+  if (!aiConfig.value.endpoint || !aiConfig.value.apiKey) {
+    await alert('请先填写 API Endpoint 和 API Key')
+    return
+  }
+
+  loadingModels.value = true
+  const result = await getModels({
+    endpoint: aiConfig.value.endpoint,
+    apiKey: aiConfig.value.apiKey
+  })
+  loadingModels.value = false
+
+  if (result.success && result.data?.data) {
+    availableModels.value = result.data.data
+    // 如果当前选中的模型不在列表中，清空选择
+    if (aiConfig.value.model && !availableModels.value.find(m => m.id === aiConfig.value.model)) {
+      aiConfig.value.model = ''
+      modelSearchText.value = ''
+    }
+  } else {
+    await alert(`加载模型列表失败：\n${result.error}`)
+  }
+}
+
+// 保存 AI 配置
+const handleSaveAIConfig = async () => {
+  if (!aiConfig.value.apiKey) {
+    await alert('请填写 API Key')
+    return
+  }
+
+  loadingAIConfig.value = true
+  const result = await setConfig({
+    key: 'ai_config',
+    value: JSON.stringify({
+      enabled: aiConfig.value.enabled,
+      endpoint: aiConfig.value.endpoint,
+      apiKey: aiConfig.value.apiKey,
+      model: aiConfig.value.model
+    }),
+    description: 'AI服务配置：OpenAI API配置'
+  })
+  loadingAIConfig.value = false
+
+  if (result.success) {
+    await alert('AI 配置保存成功！')
+    isEditingAI.value = false
+  } else {
+    await alert(result.error || '保存配置失败')
+  }
+}
+
+// 清除 AI 配置
+const handleClearAIConfig = async () => {
+  const confirmed = await confirm('确定要清除 AI 配置吗？此操作不可逆。')
+  if (!confirmed) return
+
+  const result = await setConfig({
+    key: 'ai_config',
+    value: '',
+    description: 'AI服务配置：OpenAI API配置'
+  })
+
+    if (result.success) {
+      aiConfig.value = {
+        enabled: false,
+        endpoint: 'https://api.siliconflow.cn/v1',
+        apiKey: '',
+        model: ''
+      }
+      isEditingAI.value = false
+      await alert('AI 配置已清除！')
+    } else {
     await alert(result.error || '清除配置失败')
   }
 }
