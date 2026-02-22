@@ -144,57 +144,80 @@
     <div v-show="activeTab === 'storage'" class="space-y-3">
       <div class="p-3 rounded shadow">
         <h2 class="text-lg font-bold mb-4">S3 配置</h2>
+        <p class="text-sm text-gray-500 mb-4">支持 AWS S3 兼容的对象存储服务，如 AWS S3、Cloudflare R2等。</p>
 
         <div>
           <form id="s3Config" class="space-y-3">
-            <input
-              v-model="s3Config.bucket"
-              id="bucket"
-              placeholder="Bucket"
-              :disabled="!isEditingS3"
-              :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
-              class="w-full p-2 box-border border rounded"
-            />
-            <input
-              v-model="s3Config.endpoint"
-              id="endpoint"
-              placeholder="Endpoint"
-              :disabled="!isEditingS3"
-              :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
-              class="w-full p-2 box-border border rounded"
-            />
-            <input
-              v-model="s3Config.region"
-              id="region"
-              placeholder="Region"
-              :disabled="!isEditingS3"
-              :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
-              class="w-full p-2 box-border border rounded"
-            />
-            <input
-              v-model="s3Config.accessKeyId"
-              id="accessKeyId"
-              placeholder="Access Key ID"
-              :disabled="!isEditingS3"
-              :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
-              class="w-full p-2 box-border border rounded"
-            />
-            <input
-              v-model="s3Config.secretAccessKey"
-              id="secretAccessKey"
-              placeholder="Access Key Secret"
-              :disabled="!isEditingS3"
-              :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
-              class="w-full p-2 box-border border rounded"
-            />
-            <input
-              v-model="s3Config.customDomain"
-              id="customDomain"
-              placeholder="Custom Domain"
-              :disabled="!isEditingS3"
-              :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
-              class="w-full p-2 box-border border rounded"
-            />
+            <div>
+              <label class="text-sm text-gray-600 mb-1 block">Bucket <span class="text-red-500">*</span></label>
+              <input
+                v-model="s3Config.bucket"
+                id="bucket"
+                placeholder="例如: bucket"
+                :disabled="!isEditingS3"
+                :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
+                class="w-full p-2 box-border border rounded"
+              />
+              <p class="text-xs text-gray-400 mt-1">存储桶名称</p>
+            </div>
+            <div>
+              <label class="text-sm text-gray-600 mb-1 block">Endpoint <span class="text-red-500">*</span></label>
+              <input
+                v-model="s3Config.endpoint"
+                id="endpoint"
+                placeholder="例如: https://s3.amazonaws.com"
+                :disabled="!isEditingS3"
+                :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
+                class="w-full p-2 box-border border rounded"
+              />
+              <p class="text-xs text-gray-400 mt-1">API 端点地址</p>
+            </div>
+            <div>
+              <label class="text-sm text-gray-600 mb-1 block">Region</label>
+              <input
+                v-model="s3Config.region"
+                id="region"
+                placeholder="例如: us-east-1"
+                :disabled="!isEditingS3"
+                :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
+                class="w-full p-2 box-border border rounded"
+              />
+              <p class="text-xs text-gray-400 mt-1">区域代码</p>
+            </div>
+            <div>
+              <label class="text-sm text-gray-600 mb-1 block">Access Key ID <span class="text-red-500">*</span></label>
+              <input
+                v-model="s3Config.accessKeyId"
+                id="accessKeyId"
+                placeholder="Access Key ID"
+                :disabled="!isEditingS3"
+                :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
+                class="w-full p-2 box-border border rounded"
+              />
+            </div>
+            <div>
+              <label class="text-sm text-gray-600 mb-1 block">Access Key Secret <span class="text-red-500">*</span></label>
+              <input
+                v-model="s3Config.secretAccessKey"
+                id="secretAccessKey"
+                placeholder="Access Key Secret"
+                :disabled="!isEditingS3"
+                :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
+                class="w-full p-2 box-border border rounded"
+              />
+            </div>
+            <div>
+              <label class="text-sm text-gray-600 mb-1 block">Custom Domain</label>
+              <input
+                v-model="s3Config.customDomain"
+                id="customDomain"
+                placeholder="例如: https://cdn.example.com"
+                :disabled="!isEditingS3"
+                :class="!isEditingS3 ? 'bg-gray-100 cursor-not-allowed' : ''"
+                class="w-full p-2 box-border border rounded"
+              />
+              <p class="text-xs text-gray-400 mt-1">自定义域名，用于访问文件</p>
+            </div>
           </form>
         </div>
 
