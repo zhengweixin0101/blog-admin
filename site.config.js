@@ -4,13 +4,6 @@ export const siteConfig = {
     apiUrl: 'https://blog.api.zhengweixin.top',
     blogUrl: 'https://zhengweixin.top',
 
-    // AI 服务地址
-    // 我使用的是n8n
-    // 后台是纯静态的，即使token写在环境变量中，也会有泄露的风险
-    // 以后会在后端添加AI接口
-    // 你可以自行修改源代码或参考我的流程部署n8n
-    aiUrl: 'https://n8n-sihwbkwz.us-west-1.clawcloudrun.com/webhook/cd8d9b39-4bb8-417d-aba9-e7d094e60313',
-
     // Turnstile 人机验证配置
     // 在 Cloudflare Turnstile 获取 site key
     // 留空则不启用人机验证

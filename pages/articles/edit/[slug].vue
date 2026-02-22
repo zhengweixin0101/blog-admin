@@ -57,11 +57,12 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useArticles } from '~/composables/useArticles.js'
 import MarkdownEditor from '~/components/MarkdownEditor.vue'
-import { siteConfig } from '~/site.config.js'
+import { useAI } from '~/composables/useAI.js'
 import { withLoading } from '~/composables/useLoading.js'
 import { useToken } from '@/composables/useToken.js'
 
 const { getToken } = useToken()
+const { sendMessage } = useAI()
 
 const route = useRoute()
 const router = useRouter()
@@ -168,42 +169,31 @@ const generateTitle = async () => {
     return
   }
 
-    try {
+  try {
     const token = getToken()
     if (!token) {
       await alert('请先登录')
       return
     }
 
-    const response = await withLoading(
-      () => fetch(siteConfig.aiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          messages: `请为以下文章生成一个20字以内吸引人的标题：\n${article.value.content}`
-        })
+    const result = await withLoading(
+      () => sendMessage({
+        messages: [
+          { role: 'user', content: `请为以下文章生成一个20字以内吸引人的标题：\n${article.value.content}` }
+        ]
       }),
       'AI生成中...'
     )()
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    if (!result.success) {
+      throw new Error(result.error)
     }
 
-    const result = await response.json()
-    
-    if (result.messages) {
-      article.value.title = result.messages
-      await alert('标题生成成功！')
-    } else {
-      await alert('生成标题失败：未返回有效内容')
-    }
+    article.value.title = result.content
+    await alert('标题生成成功！')
   } catch (error) {
     console.error('生成标题失败:', error)
-    await alert('生成标题失败，请检查网络连接和API密钥')
+    await alert(`生成标题失败：${error.message}`)
   }
 }
 
@@ -214,42 +204,31 @@ const generateSummary = async () => {
     return
   }
 
-    try {
+  try {
     const token = getToken()
     if (!token) {
       await alert('请先登录')
       return
     }
 
-    const response = await withLoading(
-      () => fetch(siteConfig.aiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          messages: `请为以下文章生成一个用于博客前台展示的50字以内的简洁摘要：\n${article.value.content}`
-        })
+    const result = await withLoading(
+      () => sendMessage({
+        messages: [
+          { role: 'user', content: `请为以下文章生成一个用于博客前台展示的50字以内的简洁摘要：\n${article.value.content}` }
+        ]
       }),
       'AI生成中...'
     )()
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    if (!result.success) {
+      throw new Error(result.error)
     }
 
-    const result = await response.json()
-    
-    if (result.messages) {
-      article.value.description = result.messages
-      await alert('摘要生成成功！')
-    } else {
-      await alert('生成摘要失败：未返回有效内容')
-    }
+    article.value.description = result.content
+    await alert('摘要生成成功！')
   } catch (error) {
     console.error('生成摘要失败:', error)
-    await alert('生成摘要失败，请检查网络连接和API密钥')
+    await alert(`生成摘要失败：${error.message}`)
   }
 }
 
