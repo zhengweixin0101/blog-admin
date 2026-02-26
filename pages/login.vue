@@ -234,7 +234,7 @@ async function handleSubmit() {
 onMounted(async () => {
   const cachedToken = getToken()
   if (cachedToken) {
-    const expires = Number(localStorage.getItem('token_expires'))
+    const expires = getTokenExpires()
     if (expires > Date.now()) {
       const verified = useCookie('admin_verified', { path: '/' })
       verified.value = 'true'

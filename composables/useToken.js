@@ -68,6 +68,20 @@ export function useToken() {
         return expires <= Date.now()
     }
 
+    // 检查 Token 是否即将过期（在指定时间内过期）
+    const isTokenExpiringSoon = (bufferMs = 30 * 60 * 1000) => { // 默认30分钟缓冲
+        const expires = getTokenExpires()
+        const now = Date.now()
+        const remaining = expires - now
+        return remaining > 0 && remaining <= bufferMs
+    }
+
+    // 获取 Token 剩余有效时间（毫秒）
+    const getTokenRemainingTime = () => {
+        const expires = getTokenExpires()
+        return Math.max(0, expires - Date.now())
+    }
+
     return {
         getToken,
         setToken,
@@ -76,6 +90,8 @@ export function useToken() {
         setTokenExpires,
         removeTokenExpires,
         clearAuthData,
-        isTokenExpired
+        isTokenExpired,
+        isTokenExpiringSoon,
+        getTokenRemainingTime
     }
 }
