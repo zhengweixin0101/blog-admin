@@ -1,9 +1,9 @@
 <template>
-  <div class="flex">
-    <main class="p-8 flex-1">
+  <div class="flex h-screen">
+    <main class="p-8 flex-1 flex flex-col">
       <h1 class="text-2xl font-bold mb-4">编辑文章</h1>
 
-      <div class="space-y-3">
+      <div class="space-y-3 flex-shrink-0">
         <!-- 标题 -->
         <div class="flex gap-2">
           <input v-model="article.title" id="title" placeholder="标题" class="border rounded p-2 flex-1"/>
@@ -16,14 +16,18 @@
           <button @click="generateSummary">AI生成</button>
         </div>
 
-        <!-- 日期 -->
-        <input v-model="article.date" id="date" type="date" class="border box-border rounded p-2 w-full"/>
-
-        <!-- 标签 -->
-        <input v-model="tagsString" id="tags" placeholder="标签（逗号分隔）" class="border box-border rounded p-2 w-full"/>
-
-        <!-- Slug (只读) -->
-        <input v-model="article.slug" id="slug" placeholder="Slug" class="border rounded box-border p-2 w-full" readonly/>
+        <!-- Slug、标签、日期 -->
+        <div class="flex gap-2">
+          <input v-model="article.slug" 
+                 id="slug" 
+                 placeholder="Slug" 
+                 class="border rounded box-border p-2 flex-1 underline cursor-pointer hover:bg-blue-50 transition-colors"
+                 readonly
+                 @click="openArticle"
+                 :title="`点击查看文章: ${article.slug || ''}`"/>
+          <input v-model="tagsString" id="tags" placeholder="标签（逗号分隔）" class="border box-border rounded p-2 flex-1"/>
+          <input v-model="article.date" id="date" type="date" placeholder="日期" class="border box-border rounded p-2 flex-1"/>
+        </div>
 
         <!-- 发布状态 -->
         <div class="flex gap-4">
@@ -39,14 +43,16 @@
       </div>
 
       <!-- Markdown 内容 -->
-      <MarkdownEditor
-        v-model="article.content"
-        @onSave="handleSave"
-        class="mt-4 rounded"
-      />
-      <div class="mt-4 flex gap-2">
-        <button @click="save">保存</button>
-        <button @click="goBack">返回列表</button>
+      <div class="flex-1 flex flex-col min-h-0 mt-4">
+        <MarkdownEditor
+          v-model="article.content"
+          @onSave="handleSave"
+          class="flex-1 rounded"
+        />
+        <div class="mt-4 flex gap-2 flex-shrink-0">
+          <button @click="save">保存</button>
+          <button @click="goBack">返回列表</button>
+        </div>
       </div>
     </main>
   </div>
@@ -60,6 +66,7 @@ import MarkdownEditor from '~/components/MarkdownEditor.vue'
 import { useAI } from '~/composables/useAI.js'
 import { withLoading } from '~/composables/useLoading.js'
 import { useToken } from '@/composables/useToken.js'
+import { siteConfig } from '~/site.config.js'
 
 const { getToken } = useToken()
 const { sendMessage } = useAI()
@@ -230,6 +237,14 @@ const generateSummary = async () => {
     console.error('生成摘要失败:', error)
     await alert(`生成摘要失败：${error.message}`)
   }
+}
+
+// 打开博客前台文章页面
+const openArticle = () => {
+  if (!article.value.slug) return
+  
+  const url = `${siteConfig.blogUrl}/posts/${article.value.slug}`
+  window.open(url, '_blank')
 }
 
 //编辑器事件绑定
