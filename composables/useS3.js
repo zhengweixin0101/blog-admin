@@ -352,6 +352,41 @@ export function useS3({ config, onProgress } = {}) {
         }
     }
 
+    // 测试连接
+    async function testConnection({ cfg = config }) {
+        try {
+            const client = getS3Client(cfg)
+            // 尝试列出存储桶中的文件来测试连接
+            await client.send(new ListObjectsV2Command({ Bucket: cfg.bucket, MaxKeys: 1 }))
+            return { 
+                success: true, 
+                message: 'S3 连接测试成功！' 
+            }
+        } catch (error) {
+            let errorMessage = 'S3 连接测试失败：'
+            
+            // 根据错误类型提供更具体的错误信息
+            if (error.name === 'NoSuchBucket') {
+                errorMessage += '存储桶不存在'
+            } else if (error.name === 'InvalidAccessKeyId') {
+                errorMessage += 'Access Key ID 无效'
+            } else if (error.name === 'SignatureDoesNotMatch') {
+                errorMessage += 'Access Key Secret 无效'
+            } else if (error.name === 'NetworkingError') {
+                errorMessage += '网络连接失败，请检查 Endpoint 地址'
+            } else if (error.name === 'Forbidden') {
+                errorMessage += '权限不足，请检查访问权限配置'
+            } else {
+                errorMessage += error.message || '未知错误'
+            }
+            
+            return { 
+                success: false, 
+                error: errorMessage 
+            }
+        }
+    }
+
     // 删除文件
     async function deleteFile({ fileKey, cfg = config }) {
         try {
@@ -371,6 +406,7 @@ export function useS3({ config, onProgress } = {}) {
         getS3Client,
         listFiles,
         uploadFiles,
-        deleteFile
+        deleteFile,
+        testConnection
     }
 }

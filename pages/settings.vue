@@ -370,14 +370,6 @@
             </button>
             <button
               v-if="isEditingAI"
-              @click="handleTestAIConnection"
-              :disabled="testingAI"
-              class="px-4 py-2 bg-green-600 text-white rounded border-none hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {{ testingAI ? '测试中...' : '测试连接' }}
-            </button>
-            <button
-              v-if="isEditingAI"
               @click="handleSaveAIConfig"
               :disabled="loadingAIConfig"
               class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -408,6 +400,7 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useSettings } from '~/composables/useSettings.js'
 import { useAI } from '~/composables/useAI.js'
+import { useS3 } from '~/composables/useS3.js'
 import { alert, confirm, prompt } from '@/composables/useModal'
 import { useToken } from '~/composables/useToken.js'
 import { showLoading, hideLoading } from '@/composables/useLoading.js'
@@ -415,6 +408,7 @@ import { showLoading, hideLoading } from '@/composables/useLoading.js'
 const { updateAccount, getTokensList, createToken, deleteToken, getConfig, setConfig } = useSettings()
 const { removeToken, removeTokenExpires } = useToken()
 const { getModels, sendMessage } = useAI()
+const { testConnection } = useS3()
 
 // 当前激活的标签页
 const activeTab = ref('config')
@@ -745,6 +739,8 @@ const handleCancelS3Edit = () => {
   isEditingS3.value = false
 }
 
+
+
 // 保存 S3 配置
 const handleSaveS3Config = async () => {
   if (!s3Config.value.bucket || !s3Config.value.endpoint || !s3Config.value.accessKeyId || !s3Config.value.secretAccessKey) {
@@ -752,6 +748,25 @@ const handleSaveS3Config = async () => {
     return
   }
 
+  // 先测试连接
+  showLoading('正在测试 S3 连接...')
+  const testResult = await testConnection({
+    cfg: {
+      bucket: s3Config.value.bucket,
+      endpoint: s3Config.value.endpoint,
+      region: s3Config.value.region,
+      accessKeyId: s3Config.value.accessKeyId,
+      secretAccessKey: s3Config.value.secretAccessKey
+    }
+  })
+  hideLoading()
+
+  if (!testResult.success) {
+    await alert(`连接测试失败，无法保存配置：\n${testResult.error}`)
+    return
+  }
+
+  // 连接测试通过，保存配置
   loadingS3Config.value = true
   const result = await setConfig({
     key: 's3_config',
@@ -768,7 +783,7 @@ const handleSaveS3Config = async () => {
   loadingS3Config.value = false
 
   if (result.success) {
-    await alert('S3 配置保存成功！')
+    await alert('连接测试已通过，S3 配置保存成功！')
     isEditingS3.value = false
   } else {
     await alert(result.error || '保存配置失败')
@@ -843,31 +858,7 @@ const handleCancelAIEdit = () => {
   availableModels.value = []
 }
 
-// 测试 AI 连接
-const testingAI = ref(false)
-const handleTestAIConnection = async () => {
-  if (!aiConfig.value.endpoint || !aiConfig.value.apiKey || !aiConfig.value.model) {
-    await alert('请先填写完整的 AI 配置信息')
-    return
-  }
 
-  testingAI.value = true
-  const result = await sendMessage({
-    messages: [
-      {
-        role: 'user',
-        content: '请简单回复"连接成功"'
-      }
-    ]
-  })
-  testingAI.value = false
-
-  if (result.success) {
-    await alert(`连接测试成功！\n\n模型回复: ${result.content}`)
-  } else {
-    await alert(`连接测试失败：\n${result.error}`)
-  }
-}
 
 // 加载可用模型列表
 const handleLoadModels = async () => {
@@ -902,6 +893,32 @@ const handleSaveAIConfig = async () => {
     return
   }
 
+  // 先测试连接（如果已选择模型）
+  if (aiConfig.value.model && aiConfig.value.endpoint) {
+    showLoading('正在测试 AI 连接...')
+    const testResult = await sendMessage({
+      messages: [
+        {
+          role: 'user',
+          content: '请简单回复"连接成功"'
+        }
+      ],
+      config: {
+        enabled: true,
+        endpoint: aiConfig.value.endpoint,
+        apiKey: aiConfig.value.apiKey,
+        model: aiConfig.value.model
+      }
+    })
+    hideLoading()
+
+    if (!testResult.success) {
+      await alert(`连接测试失败，无法保存配置：\n${testResult.error}`)
+      return
+    }
+  }
+
+  // 连接测试通过或未选择模型，保存配置
   loadingAIConfig.value = true
   const result = await setConfig({
     key: 'ai_config',
@@ -916,7 +933,7 @@ const handleSaveAIConfig = async () => {
   loadingAIConfig.value = false
 
   if (result.success) {
-    await alert('AI 配置保存成功！')
+    await alert('AI 配置保存成功！' + (aiConfig.value.model && aiConfig.value.endpoint ? '连接测试已通过。' : ''))
     isEditingAI.value = false
   } else {
     await alert(result.error || '保存配置失败')

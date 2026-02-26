@@ -29,16 +29,26 @@ export function useAI() {
     }
 
     // 发送消息
-    async function sendMessage({ messages, onProgress, stream = false }) {
+    async function sendMessage({ messages, onProgress, stream = false, config: customConfig = null }) {
         try {
-            const result = await getConfig('ai_config')
-            if (!result.success || !result.data) {
-                throw new Error('AI服务未配置')
+            // 如果没有传入自定义配置，则从数据库读取
+            let config
+            if (customConfig) {
+                config = customConfig
+            } else {
+                const result = await getConfig('ai_config')
+                if (!result.success || !result.data) {
+                    throw new Error('AI服务未配置')
+                }
+                config = JSON.parse(result.data.value)
             }
-            const config = JSON.parse(result.data.value)
 
             if (!config.enabled || !config.apiKey) {
                 throw new Error('AI服务未启用')
+            }
+
+            if (!config.endpoint || !config.model) {
+                throw new Error('请填写完整的AI配置信息')
             }
 
             const chatEndpoint = config.endpoint.endsWith('/chat/completions')
