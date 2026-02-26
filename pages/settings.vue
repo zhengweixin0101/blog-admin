@@ -140,11 +140,12 @@
       </div>
     </div>
 
-    <!-- S3 存储配置板块 -->
-    <div v-show="activeTab === 'storage'" class="space-y-3">
+    <!-- 系统配置板块 -->
+    <div v-show="activeTab === 'config'" class="space-y-3">
+      <!-- S3 存储配置 -->
       <div class="p-3 rounded shadow">
         <h2 class="text-lg font-bold mb-4">S3 配置</h2>
-        <p class="text-sm text-gray-500 mb-4">支持 AWS S3 兼容的对象存储服务，如 AWS S3、Cloudflare R2等。</p>
+        <p class="text-sm text-gray-500 mb-4">仅支持兼容 AWS S3 的对象存储服务，如 AWS S3、Cloudflare R2等。</p>
 
         <div>
           <form id="s3Config" class="space-y-3">
@@ -255,10 +256,8 @@
           </button>
         </div>
       </div>
-    </div>
 
-    <!-- AI 配置板块 -->
-    <div v-show="activeTab === 'ai'" class="space-y-3">
+      <!-- AI 配置 -->
       <div class="p-3 rounded shadow">
         <h2 class="text-lg font-bold mb-4">AI 配置</h2>
         <p class="text-sm text-gray-500 mb-4">支持 OpenAI 兼容 API，如 OpenAI、SiliconFlow、Poixe AI、OpenRouter、DeepSeek 等</p>
@@ -418,21 +417,17 @@ const { removeToken, removeTokenExpires } = useToken()
 const { getModels, sendMessage } = useAI()
 
 // 当前激活的标签页
-const activeTab = ref('account')
+const activeTab = ref('config')
 
 // 标签页配置
 const tabs = [
   {
+    id: 'config',
+    label: '系统配置'
+  },
+  {
     id: 'account',
     label: '账号管理'
-  },
-  {
-    id: 'storage',
-    label: '存储配置'
-  },
-  {
-    id: 'ai',
-    label: 'AI 配置'
   },
   {
     id: 'other',
@@ -540,9 +535,8 @@ watch(activeTab, (newTab) => {
 const loadTabData = (tab) => {
   if (tab === 'account') {
     loadTokens()
-  } else if (tab === 'storage') {
+  } else if (tab === 'config') {
     loadS3Config()
-  } else if (tab === 'ai') {
     loadAIConfig()
   }
 }
