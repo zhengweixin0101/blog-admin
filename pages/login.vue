@@ -84,7 +84,7 @@ import { useTurnstile } from '~/composables/useTurnstile'
 import { useToken } from '~/composables/useToken'
 
 const API_BASE = siteConfig.apiUrl
-const { getToken, setToken, setTokenExpires, removeToken, removeTokenExpires } = useToken()
+const { getToken, setToken, setTokenExpires, removeToken, removeTokenExpires, getTokenExpires } = useToken()
 
 const username = ref('')
 const password = ref('')
