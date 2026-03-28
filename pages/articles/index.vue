@@ -142,7 +142,7 @@ const handleCreate = async () => {
 
   const slug = newArticle.value.slug
   const result = await addArticle(newArticle.value)
-  if (!result) return
+  if (!result || !result.success) return
 
   resetNewArticle()
   await getList()
@@ -171,7 +171,7 @@ const handleDelete = async (slug) => {
   const confirmed = await confirm('确定删除吗？')
   if (!confirmed) return
   const result = await deleteArticle(slug)
-  if (!result) return
+  if (!result || !result.success) return
   await getList()
   await alert('删除成功')
 }
@@ -251,7 +251,7 @@ const handleEditSlug = async (article) => {
   if (!confirmed) return
 
   const result = await editSlug(article.slug, newSlug)
-  if (!result) return
+  if (!result || !result.success) return
   await getList()
   await alert('修改成功')
 }

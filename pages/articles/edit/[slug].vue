@@ -162,7 +162,7 @@ const save = async () => {
   }
 
   const result = await editArticle(article.value)
-  if (!result) return
+  if (!result || !result.success) return
 
   isSaved.value = true
   originalArticle.value = JSON.parse(JSON.stringify(article.value))

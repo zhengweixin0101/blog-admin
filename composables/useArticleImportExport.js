@@ -26,8 +26,8 @@ export function useArticleImportExport() {
 
             // 先请求第一页
             const firstRes = await withLoading(
-                () => axios.get(`${API_BASE}/api/article/all`, {
-                    params: { page: 1, pageSize },
+                () => axios.get(`${API_BASE}/api/articles`, {
+                    params: { page: 1, pageSize, posts: 'all' },
                     headers: { 'Authorization': `Bearer ${key}` }
                 }),
                 '正在加载第 1 页...'
@@ -46,8 +46,8 @@ export function useArticleImportExport() {
             // 请求剩余页
             for (let p = 2; p <= totalPages; p++) {
                 const res = await withLoading(
-                    () => axios.get(`${API_BASE}/api/article/all`, {
-                        params: { page: p, pageSize },
+                    () => axios.get(`${API_BASE}/api/articles`, {
+                        params: { page: p, pageSize, posts: 'all' },
                         headers: { 'Authorization': `Bearer ${key}` }
                     }),
                     `正在加载第 ${p} 页...`
@@ -244,7 +244,7 @@ published: ${article.published !== undefined ? article.published : false}
                         // 调用 API 创建文章
                         const key = ensureKey()
                         const res = await withLoading(
-                            () => axios.post(`${API_BASE}/api/article/add`, parsed, {
+                            () => axios.post(`${API_BASE}/api/articles`, parsed, {
                                 headers: { 'Authorization': `Bearer ${key}` }
                             }),
                             `正在导入: ${filename}...`
@@ -290,7 +290,7 @@ published: ${article.published !== undefined ? article.published : false}
             // 调用 API 创建文章
             const key = ensureKey()
             const res = await withLoading(
-                () => axios.post(`${API_BASE}/api/article/add`, parsed, {
+                () => axios.post(`${API_BASE}/api/articles`, parsed, {
                     headers: { 'Authorization': `Bearer ${key}` }
                 }),
                 '导入 Markdown 文章中...'
@@ -328,7 +328,7 @@ published: ${article.published !== undefined ? article.published : false}
                     }
 
                     const res = await withLoading(
-                        () => axios.post(`${API_BASE}/api/article/add`, article, {
+                        () => axios.post(`${API_BASE}/api/articles`, article, {
                             headers: { 'Authorization': `Bearer ${key}` }
                         }),
                         `导入文章: ${article.title || article.slug}...`

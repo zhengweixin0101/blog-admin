@@ -48,13 +48,16 @@ export function useSettings() {
         const key = ensureKey()
 
         try {
-            const response = await axios.get(`${API_BASE}/api/tokens/list`, {
+            const response = await axios.get(`${API_BASE}/api/system/tokens`, {
                 headers: {
                     'Authorization': `Bearer ${key}`
                 }
             })
             return { success: true, ...response.data }
         } catch (error) {
+            if (error.response?.status === 404 || error.response?.status === 500) {
+                return { success: true, data: [] }
+            }
             handleError(error, { showAlert: false }), { success: false, error: extractErrorMessage(error) }
             return { success: false, error: extractErrorMessage(error) }
         }
@@ -66,7 +69,7 @@ export function useSettings() {
 
         try {
             const response = await withLoading(async () => {
-                return await axios.post(`${API_BASE}/api/tokens/create`, {
+                return await axios.post(`${API_BASE}/api/system/tokens`, {
                     name,
                     description,
                     expiresIn,
@@ -91,7 +94,7 @@ export function useSettings() {
 
         try {
             const response = await withLoading(async () => {
-                return await axios.delete(`${API_BASE}/api/tokens/delete`, {
+                return await axios.delete(`${API_BASE}/api/system/tokens`, {
                     data: { id },
                     headers: {
                         'Authorization': `Bearer ${key}`,
@@ -111,7 +114,7 @@ export function useSettings() {
         const authKey = ensureKey()
 
         try {
-            const response = await axios.get(`${API_BASE}/api/config/get`, {
+            const response = await axios.get(`${API_BASE}/api/system/config`, {
                 params: { key },
                 headers: {
                     'Authorization': `Bearer ${authKey}`
@@ -130,7 +133,7 @@ export function useSettings() {
 
         try {
             const response = await withLoading(async () => {
-                return await axios.post(`${API_BASE}/api/config/set`, {
+                return await axios.post(`${API_BASE}/api/system/config`, {
                     key,
                     value,
                     description

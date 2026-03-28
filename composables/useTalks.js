@@ -43,7 +43,7 @@ export function useTalks() {
     const getTalks = async (params = {}) => {
         try {
             const res = await withLoading(
-                () => axios.get(`${API_BASE}/api/talks/get`, { params }),
+                () => axios.get(`${API_BASE}/api/talks`, { params }),
                 '加载说说中...'
             )()
 
@@ -84,7 +84,7 @@ export function useTalks() {
                 }
 
                 return await withLoading(
-                    () => axios.post(`${API_BASE}/api/talks/add`, requestPayload, {
+                    () => axios.post(`${API_BASE}/api/talks`, requestPayload, {
                         headers: { 'Authorization': `Bearer ${key}` }
                     }),
                     '添加说说中...'
@@ -118,7 +118,7 @@ export function useTalks() {
                 }
 
                 return await withLoading(
-                    () => axios.put(`${API_BASE}/api/talks/edit`, payload, {
+                    () => axios.put(`${API_BASE}/api/talks`, payload, {
                         headers: { 'Authorization': `Bearer ${key}` }
                     }),
                     '编辑说说中...'
@@ -147,7 +147,7 @@ export function useTalks() {
                 }
 
                 return await withLoading(
-                    () => axios.delete(`${API_BASE}/api/talks/delete`, {
+                    () => axios.delete(`${API_BASE}/api/talks`, {
                         headers,
                         data: { id }
                     }),

@@ -45,7 +45,7 @@ export function useArticles() {
     const getList = async () => {
         try {
             const res = await withLoading(
-                () => axios.get(`${API_BASE}/api/article/list?posts=all`),
+                () => axios.get(`${API_BASE}/api/articles`, { params: { posts: 'all' } }),
                 '加载文章列表中...'
             )()
 
@@ -72,7 +72,7 @@ export function useArticles() {
     const getArticle = async (slug) => {
         try {
             const res = await withLoading(
-                () => axios.get(`${API_BASE}/api/article/get`, { params: { slug } }),
+                () => axios.get(`${API_BASE}/api/articles/${slug}`),
                 '加载文章内容中...'
             )()
 
@@ -103,7 +103,7 @@ export function useArticles() {
                 }
 
                 return await withLoading(
-                    () => axios.post(`${API_BASE}/api/article/add`, requestPayload, {
+                    () => axios.post(`${API_BASE}/api/articles`, requestPayload, {
                         headers: { 'Authorization': `Bearer ${key}` }
                     }),
                     '创建文章中...'
@@ -145,7 +145,7 @@ export function useArticles() {
                 }
 
                 return await withLoading(
-                    () => axios.put(`${API_BASE}/api/article/edit`, requestPayload, {
+                    () => axios.put(`${API_BASE}/api/articles`, requestPayload, {
                         headers: { 'Authorization': `Bearer ${key}` }
                     }),
                     '更新文章中...'
@@ -179,7 +179,7 @@ export function useArticles() {
                 }
 
                 return await withLoading(
-                    () => axios.put(`${API_BASE}/api/article/edit-slug`, payload, {
+                    () => axios.patch(`${API_BASE}/api/articles`, payload, {
                         headers: { 'Authorization': `Bearer ${key}` }
                     }),
                     '修改文章链接中...'
@@ -211,7 +211,7 @@ export function useArticles() {
                 }
 
                 return await withLoading(
-                    () => axios.delete(`${API_BASE}/api/article/delete`, {
+                    () => axios.delete(`${API_BASE}/api/articles`, {
                         headers,
                         data: { slug }
                     }),

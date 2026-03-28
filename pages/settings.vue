@@ -709,7 +709,7 @@ const loadS3Config = async () => {
   showLoading('正在加载 S3 配置...')
   try {
     const result = await getConfig('s3_config')
-    if (result.success && result.data) {
+    if (result.success && result.data && result.data.value) {
       const config = JSON.parse(result.data.value)
       s3Config.value = {
         bucket: config.bucket || '',
@@ -823,7 +823,7 @@ const loadAIConfig = async () => {
   showLoading('正在加载 AI 配置...')
   try {
     const result = await getConfig('ai_config')
-    if (result.success && result.data) {
+    if (result.success && result.data && result.data.value) {
       const config = JSON.parse(result.data.value)
       aiConfig.value = {
         enabled: config.enabled ?? false,
