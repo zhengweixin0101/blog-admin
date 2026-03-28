@@ -24,43 +24,67 @@ export function useArticleImportExport() {
         try {
             const key = ensureKey()
 
-            // 先请求第一页
-            const firstRes = await withLoading(
-                () => axios.get(`${API_BASE}/api/articles`, {
-                    params: { page: 1, pageSize, posts: 'all', fields: 'slug,title,description,tags,published,date,content' },
-                    headers: { 'Authorization': `Bearer ${key}` }
-                }),
-                '正在加载第 1 页...'
-            )()
-            const firstBody = firstRes.data
-            if (!firstBody?.success || !Array.isArray(firstBody.data)) return { data: [], page: 1, pageSize, total: 0, totalPages: 0 }
+            // 获取文章列表
+            const articles = []
+            let currentPage = 1
+            let total = 0
+            let totalPages = 0
 
-            const all = [...firstBody.data]
-            const total = firstBody.total ?? all.length
-            const totalPages = firstBody.totalPages ?? Math.ceil(total / pageSize)
-
-            if (totalPages <= 1) {
-                return { data: all, page: 1, pageSize, total, totalPages }
-            }
-
-            // 请求剩余页
-            for (let p = 2; p <= totalPages; p++) {
+            while (true) {
                 const res = await withLoading(
                     () => axios.get(`${API_BASE}/api/articles`, {
-                        params: { page: p, pageSize, posts: 'all', fields: 'slug,title,description,tags,published,date,content' },
+                        params: { page: currentPage, pageSize, posts: 'all' },
                         headers: { 'Authorization': `Bearer ${key}` }
                     }),
-                    `正在加载第 ${p} 页...`
+                    `正在加载文章列表第 ${currentPage} 页...`
                 )()
                 const body = res.data
-                if (body?.success && Array.isArray(body.data) && body.data.length > 0) {
-                    all.push(...body.data)
-                } else {
+
+                if (!body?.success || !Array.isArray(body.data) || body.data.length === 0) {
                     break
+                }
+
+                articles.push(...body.data)
+                total = body.total ?? articles.length
+                totalPages = body.totalPages ?? Math.ceil(total / pageSize)
+
+                if (currentPage >= totalPages) {
+                    break
+                }
+
+                currentPage++
+            }
+
+            if (articles.length === 0) {
+                return { data: [], page: 1, pageSize, total: 0, totalPages: 0 }
+            }
+
+            // 获取每篇文章的详情
+            const fullArticles = []
+            for (let i = 0; i < articles.length; i++) {
+                const article = articles[i]
+                try {
+                    const res = await withLoading(
+                        () => axios.get(`${API_BASE}/api/articles/${article.slug}`, {
+                            headers: { 'Authorization': `Bearer ${key}` }
+                        }),
+                        `正在获取文章 (${i + 1}/${articles.length}): ${article.title || article.slug}...`
+                    )()
+                    const body = res.data
+                    if (body?.success && body.data) {
+                        fullArticles.push(body.data)
+                    } else {
+                        // 如果请求失败,使用基本信息
+                        fullArticles.push(article)
+                    }
+                } catch (err) {
+                    console.error(`获取文章 ${article.slug} 详情失败:`, err)
+                    // 如果请求失败,使用基本信息
+                    fullArticles.push(article)
                 }
             }
 
-            return { data: all, page: 1, pageSize, total, totalPages }
+            return { data: fullArticles, page: 1, pageSize, total, totalPages }
         } catch (err) {
             handleError(err), { success: false, error: extractErrorMessage(err) }
             return { success: false, error: extractErrorMessage(err) }
