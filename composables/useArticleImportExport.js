@@ -84,6 +84,7 @@ export function useArticleImportExport() {
                         fullArticles.push(article)
                     }
                 } catch (err) {
+                    console.error(`获取文章 ${article.slug} 详情失败:`, err)
                     // 如果请求失败,使用基本信息
                     fullArticles.push(article)
                 }
