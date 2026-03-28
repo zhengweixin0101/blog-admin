@@ -27,7 +27,7 @@ export function useArticleImportExport() {
             // 先请求第一页
             const firstRes = await withLoading(
                 () => axios.get(`${API_BASE}/api/articles`, {
-                    params: { page: 1, pageSize, posts: 'all' },
+                    params: { page: 1, pageSize, posts: 'all', fields: 'slug,title,description,tags,published,date,content' },
                     headers: { 'Authorization': `Bearer ${key}` }
                 }),
                 '正在加载第 1 页...'
@@ -47,7 +47,7 @@ export function useArticleImportExport() {
             for (let p = 2; p <= totalPages; p++) {
                 const res = await withLoading(
                     () => axios.get(`${API_BASE}/api/articles`, {
-                        params: { page: p, pageSize, posts: 'all' },
+                        params: { page: p, pageSize, posts: 'all', fields: 'slug,title,description,tags,published,date,content' },
                         headers: { 'Authorization': `Bearer ${key}` }
                     }),
                     `正在加载第 ${p} 页...`
