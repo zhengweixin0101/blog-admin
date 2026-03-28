@@ -71,14 +71,19 @@ export function useArticleImportExport() {
                         `正在获取文章 (${i + 1}/${articles.length}): ${article.title || article.slug}...`
                     )()
                     const body = res.data
-                    if (body?.success && body.data) {
-                        fullArticles.push(body.data)
+                    if (body?.success && body.content) {
+                        // 合并 frontmatter 和 content
+                        const fullArticle = {
+                            ...article,
+                            ...body.frontmatter,
+                            content: body.content
+                        }
+                        fullArticles.push(fullArticle)
                     } else {
                         // 如果请求失败,使用基本信息
                         fullArticles.push(article)
                     }
                 } catch (err) {
-                    console.error(`获取文章 ${article.slug} 详情失败:`, err)
                     // 如果请求失败,使用基本信息
                     fullArticles.push(article)
                 }
@@ -125,7 +130,7 @@ published: ${article.published !== undefined ? article.published : false}
 `
 
                 const content = frontmatter + (article.content || '')
-                
+
                 zip.file(`${article.slug || Math.random().toString(36).substring(2, 8)}.md`, content)
             })
 
