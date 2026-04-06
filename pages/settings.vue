@@ -17,6 +17,37 @@
 
     <!-- 账号管理板块 -->
     <div v-show="activeTab === 'account'" class="space-y-3">
+      <!-- 账号操作 -->
+      <div class="p-3 rounded shadow">
+        <h2 class="text-lg font-bold mb-4">账号操作</h2>
+
+        <div class="flex gap-3">
+          <!-- 修改用户名 -->
+          <button
+            @click="handleUpdateUsername"
+            class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
+          >
+            修改用户名
+          </button>
+
+          <!-- 修改密码 -->
+          <button
+            @click="handleUpdatePassword"
+            class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
+          >
+            修改密码
+          </button>
+
+          <!-- 退出登录 -->
+          <button
+            @click="handleLogout"
+            class="px-4 py-2 bg-red-500 text-white rounded border-none hover:bg-red-600 transition-colors cursor-pointer"
+          >
+            退出登录
+          </button>
+        </div>
+      </div>
+
       <div class="p-3 rounded shadow">
         <h2 class="text-lg font-bold mb-4">Token 管理</h2>
 
@@ -109,32 +140,129 @@
         </div>
       </div>
 
+      <!-- 日志管理 -->
       <div class="p-3 rounded shadow">
-        <h2 class="text-lg font-bold mb-4">账号操作</h2>
+        <h2 class="text-lg font-bold mb-4">日志管理</h2>
 
-        <div class="flex gap-3">
-          <!-- 修改用户名 -->
+        <!-- 筛选条件 -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+          <div>
+            <label class="text-sm text-gray-600 mb-1 block">操作名称</label>
+            <input
+              v-model="logFilters.action"
+              type="text"
+              placeholder="模糊搜索"
+              class="w-full p-2 box-border border rounded"
+            />
+          </div>
+          <div>
+            <label class="text-sm text-gray-600 mb-1 block">请求方法</label>
+            <select v-model="logFilters.method" class="w-full p-2 box-border border rounded">
+              <option value="">全部</option>
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="PATCH">PATCH</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-sm text-gray-600 mb-1 block">状态码</label>
+            <select v-model="logFilters.status" class="w-full p-2 box-border border rounded">
+              <option value="">全部</option>
+              <option value="200">200 成功</option>
+              <option value="400">400 错误</option>
+              <option value="401">401 未授权</option>
+              <option value="403">403 禁止</option>
+              <option value="404">404 未找到</option>
+              <option value="500">500 服务器错误</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-sm text-gray-600 mb-1 block">开始日期</label>
+            <input v-model="logFilters.startDate" type="date" class="w-full p-2 box-border border rounded" />
+          </div>
+          <div>
+            <label class="text-sm text-gray-600 mb-1 block">结束日期</label>
+            <input v-model="logFilters.endDate" type="date" class="w-full p-2 box-border border rounded" />
+          </div>
+          <div class="flex items-end gap-2">
+            <button @click="handleLogSearch" class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer">
+              搜索
+            </button>
+            <button @click="handleClearLogs(0)" class="px-4 py-2 bg-red-500 text-white rounded border-none hover:bg-red-600 transition-colors cursor-pointer">
+              清空日志
+            </button>
+          </div>
+        </div>
+
+        <!-- 分页信息 -->
+        <div class="pb-4 border-b border-gray-200 text-sm text-gray-500">
+          共 {{ pagination.total }} 条记录，第 {{ pagination.page }}/{{ pagination.totalPages }} 页
+        </div>
+
+        <!-- 日志列表 -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200">
+                <th class="text-left py-2 px-2 font-medium">时间</th>
+                <th class="text-left py-2 px-2 font-medium">操作</th>
+                <th class="text-left py-2 px-2 font-medium">方法</th>
+                <th class="text-left py-2 px-2 font-medium">路径</th>
+                <th class="text-left py-2 px-2 font-medium">状态</th>
+                <th class="text-left py-2 px-2 font-medium">IP</th>
+                <th class="text-left py-2 px-2 font-medium">Token</th>
+                <th class="text-left py-2 px-2 font-medium">浏览器</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="logs.length === 0">
+                <td colspan="8" class="text-center py-8 text-gray-500">暂无日志记录</td>
+              </tr>
+              <tr v-for="log in logs" :key="log.id" class="border-b border-gray-100 hover:bg-gray-50">
+                <td class="py-2 px-2 whitespace-nowrap">{{ log.created_at }}</td>
+                <td class="py-2 px-2">{{ log.action || '-' }}</td>
+                <td class="py-2 px-2">
+                  <span :class="getMethodClass(log.method)" class="px-2 py-1 rounded text-xs font-medium">
+                    {{ log.method }}
+                  </span>
+                </td>
+                <td class="py-2 px-2 max-w-xs truncate" :title="log.path">{{ log.path || '-' }}</td>
+                <td class="py-2 px-2">
+                  <span :class="getStatusClass(log.status)" class="px-2 py-1 rounded text-xs font-medium">
+                    {{ log.status }}
+                  </span>
+                </td>
+                <td class="py-2 px-2 whitespace-nowrap">
+                  <div>{{ log.ip || '-' }}</div>
+                  <div v-if="log.location" class="text-xs text-gray-400">{{ log.location }}</div>
+                </td>
+                <td class="py-2 px-2 max-w-xs truncate" :title="log.token_name">{{ log.token_name || '-' }}</td>
+                <td class="py-2 px-2 max-w-xs truncate" :title="log.browser">{{ log.browser || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 分页 -->
+        <div v-if="pagination.totalPages > 1" class="mt-4 flex justify-center gap-2">
           <button
-            @click="handleUpdateUsername"
-            class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
+            @click="handleLogPageChange(pagination.page - 1)"
+            :disabled="pagination.page <= 1"
+            class="px-4 py-2 bg-gray-200 text-gray-700 rounded border-none hover:bg-gray-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            修改用户名
+            上一页
           </button>
-
-          <!-- 修改密码 -->
+          <span class="flex items-center text-sm text-gray-600">
+            第 {{ pagination.page }} / {{ pagination.totalPages }} 页
+          </span>
           <button
-            @click="handleUpdatePassword"
-            class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer"
+            @click="handleLogPageChange(pagination.page + 1)"
+            :disabled="pagination.page >= pagination.totalPages"
+            class="px-4 py-2 bg-gray-200 text-gray-700 rounded border-none hover:bg-gray-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            修改密码
-          </button>
-
-          <!-- 退出登录 -->
-          <button
-            @click="handleLogout"
-            class="px-4 py-2 bg-red-500 text-white rounded border-none hover:bg-red-600 transition-colors cursor-pointer"
-          >
-            退出登录
+            下一页
           </button>
         </div>
       </div>
@@ -401,6 +529,7 @@ import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useSettings } from '~/composables/useSettings.js'
 import { useAI } from '~/composables/useAI.js'
 import { useS3 } from '~/composables/useS3.js'
+import { useLogs } from '~/composables/useLogs.js'
 import { alert, confirm, prompt } from '@/composables/useModal'
 import { useToken } from '~/composables/useToken.js'
 import { showLoading, hideLoading } from '@/composables/useLoading.js'
@@ -409,6 +538,7 @@ const { updateAccount, getTokensList, createToken, deleteToken, getConfig, setCo
 const { removeToken, removeTokenExpires } = useToken()
 const { getModels, sendMessage } = useAI()
 const { testConnection } = useS3()
+const { logs, pagination, getLogs, clearLogs } = useLogs()
 
 // 当前激活的标签页
 const activeTab = ref('config')
@@ -529,6 +659,7 @@ watch(activeTab, (newTab) => {
 const loadTabData = (tab) => {
   if (tab === 'account') {
     loadTokens()
+    loadLogsData()
   } else if (tab === 'config') {
     loadS3Config()
     loadAIConfig()
@@ -963,5 +1094,90 @@ const handleClearAIConfig = async () => {
     } else {
     await alert(result.error || '清除配置失败')
   }
+}
+
+// 日志相关数据
+const logFilters = ref({
+  action: '',
+  method: '',
+  status: '',
+  startDate: '',
+  endDate: ''
+})
+const logsLoaded = ref(false)
+
+// 加载日志
+const loadLogsData = async (page = 1) => {
+  await getLogs({
+    page,
+    pageSize: pagination.value.pageSize,
+    action: logFilters.value.action,
+    method: logFilters.value.method,
+    status: logFilters.value.status,
+    startDate: logFilters.value.startDate,
+    endDate: logFilters.value.endDate
+  })
+  logsLoaded.value = true
+}
+
+// 日志搜索
+const handleLogSearch = () => {
+  loadLogsData(1)
+}
+
+// 日志重置
+const handleLogReset = () => {
+  logFilters.value = {
+    action: '',
+    method: '',
+    status: '',
+    startDate: '',
+    endDate: ''
+  }
+  loadLogsData(1)
+}
+
+// 日志分页
+const handleLogPageChange = (page) => {
+  if (page < 1 || page > pagination.value.totalPages) return
+  loadLogsData(page)
+}
+
+// 清理日志
+const handleClearLogs = async (days) => {
+  const message = days > 0 ? `确定要清理 ${days} 天前的日志吗？` : '确定要清空所有日志吗？此操作不可逆！'
+  const confirmed = await confirm(message)
+  if (!confirmed) return
+
+  const result = await clearLogs(days)
+  if (result.success) {
+    await alert(`清理成功，已删除 ${result.deletedCount} 条日志`)
+  } else {
+    await alert(result.error || '清理日志失败')
+  }
+}
+
+// 获取方法样式
+const getMethodClass = (method) => {
+  const classes = {
+    'GET': 'bg-green-100 text-green-800',
+    'POST': 'bg-blue-100 text-blue-800',
+    'PUT': 'bg-yellow-100 text-yellow-800',
+    'PATCH': 'bg-orange-100 text-orange-800',
+    'DELETE': 'bg-red-100 text-red-800'
+  }
+  return classes[method] || 'bg-gray-100 text-gray-800'
+}
+
+// 获取状态码样式
+const getStatusClass = (status) => {
+  if (status >= 200 && status < 300) {
+    return 'bg-green-100 text-green-800'
+  } else if (status >= 400 && status < 500) {
+    return 'bg-yellow-100 text-yellow-800'
+  } else if (status >= 500) {
+    return 'bg-red-100 text-red-800'
+  }
+  return 'bg-gray-100 text-gray-800'
 }
 </script>
