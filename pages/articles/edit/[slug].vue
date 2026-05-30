@@ -66,6 +66,7 @@ import MarkdownEditor from '~/components/MarkdownEditor.vue'
 import { useAI } from '~/composables/useAI.js'
 import { withLoading } from '~/composables/useLoading.js'
 import { useToken } from '@/composables/useToken.js'
+import { showModal, alert } from '~/composables/useModal.js'
 import { siteConfig } from '~/site.config.js'
 
 const { getToken } = useToken()
@@ -206,8 +207,19 @@ const generateTitle = async () => {
       throw new Error(result.error)
     }
 
-    article.value.title = result.content
-    await alert('标题生成成功！')
+    // 弹窗预览，确认后替换
+    const confirmed = await showModal({
+      title: 'AI 生成结果',
+      message: `标题：${result.content}`,
+      type: 'confirm',
+      confirmText: '确定替换',
+      cancelText: '取消'
+    })
+
+    if (confirmed) {
+      article.value.title = result.content
+      await alert('标题已替换！')
+    }
   } catch (error) {
     console.error('生成标题失败:', error)
     await alert(`生成标题失败：${error.message}`)
@@ -241,8 +253,19 @@ const generateSummary = async () => {
       throw new Error(result.error)
     }
 
-    article.value.description = result.content
-    await alert('摘要生成成功！')
+    // 弹窗预览，确认后替换
+    const confirmed = await showModal({
+      title: 'AI 生成结果',
+      message: `摘要：${result.content}`,
+      type: 'confirm',
+      confirmText: '替换',
+      cancelText: '取消'
+    })
+
+    if (confirmed) {
+      article.value.description = result.content
+      await alert('摘要已替换！')
+    }
   } catch (error) {
     console.error('生成摘要失败:', error)
     await alert(`生成摘要失败：${error.message}`)
