@@ -7,13 +7,13 @@
         <!-- 标题 -->
         <div class="flex gap-2">
           <input v-model="article.title" id="title" placeholder="标题" class="border rounded p-2 flex-1"/>
-          <button @click="generateTitle">AI生成</button>
+          <button v-if="aiEnabled" @click="generateTitle">AI生成</button>
         </div>
 
         <!-- 描述 -->
         <div class="flex gap-2">
           <input v-model="article.description" id="description" placeholder="描述" class="border rounded p-2 flex-1"/>
-          <button @click="generateSummary">AI生成</button>
+          <button v-if="aiEnabled" @click="generateSummary">AI生成</button>
         </div>
 
         <!-- Slug、标签、日期 -->
@@ -68,9 +68,13 @@ import { withLoading } from '~/composables/useLoading.js'
 import { useToken } from '@/composables/useToken.js'
 import { showModal, alert } from '~/composables/useModal.js'
 import { siteConfig } from '~/site.config.js'
+import { useSettings } from '~/composables/useSettings.js'
 
 const { getToken } = useToken()
 const { sendMessage } = useAI()
+const { getConfig } = useSettings()
+
+const aiEnabled = ref(false)
 
 const route = useRoute()
 const router = useRouter()
@@ -111,6 +115,17 @@ onMounted(async () => {
 
   // 保存初始数据
   originalArticle.value = JSON.parse(JSON.stringify(article.value))
+
+  // 检测 AI 服务状态
+  try {
+    const result = await getConfig('ai_config')
+    if (result.success && result.data && result.data.value) {
+      const config = JSON.parse(result.data.value)
+      aiEnabled.value = config.enabled ?? false
+    }
+  } catch (e) {
+    // 获取失败，默认不显示 AI 按钮
+  }
 })
 
 const isSaved = ref(false)

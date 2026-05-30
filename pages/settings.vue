@@ -392,18 +392,26 @@
 
         <div>
           <form id="aiConfig" class="space-y-3">
-            <div class="flex items-center">
-              <label class="text-sm font-medium text-gray-700 mr-2">启用 AI 服务</label>
-              <input
-                v-model="aiConfig.enabled"
-                type="checkbox"
-                id="aiEnabled"
-                :disabled="!isEditingAI"
-                :class="!isEditingAI ? 'cursor-not-allowed' : 'cursor-pointer'"
-                class="w-4 h-4"
-              />
+            <!-- 非编辑状态：未启用时显示提示 -->
+            <div v-if="!isEditingAI && !aiConfig.enabled" class="flex items-center text-sm text-gray-400">
+              <svg class="w-4 h-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
+              </svg>
+              AI 服务未启用
             </div>
-            <div>
+            <!-- 编辑状态：显示开关 -->
+            <div v-if="isEditingAI" class="flex items-center">
+              <label class="text-sm font-medium text-gray-700 mr-3">启用 AI 服务</label>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input
+                  v-model="aiConfig.enabled"
+                  type="checkbox"
+                  class="sr-only peer"
+                />
+                <div class="w-10 h-5 bg-gray-300 rounded-full peer-checked:bg-blue-600 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-5"></div>
+              </label>
+            </div>
+            <div v-show="aiConfig.enabled">
               <label class="text-sm text-gray-600 mb-1 block">API Endpoint <span class="text-red-500">*</span></label>
               <input
                 v-model="aiConfig.endpoint"
@@ -415,7 +423,7 @@
               />
               <p class="text-xs text-gray-400 mt-1">API 基础地址，例如:https://api.openai.com/v1</p>
             </div>
-            <div>
+            <div v-show="aiConfig.enabled">
               <label class="text-sm text-gray-600 mb-1 block">API Key <span class="text-red-500">*</span></label>
               <input
                 v-model="aiConfig.apiKey"
@@ -426,7 +434,7 @@
                 class="w-full p-2 box-border border rounded"
               />
             </div>
-            <div>
+            <div v-show="aiConfig.enabled">
               <label class="text-sm text-gray-600 mb-1 block">Model <span class="text-red-500">*</span></label>
               <div class="model-search-container flex items-center gap-2 relative">
                 <input
@@ -1019,6 +1027,30 @@ const handleLoadModels = async () => {
 
 // 保存 AI 配置
 const handleSaveAIConfig = async () => {
+  // 未启用时直接保存，不检查可用性
+  if (!aiConfig.value.enabled) {
+    loadingAIConfig.value = true
+    const result = await setConfig({
+      key: 'ai_config',
+      value: JSON.stringify({
+        enabled: false,
+        endpoint: aiConfig.value.endpoint,
+        apiKey: aiConfig.value.apiKey,
+        model: aiConfig.value.model
+      }),
+      description: 'AI服务配置：OpenAI API配置'
+    })
+    loadingAIConfig.value = false
+
+    if (result.success) {
+      await alert('AI 配置保存成功！')
+      isEditingAI.value = false
+    } else {
+      await alert(result.error || '保存配置失败')
+    }
+    return
+  }
+
   if (!aiConfig.value.apiKey) {
     await alert('请填写 API Key')
     return
@@ -1054,7 +1086,7 @@ const handleSaveAIConfig = async () => {
   const result = await setConfig({
     key: 'ai_config',
     value: JSON.stringify({
-      enabled: aiConfig.value.enabled,
+      enabled: true,
       endpoint: aiConfig.value.endpoint,
       apiKey: aiConfig.value.apiKey,
       model: aiConfig.value.model
