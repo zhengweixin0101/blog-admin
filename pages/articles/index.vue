@@ -98,7 +98,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useArticles } from '~/composables/useArticles.js'
 import { useArticleImportExport } from '~/composables/useArticleImportExport.js'
 import { alert, confirm } from '@/composables/useModal'
@@ -164,7 +164,20 @@ const resetNewArticle = () => {
 
 onMounted(() => {
   getList()
+  window.addEventListener('keydown', keydownHandler)
 })
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', keydownHandler)
+})
+
+// Ctrl+S 创建文章
+const keydownHandler = (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault()
+    handleCreate()
+  }
+}
 
 // 删除文章
 const handleDelete = async (slug) => {

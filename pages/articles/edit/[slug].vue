@@ -143,11 +143,21 @@ const beforeUnloadHandler = (e) => {
 
 onMounted(() => {
   window.addEventListener('beforeunload', beforeUnloadHandler)
+  window.addEventListener('keydown', keydownHandler)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', beforeUnloadHandler)
+  window.removeEventListener('keydown', keydownHandler)
 })
+
+// Ctrl+S 保存文章
+const keydownHandler = (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault()
+    save()
+  }
+}
 
 // 返回按钮
 const goBack = () => {
