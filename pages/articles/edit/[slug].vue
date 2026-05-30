@@ -197,7 +197,7 @@ const generateTitle = async () => {
     const result = await withLoading(
       () => sendMessage({
         messages: [
-          { role: 'user', content: `请为以下文章生成一个20字以内吸引人的标题：\n${article.value.content}` }
+          { role: 'user', content: `请为以下文章生成一个20字以内吸引人的标题直接输出标题即可：\n${article.value.content}` }
         ]
       }),
       'AI生成中...'
@@ -243,7 +243,7 @@ const generateSummary = async () => {
     const result = await withLoading(
       () => sendMessage({
         messages: [
-          { role: 'user', content: `请为以下文章生成一个用于博客前台展示的50字以内的简洁摘要：\n${article.value.content}` }
+          { role: 'user', content: `请为以下文章生成一个用于博客前台展示的50字以内的简洁摘要直接输出摘要即可：\n${article.value.content}` }
         ]
       }),
       'AI生成中...'
