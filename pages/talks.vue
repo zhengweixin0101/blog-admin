@@ -14,114 +14,28 @@
               @keydown="handleEditorKeyDown"
             ></textarea>
             <div class="w-full border border-dashed border-gray-300"></div>
-            <div class="flex justify-between mt-2">
-              <div class="mt-1">
-                <button
-                  ref="tagButton"
-                  @click.stop="toggleDropdown('tag','new')"
-                  :class="[
-                    'border-none bg-transparent cursor-pointer transition-colors',
-                    activeDropdown === 'tag' ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
-                  ]"
-                  title="插入标签"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hash size-5"><line x1="4" x2="20" y1="9" y2="9"></line><line x1="4" x2="20" y1="15" y2="15"></line><line x1="10" x2="8" y1="3" y2="21"></line><line x1="16" x2="14" y1="3" y2="21"></line></svg>
-                </button>
-                <transition name="fade-slide">
-                  <div v-if="activeDropdown.type === 'tag' && activeDropdown.target === 'new'" class="dropdown absolute mt-1 p-2 bg-gray-100 rounded shadow z-50 max-w-xs">
-                    <span
-                      v-for="tag in allTags"
-                      :key="tag"
-                      @click="insertTag(tag)"
-                      class="mx-1 text-sm text-blue-500 hover:text-blue-800 rounded cursor-pointer transition-colors"
-                    >
-                      #{{ tag }}
-                    </span>
-                  </div>
-                </transition>
-                <button
-                  ref="markdownButton"
-                  @click.stop="toggleDropdown('markdown','new')"
-                  :class="[
-                    'border-none bg-transparent cursor-pointer transition-colors',
-                    activeDropdown === 'markdown' ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
-                  ]"
-                  title="Markdown"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square-slash size-5"><rect width="18" height="18" x="3" y="3" rx="2"></rect><line x1="9" x2="15" y1="15" y2="9"></line></svg>
-                </button>
-                <transition name="fade-slide">
-                  <div v-if="activeDropdown.type === 'markdown' && activeDropdown.target === 'new'" class="dropdown absolute mt-1 p-2 bg-gray-100 rounded shadow z-50 max-w-xs">
-                    <span
-                      v-for="item in mdOptions"
-                      :key="item.label"
-                      @click="insertMd(item.syntax)"
-                      class="mx-1 text-sm text-blue-500 hover:text-blue-800 rounded cursor-pointer transition-colors"
-                    >
-                      {{ item.label }}
-                    </span>
-                  </div>
-                </transition>
-                <button
-                  ref="locationButton"
-                  @click.stop="toggleDropdown('location','new')"
-                  :class="[
-                    'border-none bg-transparent cursor-pointer transition-colors',
-                    activeDropdown === 'location' ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
-                  ]"
-                  title="插入位置"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin size-5 shrink-0"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                </button>
-                <transition name="fade-slide">
-                  <div
-                    v-if="activeDropdown.type === 'location' && activeDropdown.target === 'new'"
-                    class="dropdown absolute mt-1 p-2 bg-gray-100 rounded shadow z-50 max-w-xs"
-                  >
-                    <div class="flex w-64">
-                      <input
-                        v-model="locationInput"
-                        placeholder="请输入位置..."
-                        class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md outline-none"
-                        @keydown.enter.prevent="insertLocation('new')"
-                      />
-                      <button
-                        @click="insertLocation('new')"
-                        class="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 border-none transition-colors"
-                      >
-                        插入
-                      </button>
-                    </div>
-                  </div>
-                </transition>
-                <button
-                  @click="() => newFileInput.click()"
-                  class="border-none bg-transparent text-gray-500 hover:text-blue-500 cursor-pointer transition-colors"
-                  title="插入图片"
-                >
-                  <input type="file" multiple accept="image/*" ref="newFileInput" class="hidden" @change="e => handleFileSelect(e, 'talks', 'new')" />
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image size-5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
-                </button>
-                <button
-                  @click="aiPolish('new')"
-                  :disabled="aiLoading"
-                  :class="[
-                    'border-none bg-transparent cursor-pointer transition-colors',
-                    'text-gray-500 hover:text-blue-500',
-                    aiLoading ? 'opacity-50 cursor-not-allowed' : ''
-                  ]"
-                  :title="aiLoading ? '润色中...' : 'AI润色'"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles size-5"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
-                </button>
-              </div>
+            <input type="file" multiple accept="image/*" ref="newFileInput" class="hidden" @change="e => handleFileSelect(e, 'talks', 'new')" />
+            <TalkEditorToolbar
+              target="new"
+              :active-dropdown="activeDropdown"
+              :tags="allTags"
+              :location-input="locationInput"
+              :ai-loading="aiLoading"
+              @toggle-dropdown="toggleDropdown"
+              @insert-tag="insertTag"
+              @insert-md="insertMd"
+              @insert-location="insertLocation"
+              @update:location-input="val => locationInput = val"
+              @upload-image="() => newFileInput.click()"
+              @ai-polish="aiPolish"
+            >
               <button
                 @click="addNewTalk"
                 class="px-3 py-1 bg-blue-500 text-white border-none rounded hover:bg-blue-600 transition-colors"
               >
                 保存
               </button>
-            </div>
+            </TalkEditorToolbar>
           </div>
           <div class="mb-6 p-4 rounded shadow transition-color text-gray-500">
             <div>Tags:</div>
@@ -173,114 +87,28 @@
                   @keydown="handleEditorKeyDown"
                 ></textarea>
                 <div class="w-full border border-dashed border-gray-300"></div>
-                <div class="flex justify-between mt-2">
-                  <div class="mt-1">
-                    <button
-                      ref="tagButton"
-                      @click.stop="toggleDropdown('tag','editing')"
-                      :class="[
-                        'border-none bg-transparent cursor-pointer transition-colors',
-                        activeDropdown === 'tag' ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
-                      ]"
-                      title="插入标签"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hash size-5"><line x1="4" x2="20" y1="9" y2="9"></line><line x1="4" x2="20" y1="15" y2="15"></line><line x1="10" x2="8" y1="3" y2="21"></line><line x1="16" x2="14" y1="3" y2="21"></line></svg>
-                    </button>
-                    <transition name="fade-slide">
-                      <div v-if="activeDropdown.type === 'tag' && activeDropdown.target === 'editing'" class="dropdown absolute mt-1 p-2 bg-gray-100 rounded shadow z-50 max-w-xs">
-                        <span
-                          v-for="tag in allTags"
-                          :key="tag"
-                          @click="insertTag(tag)"
-                          class="mx-1 text-sm text-blue-500 hover:text-blue-800 rounded cursor-pointer transition-colors"
-                        >
-                          #{{ tag }}
-                        </span>
-                      </div>
-                    </transition>
-                    <button
-                      ref="markdownButton"
-                      @click.stop="toggleDropdown('markdown','editing')"
-                      :class="[
-                        'border-none bg-transparent cursor-pointer transition-colors',
-                        activeDropdown === 'markdown' ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
-                      ]"
-                      title="Markdown"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square-slash size-5"><rect width="18" height="18" x="3" y="3" rx="2"></rect><line x1="9" x2="15" y1="15" y2="9"></line></svg>
-                    </button>
-                    <transition name="fade-slide">
-                      <div v-if="activeDropdown.type === 'markdown' && activeDropdown.target === 'editing'" class="dropdown absolute mt-1 p-2 bg-gray-100 rounded shadow z-50 max-w-xs">
-                        <span
-                          v-for="item in mdOptions"
-                          :key="item.label"
-                          @click="insertMd(item.syntax)"
-                          class="mx-1 text-sm text-blue-500 hover:text-blue-800 rounded cursor-pointer transition-colors"
-                        >
-                          {{ item.label }}
-                        </span>
-                      </div>
-                    </transition>
-                    <button
-                      ref="locationButton"
-                      @click.stop="toggleDropdown('location','editing')"
-                      :class="[
-                        'border-none bg-transparent cursor-pointer transition-colors',
-                        activeDropdown === 'location' ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
-                      ]"
-                      title="插入位置"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin size-5 shrink-0"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                    </button>
-                    <transition name="fade-slide">
-                      <div
-                        v-if="activeDropdown.type === 'location' && activeDropdown.target === 'editing'"
-                        class="dropdown absolute mt-1 p-2 bg-gray-100 rounded shadow z-50 max-w-xs"
-                      >
-                        <div class="flex w-64">
-                          <input
-                            v-model="locationInput"
-                            placeholder="请输入位置..."
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md outline-none"
-                            @keydown.enter.prevent="insertLocation('editing')"
-                          />
-                          <button
-                            @click="insertLocation('editing')"
-                            class="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 border-none transition-colors"
-                          >
-                            插入
-                          </button>
-                        </div>
-                      </div>
-                    </transition>
-                    <button
-                      @click="handleEditFileClick(talk.id)"
-                      class="border-none bg-transparent text-gray-500 hover:text-blue-500 cursor-pointer transition-colors"
-                      title="插入图片"
-                    >
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        :ref="el => { if (el) editFileInputs[talk.id] = el }"
-                        class="hidden"
-                        @change="e => handleFileSelect(e, 'talks', 'editing')"
-                      />
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image size-5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
-                    </button>
-                    <button
-                      @click="aiPolish('editing')"
-                      :disabled="aiLoading"
-                      :class="[
-                        'border-none bg-transparent cursor-pointer transition-colors',
-                        'text-gray-500 hover:text-blue-500',
-                        aiLoading ? 'opacity-50 cursor-not-allowed' : ''
-                      ]"
-                      :title="aiLoading ? '润色中...' : 'AI润色'"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles size-5"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
-                    </button>
-                  </div>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  :ref="el => { if (el) editFileInputs[talk.id] = el }"
+                  class="hidden"
+                  @change="e => handleFileSelect(e, 'talks', 'editing')"
+                />
+                <TalkEditorToolbar
+                  target="editing"
+                  :active-dropdown="activeDropdown"
+                  :tags="allTags"
+                  :location-input="locationInput"
+                  :ai-loading="aiLoading"
+                  @toggle-dropdown="toggleDropdown"
+                  @insert-tag="insertTag"
+                  @insert-md="insertMd"
+                  @insert-location="insertLocation"
+                  @update:location-input="val => locationInput = val"
+                  @upload-image="handleEditFileClick(talk.id)"
+                  @ai-polish="aiPolish"
+                >
                   <div class="flex items-center space-x-2">
                     <button
                       @click="cancelEdit"
@@ -297,7 +125,7 @@
                       保存
                     </button>
                   </div>
-                </div>
+                </TalkEditorToolbar>
               </div>
 
               <!-- 显示模式 -->
@@ -411,6 +239,7 @@ import { useAI } from '@/composables/useAI'
 import { useSettings } from '~/composables/useSettings.js'
 import { alert, confirm } from '@/composables/useModal'
 import { showLoading, hideLoading } from '@/composables/useLoading'
+import TalkEditorToolbar from '~/components/TalkEditorToolbar.vue'
 
 import { Fancybox } from '@fancyapps/ui'
 import '@fancyapps/ui/dist/fancybox/fancybox.css'

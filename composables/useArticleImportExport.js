@@ -1,11 +1,10 @@
-import axios from 'axios'
+import api from './useApi.js'
 import { siteConfig } from '@/site.config.js'
 import { withLoading } from './useLoading.js'
 import { useToken } from './useToken.js'
 import { useErrorHandler } from './useErrorHandler.js'
 
 export function useArticleImportExport() {
-    const API_BASE = siteConfig.apiUrl
     const { getToken, clearAuthData } = useToken()
     const { handleError, extractErrorMessage } = useErrorHandler()
 
@@ -32,9 +31,8 @@ export function useArticleImportExport() {
 
             while (true) {
                 const res = await withLoading(
-                    () => axios.get(`${API_BASE}/api/articles`, {
-                        params: { page: currentPage, pageSize, posts: 'all' },
-                        headers: { 'Authorization': `Bearer ${key}` }
+                    () => api.get('/api/articles', {
+                        params: { page: currentPage, pageSize, posts: 'all' }
                     }),
                     `正在加载文章列表第 ${currentPage} 页...`
                 )()
@@ -65,9 +63,7 @@ export function useArticleImportExport() {
                 const article = articles[i]
                 try {
                     const res = await withLoading(
-                        () => axios.get(`${API_BASE}/api/articles/${article.slug}`, {
-                            headers: { 'Authorization': `Bearer ${key}` }
-                        }),
+                        () => api.get(`/api/articles/${article.slug}`),
                         `正在获取文章 (${i + 1}/${articles.length}): ${article.title || article.slug}...`
                     )()
                     const body = res.data
@@ -92,7 +88,7 @@ export function useArticleImportExport() {
 
             return { data: fullArticles, page: 1, pageSize, total, totalPages }
         } catch (err) {
-            handleError(err), { success: false, error: extractErrorMessage(err) }
+            handleError(err)
             return { success: false, error: extractErrorMessage(err) }
         }
     }
@@ -274,9 +270,7 @@ published: ${article.published !== undefined ? article.published : false}
                         // 调用 API 创建文章
                         const key = ensureKey()
                         const res = await withLoading(
-                            () => axios.post(`${API_BASE}/api/articles`, parsed, {
-                                headers: { 'Authorization': `Bearer ${key}` }
-                            }),
+                            () => api.post('/api/articles', parsed),
                             `正在导入: ${filename}...`
                         )()
                         
@@ -320,15 +314,13 @@ published: ${article.published !== undefined ? article.published : false}
             // 调用 API 创建文章
             const key = ensureKey()
             const res = await withLoading(
-                () => axios.post(`${API_BASE}/api/articles`, parsed, {
-                    headers: { 'Authorization': `Bearer ${key}` }
-                }),
+                () => api.post('/api/articles', parsed),
                 '导入 Markdown 文章中...'
             )()
 
             return { success: true, data: res.data }
         } catch (err) {
-            handleError(err), { success: false, error: extractErrorMessage(err) }
+            handleError(err)
             return { success: false, error: extractErrorMessage(err) }
         }
     }
@@ -358,9 +350,7 @@ published: ${article.published !== undefined ? article.published : false}
                     }
 
                     const res = await withLoading(
-                        () => axios.post(`${API_BASE}/api/articles`, article, {
-                            headers: { 'Authorization': `Bearer ${key}` }
-                        }),
+                        () => api.post('/api/articles', article),
                         `导入文章: ${article.title || article.slug}...`
                     )()
 
@@ -375,9 +365,9 @@ published: ${article.published !== undefined ? article.published : false}
             const failCount = results.length - successCount
 
             if (failCount > 0) {
-                alert(`导入完成！成功 ${successCount} 篇，失败 ${failCount} 篇。请查看控制台了解详情。`), null
+                await alert(`导入完成！成功 ${successCount} 篇，失败 ${failCount} 篇。请查看控制台了解详情。`)
             } else {
-                alert(`导入成功！共导入 ${successCount} 篇文章。`), null
+                await alert(`导入成功！共导入 ${successCount} 篇文章。`)
             }
 
             return { success: true, results }

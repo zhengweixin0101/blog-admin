@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import axios from 'axios'
+import api from './useApi.js'
 import { siteConfig } from '@/site.config.js'
 import { withLoading } from './useLoading.js'
 import { alert, confirm } from '@/composables/useModal'
@@ -7,7 +7,6 @@ import { useToken } from './useToken.js'
 import { useErrorHandler } from './useErrorHandler.js'
 
 export function useTalks() {
-    const API_BASE = siteConfig.apiUrl
     const talks = ref([])
     const { getToken, clearAuthData } = useToken()
     const { handleError, extractErrorMessage } = useErrorHandler()
@@ -43,7 +42,7 @@ export function useTalks() {
     const getTalks = async (params = {}) => {
         try {
             const res = await withLoading(
-                () => axios.get(`${API_BASE}/api/talks`, { params }),
+                () => api.get('/api/talks', { params }),
                 '加载说说中...'
             )()
 
@@ -57,7 +56,7 @@ export function useTalks() {
             }
             return response
         } catch (err) {
-            handleError(err), { success: false, error: extractErrorMessage(err), data: [] }
+            handleError(err)
             return { success: false, error: extractErrorMessage(err), data: [] }
         }
     }
@@ -84,9 +83,7 @@ export function useTalks() {
                 }
 
                 return await withLoading(
-                    () => axios.post(`${API_BASE}/api/talks`, requestPayload, {
-                        headers: { 'Authorization': `Bearer ${key}` }
-                    }),
+                    () => api.post('/api/talks', requestPayload),
                     '添加说说中...'
                 )()
             })
@@ -94,7 +91,7 @@ export function useTalks() {
             const response = res.data
             return { success: true, talk: response.talk, message: response.message || '说说添加成功' }
         } catch (err) {
-            handleError(err), { success: false, error: extractErrorMessage(err) }
+            handleError(err)
             return { success: false, error: extractErrorMessage(err) }
         }
     }
@@ -118,9 +115,7 @@ export function useTalks() {
                 }
 
                 return await withLoading(
-                    () => axios.put(`${API_BASE}/api/talks`, payload, {
-                        headers: { 'Authorization': `Bearer ${key}` }
-                    }),
+                    () => api.put('/api/talks', payload),
                     '编辑说说中...'
                 )()
             })
@@ -128,7 +123,7 @@ export function useTalks() {
             const response = res.data
             return { success: true, talk: response.talk, message: response.message || '说说修改成功' }
         } catch (err) {
-            handleError(err), { success: false, error: extractErrorMessage(err) }
+            handleError(err)
             return { success: false, error: extractErrorMessage(err) }
         }
     }
@@ -139,15 +134,13 @@ export function useTalks() {
             const key = ensureKey()
 
             const res = await requestWithTurnstile(async (turnstileToken) => {
-                const headers = {
-                    'Authorization': `Bearer ${key}`
-                }
+                const headers = {}
                 if (turnstileToken) {
                     headers['x-turnstile-token'] = turnstileToken
                 }
 
                 return await withLoading(
-                    () => axios.delete(`${API_BASE}/api/talks`, {
+                    () => api.delete('/api/talks', {
                         headers,
                         data: { id }
                     }),
@@ -157,7 +150,7 @@ export function useTalks() {
 
             return { success: true, message: res.data?.message || '说说删除成功' }
         } catch (err) {
-            handleError(err), { success: false, error: extractErrorMessage(err) }
+            handleError(err)
             return { success: false, error: extractErrorMessage(err) }
         }
     }

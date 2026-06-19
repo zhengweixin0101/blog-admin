@@ -1,11 +1,10 @@
-import axios from 'axios'
+import api from './useApi.js'
 import { siteConfig } from '@/site.config.js'
 import { withLoading } from './useLoading.js'
 import { useToken } from './useToken.js'
 import { useErrorHandler } from './useErrorHandler.js'
 
 export function useSettings() {
-    const API_BASE = siteConfig.apiUrl
     const { getToken, clearAuthData } = useToken()
     const { handleError, extractErrorMessage } = useErrorHandler()
 
@@ -25,20 +24,15 @@ export function useSettings() {
 
         try {
             const response = await withLoading(async () => {
-                return await axios.post(`${API_BASE}/api/system/updateAccount`, {
+                return await api.post('/api/system/updateAccount', {
                     username,
                     password,
                     currentPassword
-                }, {
-                    headers: {
-                        'Authorization': `Bearer ${key}`,
-                        'Content-Type': 'application/json'
-                    }
                 })
             }, '更新中...')()
             return { success: true, ...response.data }
         } catch (error) {
-            handleError(error), { success: false, error: extractErrorMessage(error) }
+            handleError(error)
             return { success: false, error: extractErrorMessage(error) }
         }
     }
@@ -48,17 +42,13 @@ export function useSettings() {
         const key = ensureKey()
 
         try {
-            const response = await axios.get(`${API_BASE}/api/system/tokens`, {
-                headers: {
-                    'Authorization': `Bearer ${key}`
-                }
-            })
+            const response = await api.get('/api/system/tokens')
             return { success: true, ...response.data }
         } catch (error) {
             if (error.response?.status === 404 || error.response?.status === 500) {
                 return { success: true, data: [] }
             }
-            handleError(error, { showAlert: false }), { success: false, error: extractErrorMessage(error) }
+            handleError(error, { showAlert: false })
             return { success: false, error: extractErrorMessage(error) }
         }
     }
@@ -69,21 +59,16 @@ export function useSettings() {
 
         try {
             const response = await withLoading(async () => {
-                return await axios.post(`${API_BASE}/api/system/tokens`, {
+                return await api.post('/api/system/tokens', {
                     name,
                     description,
                     expiresIn,
                     permissions
-                }, {
-                    headers: {
-                        'Authorization': `Bearer ${key}`,
-                        'Content-Type': 'application/json'
-                    }
                 })
             }, '创建中...')()
             return { success: true, ...response.data }
         } catch (error) {
-            handleError(error), { success: false, error: extractErrorMessage(error) }
+            handleError(error)
             return { success: false, error: extractErrorMessage(error) }
         }
     }
@@ -94,17 +79,13 @@ export function useSettings() {
 
         try {
             const response = await withLoading(async () => {
-                return await axios.delete(`${API_BASE}/api/system/tokens`, {
-                    data: { id },
-                    headers: {
-                        'Authorization': `Bearer ${key}`,
-                        'Content-Type': 'application/json'
-                    }
+                return await api.delete('/api/system/tokens', {
+                    data: { id }
                 })
             }, '删除中...')()
             return { success: true, ...response.data }
         } catch (error) {
-            handleError(error), { success: false, error: extractErrorMessage(error) }
+            handleError(error)
             return { success: false, error: extractErrorMessage(error) }
         }
     }
@@ -114,15 +95,12 @@ export function useSettings() {
         const authKey = ensureKey()
 
         try {
-            const response = await axios.get(`${API_BASE}/api/system/config`, {
-                params: { key },
-                headers: {
-                    'Authorization': `Bearer ${authKey}`
-                }
+            const response = await api.get('/api/system/config', {
+                params: { key }
             })
             return { success: true, ...response.data }
         } catch (error) {
-            handleError(error, { showAlert: false }), { success: false, error: extractErrorMessage(error) }
+            handleError(error, { showAlert: false })
             return { success: false, error: extractErrorMessage(error) }
         }
     }
@@ -133,20 +111,15 @@ export function useSettings() {
 
         try {
             const response = await withLoading(async () => {
-                return await axios.post(`${API_BASE}/api/system/config`, {
+                return await api.post('/api/system/config', {
                     key,
                     value,
                     description
-                }, {
-                    headers: {
-                        'Authorization': `Bearer ${authKey}`,
-                        'Content-Type': 'application/json'
-                    }
                 })
             }, '保存中...')()
             return { success: true, ...response.data }
         } catch (error) {
-            handleError(error), { success: false, error: extractErrorMessage(error) }
+            handleError(error)
             return { success: false, error: extractErrorMessage(error) }
         }
     }

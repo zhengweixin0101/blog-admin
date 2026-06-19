@@ -1,12 +1,11 @@
 import { ref } from 'vue'
-import axios from 'axios'
+import api from './useApi.js'
 import { siteConfig } from '@/site.config.js'
 import { withLoading } from './useLoading.js'
 import { useToken } from './useToken.js'
 import { useErrorHandler } from './useErrorHandler.js'
 
 export function useLogs() {
-    const API_BASE = siteConfig.apiUrl
     const logs = ref([])
     const pagination = ref({
         page: 1,
@@ -50,10 +49,7 @@ export function useLogs() {
             if (endDate) params.endDate = endDate
 
             const res = await withLoading(
-                () => axios.get(`${API_BASE}/api/logs`, {
-                    params,
-                    headers: { 'Authorization': `Bearer ${key}` }
-                }),
+                () => api.get('/api/logs', { params }),
                 '加载日志列表中...'
             )()
 
@@ -81,10 +77,7 @@ export function useLogs() {
             const key = ensureKey()
 
             const res = await withLoading(
-                () => axios.delete(`${API_BASE}/api/logs`, {
-                    params: { days },
-                    headers: { 'Authorization': `Bearer ${key}` }
-                }),
+                () => api.delete('/api/logs', { params: { days } }),
                 days > 0 ? `正在清理${days}天前的日志...` : '正在清空日志...'
             )()
 

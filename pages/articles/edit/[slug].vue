@@ -129,6 +129,7 @@ onMounted(async () => {
 })
 
 const isSaved = ref(false)
+const isSaving = ref(false)
 
 // 判断文章是否有修改
 const hasChanges = () => {
@@ -182,17 +183,23 @@ const goBack = () => {
 
 // 保存文章
 const save = async () => {
+  if (isSaving.value) return
   if (!hasChanges()) {
     await alert('文章没有修改，无需保存')
     return
   }
 
-  const result = await editArticle(article.value)
-  if (!result || !result.success) return
+  isSaving.value = true
+  try {
+    const result = await editArticle(article.value)
+    if (!result || !result.success) return
 
-  isSaved.value = true
-  originalArticle.value = JSON.parse(JSON.stringify(article.value))
-  await alert('保存成功')
+    isSaved.value = true
+    originalArticle.value = JSON.parse(JSON.stringify(article.value))
+    await alert('保存成功')
+  } finally {
+    isSaving.value = false
+  }
 }
 
 // 生成AI标题

@@ -556,18 +556,26 @@ const openSource = (comment) => {
 const loadData = async () => {
   loading.value = true
   try {
-    await Promise.all([
+    const results = await Promise.all([
       getList(),
       getTalks(),
       getVisitStats()
     ])
     
+    // 检查核心数据是否加载成功
+    const failed = results.some(r => r && !r.success)
+    if (failed) return
+
     calculateArticleStats()
     getTagStats()
     getTalkStats()
-    await getCommentStats()
-    await getTopArticles()
-    await fetchRecentComments()
+
+    // 非关键数据异步加载，不阻塞首屏
+    await Promise.allSettled([
+      getCommentStats(),
+      getTopArticles(),
+      fetchRecentComments()
+    ])
   } catch (error) {
     console.error('加载数据失败:', error)
   } finally {

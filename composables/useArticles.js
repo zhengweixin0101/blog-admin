@@ -1,12 +1,11 @@
 import { ref } from 'vue'
-import axios from 'axios'
+import api from './useApi.js'
 import { siteConfig } from '@/site.config.js'
 import { withLoading } from './useLoading.js'
 import { useToken } from './useToken.js'
 import { useErrorHandler } from './useErrorHandler.js'
 
 export function useArticles() {
-    const API_BASE = siteConfig.apiUrl
     const articles = ref([])
     const { getToken, clearAuthData } = useToken()
     const { handleError, extractErrorMessage } = useErrorHandler()
@@ -45,7 +44,7 @@ export function useArticles() {
     const getList = async () => {
         try {
             const res = await withLoading(
-                () => axios.get(`${API_BASE}/api/articles`, { params: { posts: 'all' } }),
+                () => api.get('/api/articles', { params: { posts: 'all' } }),
                 '加载文章列表中...'
             )()
 
@@ -72,7 +71,7 @@ export function useArticles() {
     const getArticle = async (slug) => {
         try {
             const res = await withLoading(
-                () => axios.get(`${API_BASE}/api/articles/${slug}`),
+                () => api.get(`/api/articles/${slug}`),
                 '加载文章内容中...'
             )()
 
@@ -103,9 +102,7 @@ export function useArticles() {
                 }
 
                 return await withLoading(
-                    () => axios.post(`${API_BASE}/api/articles`, requestPayload, {
-                        headers: { 'Authorization': `Bearer ${key}` }
-                    }),
+                    () => api.post('/api/articles', requestPayload),
                     '创建文章中...'
                 )()
             })
@@ -145,9 +142,7 @@ export function useArticles() {
                 }
 
                 return await withLoading(
-                    () => axios.put(`${API_BASE}/api/articles`, requestPayload, {
-                        headers: { 'Authorization': `Bearer ${key}` }
-                    }),
+                    () => api.put('/api/articles', requestPayload),
                     '更新文章中...'
                 )()
             })
@@ -179,9 +174,7 @@ export function useArticles() {
                 }
 
                 return await withLoading(
-                    () => axios.patch(`${API_BASE}/api/articles`, payload, {
-                        headers: { 'Authorization': `Bearer ${key}` }
-                    }),
+                    () => api.patch('/api/articles', payload),
                     '修改文章链接中...'
                 )()
             })
@@ -203,15 +196,13 @@ export function useArticles() {
             const key = ensureKey()
 
             const res = await requestWithTurnstile(async (turnstileToken) => {
-                const headers = {
-                    'Authorization': `Bearer ${key}`
-                }
+                const headers = {}
                 if (turnstileToken) {
                     headers['x-turnstile-token'] = turnstileToken
                 }
 
                 return await withLoading(
-                    () => axios.delete(`${API_BASE}/api/articles`, {
+                    () => api.delete('/api/articles', {
                         headers,
                         data: { slug }
                     }),

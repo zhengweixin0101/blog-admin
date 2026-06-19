@@ -105,25 +105,27 @@ export function useS3({ config, onProgress } = {}) {
 
     // 显示图片对比弹窗
     async function showImageComparison(originalFile, compressedResult) {
+        // 优先使用 Vue 组件
+        if (typeof window !== 'undefined' && window.showImageComparisonDialog) {
+            return await window.showImageComparisonDialog(originalFile, compressedResult)
+        }
+
+        // 回退原生 DOM 实现
         return new Promise((resolve) => {
-            // 保存当前滚动位置和样式
             const scrollY = window.scrollY
             const originalOverflow = document.body.style.overflow
             const originalPosition = document.body.style.position
             
-            // 禁用页面滚动
             document.body.style.overflow = 'hidden'
             document.body.style.position = 'fixed'
             document.body.style.top = `-${scrollY}px`
             document.body.style.width = '100%'
             
-            // 创建弹窗容器
             const modalContainer = document.createElement('div')
             modalContainer.className = 'fixed inset-0 bg-black/40 flex items-center justify-center'
             modalContainer.style.zIndex = '99999'
             document.body.appendChild(modalContainer)
             
-            // 创建弹窗内容
             const modalContent = document.createElement('div')
             modalContent.className = 'bg-white rounded-lg shadow-lg p-6 w-96 max-w-lg relative'
             
@@ -142,16 +144,11 @@ export function useS3({ config, onProgress } = {}) {
             
             function getImageDimensions(file, callback) {
                 const img = new Image()
-                img.onload = () => {
-                    callback(`${img.width} × ${img.height}`)
-                }
-                img.onerror = () => {
-                    callback('未知')
-                }
+                img.onload = () => callback(`${img.width} × ${img.height}`)
+                img.onerror = () => callback('未知')
                 img.src = URL.createObjectURL(file)
             }
             
-            // 获取图片尺寸
             getImageDimensions(originalFile, (dims) => {
                 originalDimensions = dims
                 updateDimensionsDisplay()
@@ -162,21 +159,18 @@ export function useS3({ config, onProgress } = {}) {
             })
             
             function updateDimensionsDisplay() {
-                const originalDimEl = modalContent.querySelector('#original-dimensions')
-                const compressedDimEl = modalContent.querySelector('#compressed-dimensions')
-                if (originalDimEl) originalDimEl.textContent = originalDimensions
-                if (compressedDimEl) compressedDimEl.textContent = compressedDimensions
+                const o = modalContent.querySelector('#original-dimensions')
+                const c = modalContent.querySelector('#compressed-dimensions')
+                if (o) o.textContent = originalDimensions
+                if (c) c.textContent = compressedDimensions
             }
             
             modalContent.innerHTML = `
                 <div>
                     <div class="flex justify-between items-center">
                         <h2 class="text-lg font-bold text-center flex-1">上传图片</h2>
-                        <button id="close-btn" class="absolute top-2 right-3 bg-transparent border-none text-lg text-gray-400 hover:text-gray-600 cursor-pointer">
-                            ✕
-                        </button>
+                        <button id="close-btn" class="absolute top-2 right-3 bg-transparent border-none text-lg text-gray-400 hover:text-gray-600 cursor-pointer">✕</button>
                     </div>
-
                     <div>
                         <p class="text-sm text-gray-600 mb-2 truncate" title="${originalFile.name}">文件名：${originalFile.name}</p>
                         <div class="flex gap-3 text-sm bg-blue-50 p-2 rounded">
@@ -192,7 +186,6 @@ export function useS3({ config, onProgress } = {}) {
                             </div>
                         </div>
                     </div>
-
                     <div class="flex mt-3 mb-6 justify-center">
                         <div class="flex-1 max-w-[160px]">
                             <div class="overflow-hidden h-32 flex items-center justify-center">
@@ -205,31 +198,23 @@ export function useS3({ config, onProgress } = {}) {
                             </div>
                         </div>
                     </div>
-
                     <div class="flex gap-2 justify-end">
-                        <button id="original-btn" class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition border-none rounded cursor-pointer">
-                            使用原图
-                        </button>
-                        <button id="confirm-btn" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition border-none rounded cursor-pointer">
-                            使用压缩图
-                        </button>
+                        <button id="original-btn" class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition border-none cursor-pointer">使用原图</button>
+                        <button id="confirm-btn" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition border-none cursor-pointer">使用压缩图</button>
                     </div>
                 </div>
             `
             
             modalContainer.appendChild(modalContent)
             
-            // 绑定事件
             document.getElementById('confirm-btn').onclick = () => {
                 cleanup()
                 resolve({ action: 'compress', file: compressedResult.file })
             }
-            
             document.getElementById('original-btn').onclick = () => {
                 cleanup()
                 resolve({ action: 'skip', file: originalFile })
             }
-
             document.getElementById('close-btn').onclick = () => {
                 cleanup()
                 resolve({ action: 'cancel', file: originalFile })
@@ -239,14 +224,10 @@ export function useS3({ config, onProgress } = {}) {
                 URL.revokeObjectURL(originalUrl)
                 URL.revokeObjectURL(compressedUrl)
                 document.body.removeChild(modalContainer)
-                
-                // 恢复页面滚动
                 document.body.style.overflow = originalOverflow
                 document.body.style.position = originalPosition
                 document.body.style.top = ''
                 document.body.style.width = ''
-                
-                // 恢复滚动位置
                 window.scrollTo(0, scrollY)
             }
         })

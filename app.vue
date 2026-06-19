@@ -11,6 +11,15 @@
       <ModalDialog ref="modalRef" />
       <LoadingSpinner ref="loadingRef" />
       <TurnstileDialog ref="turnstileDialogRef" />
+      <ImageComparisonDialog
+        ref="imageComparisonRef"
+        :visible="imageComparisonVisible"
+        :original-file="imageComparisonOriginal"
+        :compressed-result="imageComparisonCompressed"
+        @confirm="handleImageComparisonConfirm"
+        @skip="handleImageComparisonSkip"
+        @cancel="handleImageComparisonCancel"
+      />
       <div
         v-if="showLoginOverlay"
         class="fixed inset-0 z-50 bg-white flex items-center justify-center"
@@ -27,6 +36,7 @@ import Sidebar from '~/components/sidebar.vue'
 import ModalDialog from '~/components/ModalDialog.vue'
 import LoadingSpinner from '~/components/LoadingSpinner.vue'
 import TurnstileDialog from '~/components/TurnstileDialog.vue'
+import ImageComparisonDialog from '~/components/ImageComparisonDialog.vue'
 import { setModal } from '~/composables/useModal'
 import { setLoading } from '~/composables/useLoading'
 import { useCookie } from '#app'
@@ -36,10 +46,49 @@ const showLoginOverlay = ref(true)
 const modalRef = ref(null)
 const loadingRef = ref(null)
 const turnstileDialogRef = ref(null)
+const imageComparisonRef = ref(null)
+const imageComparisonVisible = ref(false)
+const imageComparisonOriginal = ref(null)
+const imageComparisonCompressed = ref(null)
+let imageComparisonResolve = null
+
 const route = useRoute()
 const verified = useCookie('admin_verified')
 
 if (verified.value) showLoginOverlay.value = false
+
+function handleImageComparisonConfirm() {
+  imageComparisonVisible.value = false
+  if (imageComparisonResolve) {
+    imageComparisonResolve({ action: 'compress', file: imageComparisonCompressed.value.file })
+    imageComparisonResolve = null
+  }
+}
+
+function handleImageComparisonSkip() {
+  imageComparisonVisible.value = false
+  if (imageComparisonResolve) {
+    imageComparisonResolve({ action: 'skip', file: imageComparisonOriginal.value })
+    imageComparisonResolve = null
+  }
+}
+
+function handleImageComparisonCancel() {
+  imageComparisonVisible.value = false
+  if (imageComparisonResolve) {
+    imageComparisonResolve({ action: 'cancel', file: imageComparisonOriginal.value })
+    imageComparisonResolve = null
+  }
+}
+
+function showImageComparisonDialog(originalFile, compressedResult) {
+  return new Promise((resolve) => {
+    imageComparisonOriginal.value = originalFile
+    imageComparisonCompressed.value = compressedResult
+    imageComparisonResolve = resolve
+    imageComparisonVisible.value = true
+  })
+}
 
 onMounted(() => {
   if (modalRef.value) {
@@ -51,6 +100,11 @@ onMounted(() => {
 
   loadTurnstile()
   initTurnstileModal()
+
+  // 注册图片对比弹窗全局函数
+  if (typeof window !== 'undefined') {
+    window.showImageComparisonDialog = showImageComparisonDialog
+  }
 })
 
 function loadTurnstile() {
