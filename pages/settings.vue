@@ -524,10 +524,34 @@
       </div>
     </div>
 
-    <!-- 预留其他配置部分 -->
-    <div v-show="activeTab === 'other'" class="p-3 rounded shadow">
-      <h2 class="text-lg font-bold mb-4">其他配置</h2>
-      <div class="text-gray-500 text-sm">开发中...</div>
+    <!-- 开发者选项 -->
+    <div v-show="activeTab === 'other'" class="space-y-3">
+      <div class="p-3 rounded shadow">
+        <h2 class="text-lg font-bold mb-4">开发者选项</h2>
+        <p class="text-sm text-gray-500 mb-4">以下选项仅供开发调试使用，请勿在生产环境长时间开启。</p>
+
+        <form class="space-y-3">
+          <!-- 允许跨域开关 -->
+          <div class="flex items-center">
+            <label class="text-sm font-medium text-gray-700">允许跨域</label>
+            <div class="relative ml-2 group flex items-center">
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input
+                  v-model="allowCors.enabled"
+                  type="checkbox"
+                  class="sr-only peer"
+                  @change="handleAllowCorsToggle"
+                  :disabled="allowCors.loading"
+                />
+                <div class="w-10 h-5 bg-gray-300 rounded-full peer-checked:bg-orange-500 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-5 disabled:opacity-50 disabled:cursor-not-allowed"></div>
+              </label>
+              <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 p-2 bg-gray-800 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 whitespace-nowrap">
+                {{ allowCors.enabled ? `允许跨域将在 ${formatAllowCorsTtl(allowCors.ttl)} 后自动关闭` : '开启后将临时放行所有跨域请求来源，30 分钟后自动关闭' }}
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -541,6 +565,7 @@ import { useLogs } from '~/composables/useLogs.js'
 import { alert, confirm, prompt } from '@/composables/useModal'
 import { useToken } from '~/composables/useToken.js'
 import { showLoading, hideLoading } from '@/composables/useLoading.js'
+import api from '~/composables/useApi.js'
 
 const { updateAccount, getTokensList, createToken, deleteToken, getConfig, setConfig } = useSettings()
 const { removeToken, removeTokenExpires } = useToken()
@@ -566,6 +591,14 @@ const tabs = [
     label: '其他配置'
   }
 ]
+
+// 开发模式相关数据
+const allowCors = ref({
+  enabled: false,
+  ttl: 0,
+  loading: false
+})
+let allowCorsTimer = null
 
 // Token 相关数据
 const tokens = ref([])
@@ -656,6 +689,10 @@ onMounted(() => {
 onUnmounted(() => {
   // 清理事件监听
   document.removeEventListener('click', handleClickOutside)
+  // 清理开发模式定时器
+  if (allowCorsTimer) {
+    clearInterval(allowCorsTimer)
+  }
 })
 
 // 监听标签页变化，加载对应数据
@@ -671,7 +708,73 @@ const loadTabData = (tab) => {
   } else if (tab === 'config') {
     loadS3Config()
     loadAIConfig()
+  } else if (tab === 'other') {
+    loadAllowCorsStatus()
   }
+}
+
+// 加载开发模式状态
+const loadAllowCorsStatus = async () => {
+  try {
+    const result = await api.get('/api/system/allowcors')
+    if (result.data.success) {
+      allowCors.value.enabled = result.data.data.enabled
+      allowCors.value.ttl = result.data.data.ttl
+      startAllowCorsTimer()
+    }
+  } catch (error) {
+    console.error('加载开发模式状态失败:', error)
+  }
+}
+
+// 切换开发模式
+const handleAllowCorsToggle = async () => {
+  allowCors.value.loading = true
+  try {
+    const result = await api.post('/api/system/allowcors', {
+      enabled: allowCors.value.enabled
+    })
+    if (result.data.success) {
+      allowCors.value.ttl = result.data.data.ttl
+      startAllowCorsTimer()
+      await alert(allowCors.value.enabled ? '允许跨域已开启，30 分钟后自动关闭' : '允许跨域已关闭')
+    } else {
+      allowCors.value.enabled = !allowCors.value.enabled
+      await alert(result.data.error || '操作失败')
+    }
+  } catch (error) {
+    allowCors.value.enabled = !allowCors.value.enabled
+    await alert('操作失败：' + (error.response?.data?.error || error.message))
+  } finally {
+    allowCors.value.loading = false
+  }
+}
+
+// 启动开发模式倒计时
+const startAllowCorsTimer = () => {
+  if (allowCorsTimer) {
+    clearInterval(allowCorsTimer)
+    allowCorsTimer = null
+  }
+  if (allowCors.value.enabled && allowCors.value.ttl > 0) {
+    allowCorsTimer = setInterval(() => {
+      allowCors.value.ttl--
+      if (allowCors.value.ttl <= 0) {
+        allowCors.value.enabled = false
+        allowCors.value.ttl = 0
+        clearInterval(allowCorsTimer)
+        allowCorsTimer = null
+      }
+    }, 1000)
+  }
+}
+
+// 格式化开发模式剩余时间
+const formatAllowCorsTtl = (ttl) => {
+  if (ttl <= 0) return '已关闭'
+  const minutes = Math.floor(ttl / 60)
+  const seconds = ttl % 60
+  return `${minutes}分${seconds.toString().padStart(2, '0')}秒`
 }
 
 // 修改用户名
