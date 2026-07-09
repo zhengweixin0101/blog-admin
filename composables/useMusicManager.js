@@ -194,9 +194,25 @@ export function useMusicManager() {
   }
 
   async function syncMusicList(cfg) {
-    const songs = await getMusicListFromFiles(cfg)
-    const list = songs.map(s => ({ title: s.title, artist: s.artist }))
-    await saveMusicList(list, cfg)
+    const existingList = await getMusicList(cfg)
+    const currentSongs = await getMusicListFromFiles(cfg)
+
+    const existingKeys = new Set(existingList.map(s => `${s.title}|${s.artist}`))
+
+    // 保留已有歌曲的原有顺序
+    const finalList = existingList.filter(s =>
+      currentSongs.some(cs => cs.title === s.title && cs.artist === s.artist)
+    )
+
+    // 新歌曲追加到末尾
+    for (const song of currentSongs) {
+      const key = `${song.title}|${song.artist}`
+      if (!existingKeys.has(key)) {
+        finalList.push({ title: song.title, artist: song.artist })
+      }
+    }
+
+    await saveMusicList(finalList, cfg)
   }
 
   return {
