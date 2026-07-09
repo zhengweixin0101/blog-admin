@@ -2,7 +2,6 @@
   <div class="p-8">
     <h1 class="text-2xl font-bold mb-6">图片管理</h1>
     <div v-if="isLoadingConfig" class="flex items-center justify-center min-h-[60vh]">
-      <!-- 首屏内容 -->
     </div>
     <div v-else-if="!isConfigured" class="flex items-center justify-center min-h-[60vh]">
       <div class="max-w-md bg-gray-100 p-6 rounded shadow text-center">
@@ -98,13 +97,13 @@
             <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 @click="previewImage(`${customDomain}${file.key}`)"
-                class="bg-blue-500 text-white px-2 py-1 border-none rounded cursor-pointer hover:bg-blue-600 transition-colors cursor-pointer"
+                class="bg-blue-500 text-white px-2 py-1 border-none rounded cursor-pointer hover:bg-blue-600 transition-colors"
               >
                 预览
               </button>
               <button
                 @click="handleDeleteFile(file)"
-                class="bg-red-500 text-white px-2 py-1 border-none rounded cursor-pointer hover:bg-red-600 transition-colors cursor-pointer"
+                class="bg-red-500 text-white px-2 py-1 border-none rounded cursor-pointer hover:bg-red-600 transition-colors"
               >
                 删除
               </button>
@@ -178,27 +177,23 @@ const paths = [
   { label: '文章图片', prefix: 'blog/posts/' },
   { label: '说说图片', prefix: 'talks/' },
   { label: '评论图片', prefix: 'blog/comments' },
-  { label: '全部图片', prefix: '' },
 ]
 const currentPrefix = ref(paths[0].prefix)
 
 const viewMode = ref('list')
 onMounted(() => {
-  // 只在客户端执行
   const savedMode = localStorage.getItem('viewMode')
   if (savedMode) viewMode.value = savedMode
 })
 
-// 切换路径
-async function switchPrefix(prefix) {
+function switchPrefix(prefix) {
   currentPrefix.value = prefix
   files.value = []
   uploadProgress.value = {}
-  await listFiles()
+  listFiles()
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-// 切换视图
 function switchView(mode) {
   viewMode.value = mode
   localStorage.setItem('viewMode', mode)
@@ -229,7 +224,6 @@ async function loadConfig() {
         }
       }
     } catch (error) {
-      // 配置不存在或其他错误，显示未配置界面
     }
     isLoadingConfig.value = false
     hideLoading()
@@ -345,19 +339,15 @@ async function handleDeleteFile(file) {
   }
 }
 
-// 短暂等待
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-// 规范化 key 比较
 function normalizeKey(k) {
   if (typeof k !== 'string') return k
   return k.startsWith('/') ? k.slice(1) : k
 }
 
-// 对文件直链执行 HEAD 检查
-// 返回 true 存在， false 不存在， null 无法判断
 async function headCheck(key, retries = 2, interval = 300) {
   if (!customDomain.value) return null
   const url = customDomain.value.endsWith('/') ? `${customDomain.value}${key}` : `${customDomain.value}/${key}`
@@ -367,14 +357,12 @@ async function headCheck(key, retries = 2, interval = 300) {
       if (resp.status === 404) return false
       if (resp.ok) return true
     } catch (e) {
-      // ignore error
     }
     await sleep(interval)
   }
   return null
 }
 
-// 检测文件是否被删除
 async function checkDeletion(key) {
   const maxRetries = 6
   let interval = 400
@@ -385,21 +373,16 @@ async function checkDeletion(key) {
       const list = await s3.listFiles({ prefix: target, cfg: s3Config.value })
       if (Array.isArray(list)) {
         const found = list.some(item => normalizeKey(item.key) === target)
-        if (!found) {
-          return 'deleted'
-        }
+        if (!found) return 'deleted'
         const head = await headCheck(target, 1, 200)
         if (head === false) return 'deleted'
-        if (head === true) {
-          return 'exists'
-        }
+        if (head === true) return 'exists'
       } else {
         const head = await headCheck(target, 2, 300)
         if (head === false) return 'deleted'
         if (head === true) return 'exists'
       }
     } catch (e) {
-      // ignore error
     }
     await sleep(interval)
     interval = Math.min(2000, Math.round(interval * 1.5))
@@ -410,13 +393,11 @@ async function checkDeletion(key) {
     if (finalHead === false) return 'deleted'
     if (finalHead === true) return 'exists'
   } catch (e) {
-    // ignore error
   }
 
   return 'unknown'
 }
 
-// 检查 key 是否存在
 async function existsKey(key) {
   showLoading('正在检查文件...')
   const target = normalizeKey(key)
@@ -432,7 +413,6 @@ async function existsKey(key) {
       }
     }
   } catch (e) {
-    // ignore error
   }
 
   try {
@@ -511,7 +491,6 @@ async function copyLink(link) {
   }
 }
 
-// Masonry 初始化
 async function initMasonry() {
   if (viewMode.value !== 'masonry') return
   if (!masonryContainer.value) return
@@ -533,7 +512,6 @@ async function initMasonry() {
   })
 }
 
-// Fancybox
 function previewImage(url) {
   Fancybox.show([{ src: url, type: "image" }]);
 }
@@ -544,7 +522,6 @@ onMounted(() => {
   })
 })
 
-// 格式化时间
 function formatExactTime(dateString) {
   if (!dateString) return '未知时间'
   try {
@@ -562,7 +539,6 @@ function formatExactTime(dateString) {
   }
 }
 
-// 格式化文件大小
 function formatFileSize(bytes) {
   if (!bytes || bytes === 0) return '0 B'
   const k = 1024
@@ -571,7 +547,6 @@ function formatFileSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-// 等待图片加载完成
 function waitForImagesToLoad() {
   return new Promise(resolve => {
     const container = masonryContainer.value

@@ -11,6 +11,8 @@
                    :class="$route.path === '/talks' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-black hover:text-blue-600 hover:shadow-[0_0_0_0.5px_#3b82f6]'">说说管理</NuxtLink>
         <NuxtLink to="/images" class="rounded p-2 transition-all duration-200 no-underline"
                    :class="$route.path === '/images' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-black hover:text-blue-600 hover:shadow-[0_0_0_0.5px_#3b82f6]'">图片管理</NuxtLink>
+        <NuxtLink to="/music" class="rounded p-2 transition-all duration-200 no-underline"
+                   :class="$route.path === '/music' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-black hover:text-blue-600 hover:shadow-[0_0_0_0.5px_#3b82f6]'">音乐管理</NuxtLink>
         <NuxtLink to="/settings" class="rounded p-2 transition-all duration-200 no-underline"
                    :class="$route.path === '/settings' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-black hover:text-blue-600 hover:shadow-[0_0_0_0.5px_#3b82f6]'">系统设置</NuxtLink>
       </nav>
