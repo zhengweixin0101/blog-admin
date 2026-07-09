@@ -152,20 +152,24 @@ export function useMusicManager() {
 
     const binKey = `music/meta/${key}.bin`
     onProgress && onProgress('bin', 0)
-    const binUpload = new Upload({
-      client,
-      params: {
-        Bucket: cfg.bucket,
-        Key: binKey,
-        Body: binBlob,
-        ContentType: 'application/octet-stream'
-      }
-    })
-    binUpload.on('httpUploadProgress', (progress) => {
-      const percent = Math.round((progress.loaded / progress.total) * 100)
-      onProgress && onProgress('bin', percent)
-    })
-    await binUpload.done()
+    try {
+      const binUpload = new Upload({
+        client,
+        params: {
+          Bucket: cfg.bucket,
+          Key: binKey,
+          Body: binBlob,
+          ContentType: 'application/octet-stream'
+        }
+      })
+      binUpload.on('httpUploadProgress', (progress) => {
+        const percent = Math.round((progress.loaded / progress.total) * 100)
+        onProgress && onProgress('bin', percent)
+      })
+      await binUpload.done()
+    } catch (e) {
+      console.warn('Bin upload failed:', e)
+    }
 
     return { title, artist, key }
   }
