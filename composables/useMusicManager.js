@@ -4,7 +4,6 @@ import { parseFlacFile, convertToWebp } from './useFlacParser.js'
 import { createMusicBin } from './useMusicBin.js'
 
 const MUSIC_LIST_KEY = 'music/music_list.json'
-const OLD_CDN_BASE = 'https://raw.githubusercontent.com/zhengweixin0101/CDN/refs/heads/music'
 
 function safeName(s) {
   return s.replace(/\//g, '_').replace(/\\/g, '_').trim()
@@ -196,86 +195,12 @@ export function useMusicManager() {
     await saveMusicList(list, cfg)
   }
 
-  async function checkAndCreateMissingBins(cfg, customDomain, onProgress) {
-    const list = await getMusicListFromFiles(cfg)
-    const results = { total: list.length, created: 0, skipped: 0, failed: 0, details: [] }
-
-    const baseUrl = customDomain
-      ? `${customDomain}music/meta/`
-      : `${cfg.endpoint || ''}/${cfg.bucket || ''}/music/meta/`
-
-    for (let i = 0; i < list.length; i++) {
-      const item = list[i]
-      const key = safeName(`${item.title}-${item.artist}`)
-      const binUrl = `${baseUrl}${key}.bin`
-
-      onProgress && onProgress(i + 1, list.length, item.title)
-
-      try {
-        const res = await fetch(binUrl, { method: 'HEAD' })
-        if (res.ok) {
-          results.skipped++
-          continue
-        }
-      } catch {
-      }
-
-      try {
-        let lyrics = ''
-        let coverData = null
-
-        try {
-          const lyricsUrl = `${OLD_CDN_BASE}/meta/${key}/lyrics.lrc`
-          const lyricsRes = await fetch(lyricsUrl)
-          if (lyricsRes.ok) {
-            lyrics = await lyricsRes.text()
-          }
-        } catch {
-        }
-
-        try {
-          const coverUrl = `${OLD_CDN_BASE}/meta/${key}/cover.webp`
-          const coverRes = await fetch(coverUrl)
-          if (coverRes.ok) {
-            const ab = await coverRes.arrayBuffer()
-            coverData = new Uint8Array(ab)
-          }
-        } catch {
-        }
-
-        const binBlob = createMusicBin(lyrics, coverData)
-        const client = getS3Client(cfg)
-        const binKey = `music/meta/${key}.bin`
-
-        const upload = new Upload({
-          client,
-          params: {
-            Bucket: cfg.bucket,
-            Key: binKey,
-            Body: binBlob,
-            ContentType: 'application/octet-stream'
-          }
-        })
-        await upload.done()
-
-        results.created++
-        results.details.push({ title: item.title, artist: item.artist, status: 'created' })
-      } catch (e) {
-        results.failed++
-        results.details.push({ title: item.title, artist: item.artist, status: 'failed', error: e.message })
-      }
-    }
-
-    return results
-  }
-
   return {
     getMusicList,
     getMusicListFromFiles,
     listMusicFiles,
     uploadMusic,
     deleteMusic,
-    syncMusicList,
-    checkAndCreateMissingBins
+    syncMusicList
   }
 }

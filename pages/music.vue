@@ -18,13 +18,6 @@
         刷新
       </button>
       <button
-        @click="handleCheckMissingBins"
-        :disabled="checkingBins"
-        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded border-none transition-colors cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {{ checkingBins ? `检查中 (${checkProgress})` : '补全元数据' }}
-      </button>
-      <button
         @click="handleViewListFile"
         class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded border-none transition-colors cursor-pointer text-sm"
       >
@@ -207,8 +200,6 @@ const customDomain = ref('')
 const uploadQueue = ref([])
 const isUploading = ref(false)
 const fileInput = ref(null)
-const checkingBins = ref(false)
-const checkProgress = ref('')
 
 const audioEl = ref(null)
 const playingKey = ref('')
@@ -415,44 +406,6 @@ async function processQueue() {
 function handleViewListFile() {
   const url = getFileUrl('music/music_list.json')
   window.open(url, '_blank')
-}
-
-async function handleCheckMissingBins() {
-  const confirmed = await confirm('将检查所有歌曲是否有对应的 .bin 文件，没有的会从旧 CDN 拉取歌词和封面并创建。\n\n是否继续？')
-  if (!confirmed) return
-
-  checkingBins.value = true
-  checkProgress.value = '0/0'
-
-  try {
-    const result = await music.checkAndCreateMissingBins(
-      s3Config.value,
-      customDomain.value,
-      (current, total, title) => {
-        checkProgress.value = `${current}/${total}`
-      }
-    )
-
-    checkingBins.value = false
-    checkProgress.value = ''
-
-    let msg = `检查完成！\n\n共 ${result.total} 首歌曲\n跳过（已有 .bin）：${result.skipped}\n新建：${result.created}\n失败：${result.failed}`
-
-    if (result.failed > 0) {
-      const failedList = result.details.filter(d => d.status === 'failed').map(d => `${d.title} - ${d.artist}`).join('\n')
-      msg += `\n\n失败列表：\n${failedList}`
-    }
-
-    await alert(msg)
-
-    if (result.created > 0) {
-      await loadSongs()
-    }
-  } catch (e) {
-    checkingBins.value = false
-    checkProgress.value = ''
-    await alert('检查失败：' + (e.message || '请重试'))
-  }
 }
 
 async function handleDelete(song) {
