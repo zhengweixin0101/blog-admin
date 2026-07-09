@@ -67,9 +67,10 @@ export function useMusicManager() {
         title,
         artist,
         key: name,
-        size: sizeMap[name] || 0
+        size: sizeMap[name] || 0,
+        lastModified: f.lastModified ? new Date(f.lastModified).getTime() : 0
       }
-    }).sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'))
+    }).sort((a, b) => a.lastModified - b.lastModified)
   }
 
   async function saveMusicList(list, cfg) {
@@ -194,9 +195,16 @@ export function useMusicManager() {
   }
 
   async function syncMusicList(cfg) {
-    const songs = await getMusicListFromFiles(cfg)
-    const list = songs.map(s => ({ title: s.title, artist: s.artist }))
-    await saveMusicList(list, cfg)
+    const currentList = await getMusicList(cfg)
+    const files = await getMusicListFromFiles(cfg)
+    const fileKeys = new Set(files.map(f => f.key))
+
+    const existing = currentList.filter(item => fileKeys.has(safeName(`${item.title}-${item.artist}`)))
+    const existingKeys = new Set(existing.map(item => safeName(`${item.title}-${item.artist}`)))
+    const newSongs = files.filter(f => !existingKeys.has(f.key))
+
+    const merged = [...existing, ...newSongs.map(s => ({ title: s.title, artist: s.artist }))]
+    await saveMusicList(merged, cfg)
   }
 
   return {
