@@ -19,11 +19,81 @@
       </button>
       <input ref="fileInput" type="file" class="hidden" multiple accept=".flac" @change="handleFileSelect" />
       <button
-        @click="handleViewListFile"
+        @click="checkIntegrity"
         class="ml-auto px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded border-none transition-colors cursor-pointer text-sm"
+      >
+        检查完整性
+      </button>
+      <button
+        @click="handleViewListFile"
+        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded border-none transition-colors cursor-pointer text-sm"
       >
         查看列表文件
       </button>
+    </div>
+
+    <!-- 完整性检查结果 -->
+    <div v-if="integrityResult" class="mb-6 bg-white border rounded-lg overflow-hidden shadow">
+      <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border-b">
+        <span class="font-medium">完整性检查结果</span>
+        <button
+          @click="integrityResult = null"
+          class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer text-lg leading-none"
+        >&times;</button>
+      </div>
+      <div class="p-4 space-y-3 text-sm">
+        <div class="flex flex-wrap gap-4">
+          <span class="px-3 py-1 bg-green-50 text-green-700 rounded">完整: {{ integrityResult.ok.length }} 首</span>
+          <span v-if="integrityResult.missingFlac.length" class="px-3 py-1 bg-red-50 text-red-700 rounded">缺 FLAC: {{ integrityResult.missingFlac.length }} 首</span>
+          <span v-if="integrityResult.missingBin.length" class="px-3 py-1 bg-yellow-50 text-yellow-700 rounded">缺 BIN: {{ integrityResult.missingBin.length }} 首</span>
+          <span v-if="integrityResult.orphanFlac.length" class="px-3 py-1 bg-orange-50 text-orange-700 rounded">孤立 FLAC: {{ integrityResult.orphanFlac.length }} 个</span>
+          <span v-if="integrityResult.orphanBin.length" class="px-3 py-1 bg-orange-50 text-orange-700 rounded">孤立 BIN: {{ integrityResult.orphanBin.length }} 个</span>
+        </div>
+
+        <div v-if="!integrityResult.listExists" class="text-red-600">
+          ⚠ music_list.json 不存在或无法读取
+        </div>
+
+        <div v-if="integrityResult.missingFlac.length">
+          <div class="font-medium text-red-600 mb-1">缺少 FLAC 文件的歌曲：</div>
+          <div class="pl-4 space-y-0.5">
+            <div v-for="s in integrityResult.missingFlac" :key="s.key" class="text-red-500">
+              {{ s.title }} - {{ s.artist }}
+            </div>
+          </div>
+        </div>
+
+        <div v-if="integrityResult.missingBin.length">
+          <div class="font-medium text-yellow-600 mb-1">缺少 BIN 文件的歌曲：</div>
+          <div class="pl-4 space-y-0.5">
+            <div v-for="s in integrityResult.missingBin" :key="s.key" class="text-yellow-500">
+              {{ s.title }} - {{ s.artist }}
+            </div>
+          </div>
+        </div>
+
+        <div v-if="integrityResult.orphanFlac.length">
+          <div class="font-medium text-orange-600 mb-1">不在列表中的孤立 FLAC 文件：</div>
+          <div class="pl-4 space-y-0.5">
+            <div v-for="k in integrityResult.orphanFlac" :key="k" class="text-orange-500">
+              {{ k }}.flac
+            </div>
+          </div>
+        </div>
+
+        <div v-if="integrityResult.orphanBin.length">
+          <div class="font-medium text-orange-600 mb-1">不在列表中的孤立 BIN 文件：</div>
+          <div class="pl-4 space-y-0.5">
+            <div v-for="k in integrityResult.orphanBin" :key="k" class="text-orange-500">
+              {{ k }}.bin
+            </div>
+          </div>
+        </div>
+
+        <div v-if="integrityResult.listExists && integrityResult.missingFlac.length === 0 && integrityResult.missingBin.length === 0 && integrityResult.orphanFlac.length === 0 && integrityResult.orphanBin.length === 0" class="text-green-600">
+          ✓ 所有资源完整，未发现问题
+        </div>
+      </div>
     </div>
 
     <div v-if="isLoadingConfig" class="flex items-center justify-center min-h-[60vh]">
@@ -197,6 +267,7 @@ const loading = ref(false)
 const songs = ref([])
 const s3Config = ref({})
 const customDomain = ref('')
+const integrityResult = ref(null)
 
 const uploadQueue = ref([])
 const isUploading = ref(false)
@@ -367,6 +438,7 @@ async function loadSongs() {
 
 async function refreshList() {
   await loadSongs()
+  integrityResult.value = null
 }
 
 function selectFile() {
@@ -424,6 +496,17 @@ async function processQueue() {
 function handleViewListFile() {
   const url = getFileUrl('music/music_list.json')
   window.open(url, '_blank')
+}
+
+async function checkIntegrity() {
+  showLoading('正在检查资源完整性...')
+  try {
+    integrityResult.value = await music.checkIntegrity(s3Config.value)
+    hideLoading()
+  } catch (e) {
+    hideLoading()
+    await alert('检查失败：' + (e.message || '请重试'))
+  }
 }
 
 async function handleDelete(song) {

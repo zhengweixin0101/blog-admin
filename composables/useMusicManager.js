@@ -216,12 +216,83 @@ export function useMusicManager() {
     await saveMusicList(finalList, cfg)
   }
 
+  async function checkIntegrity(cfg) {
+    const result = {
+      listExists: false,
+      totalInList: 0,
+      ok: [],
+      missingFlac: [],
+      missingBin: [],
+      orphanFlac: [],
+      orphanBin: []
+    }
+
+    // 1. 检查 music_list.json 是否存在
+    let musicList = []
+    try {
+      musicList = await getMusicList(cfg)
+      result.listExists = true
+    } catch (e) {
+      result.listExists = false
+    }
+
+    result.totalInList = musicList.length
+
+    // 2. 列出所有实际文件
+    const allFiles = await listMusicFiles(cfg)
+    const flacKeys = new Set(
+      allFiles
+        .filter(f => f.key.startsWith('music/music/') && f.key.endsWith('.flac'))
+        .map(f => f.key.split('/').pop().replace(/\.flac$/i, ''))
+    )
+    const binKeys = new Set(
+      allFiles
+        .filter(f => f.key.startsWith('music/meta/') && f.key.endsWith('.bin'))
+        .map(f => f.key.split('/').pop().replace(/\.bin$/i, ''))
+    )
+
+    // 3. 检查列表中每首歌的 flac 和 bin
+    const listKeys = new Set()
+    for (const song of musicList) {
+      const key = safeName(`${song.title}-${song.artist}`)
+      listKeys.add(key)
+
+      const hasFlac = flacKeys.has(key)
+      const hasBin = binKeys.has(key)
+
+      if (hasFlac && hasBin) {
+        result.ok.push({ title: song.title, artist: song.artist, key })
+      }
+      if (!hasFlac) {
+        result.missingFlac.push({ title: song.title, artist: song.artist, key })
+      }
+      if (!hasBin) {
+        result.missingBin.push({ title: song.title, artist: song.artist, key })
+      }
+    }
+
+    // 4. 检查孤儿文件（不在 music_list.json 中的 flac/bin）
+    for (const key of flacKeys) {
+      if (!listKeys.has(key)) {
+        result.orphanFlac.push(key)
+      }
+    }
+    for (const key of binKeys) {
+      if (!listKeys.has(key)) {
+        result.orphanBin.push(key)
+      }
+    }
+
+    return result
+  }
+
   return {
     getMusicList,
     getMusicListFromFiles,
     listMusicFiles,
     uploadMusic,
     deleteMusic,
-    syncMusicList
+    syncMusicList,
+    checkIntegrity
   }
 }
