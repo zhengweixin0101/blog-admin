@@ -564,11 +564,13 @@ import { useS3 } from '~/composables/useS3.js'
 import { useLogs } from '~/composables/useLogs.js'
 import { alert, confirm, prompt } from '@/composables/useModal'
 import { useToken } from '~/composables/useToken.js'
+import { useCrypto } from '~/composables/useCrypto.js'
 import { showLoading, hideLoading } from '@/composables/useLoading.js'
 import api from '~/composables/useApi.js'
 
 const { updateAccount, getTokensList, createToken, deleteToken, getConfig, setConfig } = useSettings()
 const { removeToken, removeTokenExpires } = useToken()
+const { removeCredentials } = useCrypto()
 const { getModels, sendMessage } = useAI()
 const { testConnection } = useS3()
 const { logs, pagination, getLogs, clearLogs } = useLogs()
@@ -942,6 +944,7 @@ const handleLogout = async () => {
 
   removeToken()
   removeTokenExpires()
+  removeCredentials()
   window.location.href = '/login'
 }
 

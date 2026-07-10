@@ -82,9 +82,11 @@ import { ref, onMounted, nextTick } from 'vue'
 import { siteConfig } from '@/site.config.js'
 import { useTurnstile } from '~/composables/useTurnstile'
 import { useToken } from '~/composables/useToken'
+import { useCrypto } from '~/composables/useCrypto'
 
 const API_BASE = siteConfig.apiUrl
 const { getToken, setToken, setTokenExpires, removeToken, removeTokenExpires, getTokenExpires } = useToken()
+const { saveCredentials, getCredentials, hasCredentials, removeCredentials } = useCrypto()
 
 const username = ref('')
 const password = ref('')
@@ -215,9 +217,13 @@ async function handleSubmit() {
     if (rememberMe.value) {
       setToken(data.token, true)
       setTokenExpires(Date.now() + data.expiresIn, true)
+      // 记住账号：加密存储账号密码，供 token 过期时自动续期
+      await saveCredentials(username.value.trim(), password.value.trim())
     } else {
       setToken(data.token, false)
       setTokenExpires(Date.now() + data.expiresIn, false)
+      // 不记住账号：清除可能存在的旧凭证
+      removeCredentials()
     }
 
     const verified = useCookie('admin_verified', { path: '/' })
@@ -231,21 +237,75 @@ async function handleSubmit() {
   loading.value = false
 }
 
+// 自动登录：用缓存凭证重新获取 token
+async function tryAutoLogin() {
+  if (!hasCredentials()) return false
+  try {
+    const creds = await getCredentials()
+    if (!creds) return false
+
+    const requestBody = {
+      username: creds.username,
+      password: creds.password
+    }
+
+    const res = await fetch(`${API_BASE}/api/system/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    })
+
+    const data = await res.json()
+    if (!res.ok || !data.success) {
+      // 凭证失效，清除
+      removeCredentials()
+      removeToken()
+      removeTokenExpires()
+      return false
+    }
+
+    // 自动登录成功，存储新 token
+    setToken(data.token, true)
+    setTokenExpires(Date.now() + data.expiresIn, true)
+
+    const verified = useCookie('admin_verified', { path: '/' })
+    verified.value = 'true'
+    window.location.href = '/'
+    return true
+  } catch {
+    return false
+  }
+}
+
 onMounted(async () => {
   const cachedToken = getToken()
   if (cachedToken) {
     const expires = getTokenExpires()
     if (expires > Date.now()) {
+      // token 有效，直接跳转
       const verified = useCookie('admin_verified', { path: '/' })
       verified.value = 'true'
       window.location.href = '/'
+      return
     } else {
+      // token 已过期，清除旧 token 但保留凭证
       removeToken()
       removeTokenExpires()
     }
     rememberMe.value = true
-  } else {
-    rememberMe.value = false
   }
+
+  // 尝试用缓存凭证自动登录
+  if (hasCredentials()) {
+    loading.value = true
+    errorMessage.value = ''
+    const success = await tryAutoLogin()
+    loading.value = false
+    if (success) return
+    // 自动登录失败，停留登录页让用户手动输入
+    errorMessage.value = '自动登录失败，请手动输入账号密码'
+  }
+
+  rememberMe.value = hasCredentials()
 })
 </script>
