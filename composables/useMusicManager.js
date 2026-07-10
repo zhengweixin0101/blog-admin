@@ -67,7 +67,8 @@ export function useMusicManager() {
         title,
         artist,
         key: name,
-        size: sizeMap[name] || 0
+        size: sizeMap[name] || 0,
+        lastModified: f.lastModified
       }
     }).sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'))
   }

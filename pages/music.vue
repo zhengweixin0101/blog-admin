@@ -17,13 +17,13 @@
       >
         刷新
       </button>
+      <input ref="fileInput" type="file" class="hidden" multiple accept=".flac" @change="handleFileSelect" />
       <button
         @click="handleViewListFile"
-        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded border-none transition-colors cursor-pointer text-sm"
+        class="ml-auto px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded border-none transition-colors cursor-pointer text-sm"
       >
         查看列表文件
       </button>
-      <input ref="fileInput" type="file" class="hidden" multiple accept=".flac" @change="handleFileSelect" />
     </div>
 
     <div v-if="isLoadingConfig" class="flex items-center justify-center min-h-[60vh]">
@@ -117,6 +117,7 @@
             </div>
           </div>
           <div class="flex items-center gap-4">
+            <span class="text-sm text-gray-400 whitespace-nowrap">{{ formatExactTime(song.lastModified) }}</span>
             <span class="text-sm text-gray-400 whitespace-nowrap">{{ formatFileSize(song.size) }}</span>
             <button
               @click="handleDelete(song)"
@@ -221,6 +222,23 @@ function formatFileSize(bytes) {
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
+function formatExactTime(dateString) {
+  if (!dateString) return '未知时间'
+  try {
+    const date = new Date(dateString)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  } catch (e) {
+    return '无效日期'
+  }
 }
 
 function getFileUrl(path) {
@@ -409,7 +427,7 @@ function handleViewListFile() {
 }
 
 async function handleDelete(song) {
-  const confirmed = await confirm(`确定要删除「${song.title} - ${song.artist}」吗？\n\n将删除 R2 上的 .flac 和 .bin 文件，不可恢复。`)
+  const confirmed = await confirm(`确定要删除「${song.title} - ${song.artist}」吗？`)
   if (!confirmed) return
 
   showLoading('正在删除...')
