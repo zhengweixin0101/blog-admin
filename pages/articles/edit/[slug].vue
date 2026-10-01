@@ -46,6 +46,7 @@
       <div class="flex-1 flex flex-col min-h-0 mt-4">
         <MarkdownEditor
           v-model="article.content"
+          :article-url="articleUrl"
           @onSave="handleSave"
           class="flex-1 rounded"
         />
@@ -91,6 +92,10 @@ const article = ref({
 })
 
 const originalArticle = ref({})
+
+const articleUrl = computed(() => article.value.slug
+  ? `${siteConfig.blogUrl}/posts/${article.value.slug}`
+  : '')
 
 const tagsString = computed({
   get: () => article.value.tags.join(','),
@@ -296,10 +301,8 @@ const generateSummary = async () => {
 
 // 打开博客前台文章页面
 const openArticle = () => {
-  if (!article.value.slug) return
-  
-  const url = `${siteConfig.blogUrl}/posts/${article.value.slug}`
-  window.open(url, '_blank')
+  if (!articleUrl.value) return
+  window.open(articleUrl.value, '_blank')
 }
 
 //编辑器事件绑定

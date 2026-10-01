@@ -39,12 +39,12 @@ export function useShares() {
     }
 
     // 获取分享列表
-    const getShares = async () => {
+    const getShares = async ({ silent = false } = {}) => {
         try {
-            const res = await withLoading(
-                () => api.get('/api/shares'),
-                '加载分享中...'
-            )()
+            const request = () => api.get('/api/shares')
+            const res = silent
+                ? await request()
+                : await withLoading(request, '加载分享中...')()
 
             const response = res.data
             if (response.success && response.data) {
