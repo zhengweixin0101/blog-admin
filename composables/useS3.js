@@ -152,7 +152,7 @@ export function useS3({ config, onProgress } = {}) {
     }
 
     // 上传文件
-    async function uploadFiles({ files, cfg = config, prefix = '', customDomain = '', onProgressCb = onProgress }) {
+    async function uploadFiles({ files, cfg = config, prefix = '', customDomain = '', onProgressCb = onProgress, showErrorAlert = true }) {
         if (!files || files.length === 0) return []
 
         // 处理文件压缩
@@ -200,6 +200,10 @@ export function useS3({ config, onProgress } = {}) {
             }
             return uploadedUrls
         } catch (error) {
+            // 由调用方处理错误
+            if (!showErrorAlert) {
+                throw error
+            }
             await handleError(error, {
                 showAlert: true,
                 onError: () => console.error('S3 uploadFiles error:', error)

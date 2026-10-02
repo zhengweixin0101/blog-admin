@@ -12,6 +12,7 @@
               class="w-full my-1 h-20 text-base rounded border-none text-gray-900 resize-none focus:outline-none overflow-hidden"
               @input="autoResize"
               @keydown="handleEditorKeyDown"
+              @paste="handleEditorPaste"
             ></textarea>
             <div class="w-full border border-dashed border-gray-300"></div>
             <input type="file" multiple accept="image/*" ref="newFileInput" class="hidden" @change="e => handleFileSelect(e, 'talks', 'new')" />
@@ -85,6 +86,7 @@
                   class="w-full min-h-100px my-1 text-base rounded border-none text-gray-900 resize-none focus:outline-none"
                   @input="autoResize"
                   @keydown="handleEditorKeyDown"
+                  @paste="handleEditorPaste"
                 ></textarea>
                 <div class="w-full border border-dashed border-gray-300"></div>
                 <input
@@ -289,6 +291,37 @@ const handleEditFileClick = (talkId) => {
   }
 }
 
+// 上传图片，返回 url 列表
+const uploadImageFiles = async (files, prefix = '') => {
+  if (!s3 || !s3Config.value || !s3Config.value.bucket) {
+    await alert('请先前往图片管理页面进行配置')
+    return []
+  }
+
+  showLoading(`正在上传 ${files.length} 张图片...`)
+
+  try {
+    const urls = await s3.uploadFiles({
+      files,
+      cfg: s3Config.value,
+      prefix,
+      // 错误交由下方处理，先隐藏 loading，再弹窗，避免弹窗被遮住
+      showErrorAlert: false,
+      customDomain: s3Config.value.customDomain
+        ? (s3Config.value.customDomain.endsWith('/')
+            ? s3Config.value.customDomain
+            : s3Config.value.customDomain + '/')
+        : ''
+    })
+    hideLoading()
+    return urls
+  } catch (e) {
+    hideLoading()
+    await alert(`上传失败：${e?.message || '请重试'}`)
+    return []
+  }
+}
+
 // 上传图片
 const handleFileSelect = async (event, prefix = '', mode = 'new') => {
   const files = Array.from(event.target.files)
@@ -312,38 +345,88 @@ const handleFileSelect = async (event, prefix = '', mode = 'new') => {
     await alert(`已自动忽略非图片文件，仅上传 ${imageFiles.length} 张图片`)
   }
 
+  const urls = await uploadImageFiles(imageFiles, prefix)
+
+  urls.forEach(url => {
+    if (mode === 'new') {
+      newContent.value += `\n![图片](${url})`
+    } else if (mode === 'editing') {
+      editingContent.value += `\n![图片](${url})`
+    }
+  })
+}
+
+// 剪贴板图片的扩展名兜底
+const MIME_EXT = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/svg+xml': 'svg',
+  'image/bmp': 'bmp',
+  'image/avif': 'avif'
+}
+
+// 补全文件名，保证上传后的对象带正确扩展名
+function ensureFileName(file) {
+  if (/\.[a-z0-9]+$/i.test(file.name || '')) return file
+  const ext = MIME_EXT[file.type] || 'png'
+  return new File([file], `pasted_${Date.now()}.${ext}`, {
+    type: file.type,
+    lastModified: Date.now()
+  })
+}
+
+// 从剪贴板数据中取出图片文件
+function getClipboardImages(clipboardData) {
+  if (!clipboardData) return []
+
+  const files = []
+  for (const item of Array.from(clipboardData.items || [])) {
+    if (item.kind === 'file' && item.type && item.type.startsWith('image/')) {
+      const file = item.getAsFile()
+      if (file) files.push(file)
+    }
+  }
+  if (files.length > 0) return files
+
+  return Array.from(clipboardData.files || []).filter(
+    file => file.type && file.type.startsWith('image/')
+  )
+}
+
+// 在指定位置插入文本，并同步 v-model
+function insertTextAtCursor(textarea, pos, text) {
+  if (!textarea) return
+  const value = textarea.value
+  const at = Math.max(0, Math.min(pos, value.length))
+  textarea.value = value.slice(0, at) + text + value.slice(at)
+  const caret = at + text.length
+  textarea.selectionStart = textarea.selectionEnd = caret
+  textarea.dispatchEvent(new Event('input'))
+}
+
+// 粘贴图片自动上传并插入到光标处
+const handleEditorPaste = async (event) => {
+  const textarea = event.target
+  const files = getClipboardImages(event.clipboardData).map(ensureFileName)
+  if (files.length === 0) return
+
+  event.preventDefault()
+
   if (!s3 || !s3Config.value || !s3Config.value.bucket) {
     await alert('请先前往图片管理页面进行配置')
-    return []
+    return
   }
 
-  showLoading(`正在上传 ${imageFiles.length} 张图片...`)
+  // 记录粘贴时的光标位置，上传完成后插入到该位置
+  const cursor = textarea.selectionStart ?? textarea.value.length
+  const urls = await uploadImageFiles(files, 'talks')
+  if (urls.length === 0) return
 
-  try {
-    const urls = await s3.uploadFiles({
-      files: imageFiles,
-      cfg: s3Config.value,
-      prefix,
-      customDomain: s3Config.value.customDomain
-        ? (s3Config.value.customDomain.endsWith('/')
-            ? s3Config.value.customDomain
-            : s3Config.value.customDomain + '/')
-        : ''
-    })
-
-    urls.forEach(url => {
-      if (mode === 'new') {
-        newContent.value += `\n![图片](${url})`
-      } else if (mode === 'editing') {
-        editingContent.value += `\n![图片](${url})`
-      }
-    })
-
-    hideLoading()
-  } catch (e) {
-    hideLoading()
-    await alert('上传失败，请重试')
-  }
+  const text = urls.map(url => `\n![图片](${url})`).join('')
+  insertTextAtCursor(textarea, cursor, text)
+  autoResize({ target: textarea })
 }
 
 // 编辑器工具栏

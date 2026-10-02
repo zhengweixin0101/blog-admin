@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 bg-black/40 flex items-center justify-center z-10001 overflow-hidden" tabindex="-1" @keydown.space.prevent="handleSpaceKey" @keydown.esc="handleCancel" ref="modalRef">
+  <div v-if="visible" class="fixed inset-0 bg-black/40 flex items-center justify-center z-10003 overflow-hidden" tabindex="-1" @keydown.space.prevent="handleSpaceKey" @keydown.esc="handleCancel" ref="modalRef">
     <div class="bg-white rounded-lg shadow-lg p-6 w-96 relative">
       <h2 class="text-lg font-bold mb-4 text-center">{{ title }}</h2>
       <p class="text-gray-600 mb-4 whitespace-pre-line">{{ message }}</p>
