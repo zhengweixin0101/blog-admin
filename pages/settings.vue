@@ -538,7 +538,7 @@
                 <div class="w-10 h-5 bg-gray-300 rounded-full peer-checked:bg-orange-500 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-5 disabled:opacity-50 disabled:cursor-not-allowed"></div>
               </label>
               <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 p-2 bg-gray-800 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 whitespace-nowrap">
-                {{ allowCors.enabled ? `允许跨域将在 ${formatAllowCorsTtl(allowCors.ttl)} 后自动关闭` : '开启后将临时放行所有跨域请求来源，30 分钟后自动关闭' }}
+                {{ allowCors.enabled ? `允许跨域将在 ${formatAllowCorsTtl(allowCors.ttl)} 后自动关闭` : '开启后将临时放行所有跨域请求来源，2 小时后自动关闭' }}
               </div>
             </div>
           </div>
@@ -743,7 +743,7 @@ const handleAllowCorsToggle = async () => {
     if (result.data.success) {
       allowCors.value.ttl = result.data.data.ttl
       startAllowCorsTimer()
-      await alert(allowCors.value.enabled ? '允许跨域已开启，30 分钟后自动关闭' : '允许跨域已关闭')
+      await alert(allowCors.value.enabled ? '允许跨域已开启，2 小时后自动关闭' : '允许跨域已关闭')
     } else {
       allowCors.value.enabled = !allowCors.value.enabled
       await alert(result.data.error || '操作失败')
@@ -778,8 +778,10 @@ const startAllowCorsTimer = () => {
 // 格式化开发模式剩余时间
 const formatAllowCorsTtl = (ttl) => {
   if (ttl <= 0) return '已关闭'
-  const minutes = Math.floor(ttl / 60)
+  const hours = Math.floor(ttl / 3600)
+  const minutes = Math.floor((ttl % 3600) / 60)
   const seconds = ttl % 60
+  if (hours > 0) return `${hours}小时${minutes}分${seconds.toString().padStart(2, '0')}秒`
   return `${minutes}分${seconds.toString().padStart(2, '0')}秒`
 }
 
