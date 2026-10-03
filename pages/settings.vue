@@ -68,21 +68,13 @@
             <input v-model="newToken.description" id="tokenDescription" type="text" placeholder="Token 描述（可选）" class="w-full p-2 box-border border rounded" />
             <div class="flex items-center flex-wrap">
               <span class="text-sm text-gray-600">权限配置：</span>
-              <label class="flex items-center text-sm cursor-pointer mr-3">
-                <input type="checkbox" v-model="newToken.permissions" value="article:write" class="cursor-pointer w-3 h-3" />
-                <span>文章编辑</span> 
-              </label>
-              <label class="flex items-center text-sm cursor-pointer mr-3">
-                <input type="checkbox" v-model="newToken.permissions" value="article:delete" class="cursor-pointer w-3 h-3" />
-                <span>文章删除</span>
-              </label>
-              <label class="flex items-center text-sm cursor-pointer mr-3">
-                <input type="checkbox" v-model="newToken.permissions" value="talk:write" class="cursor-pointer w-3 h-3" />
-                <span>说说编辑</span>
-              </label>
-              <label class="flex items-center text-sm cursor-pointer">
-                <input type="checkbox" v-model="newToken.permissions" value="talk:delete" class="cursor-pointer w-3 h-3" />
-                <span>说说删除</span>
+              <label
+                v-for="permission in PERMISSION_OPTIONS"
+                :key="permission.value"
+                class="flex items-center text-sm cursor-pointer mr-3"
+              >
+                <input type="checkbox" v-model="newToken.permissions" :value="permission.value" class="cursor-pointer w-3 h-3" />
+                <span>{{ permission.label }}</span>
               </label>
             </div>
             <button
@@ -603,13 +595,25 @@ const allowCors = ref({
 let allowCorsTimer = null
 
 // Token 相关数据
-const tokens = ref([])
-const newToken = ref({
+// 可选的 Token 权限（需与后端 middleware/permission.js 保持一致）
+const PERMISSION_OPTIONS = [
+  { value: 'article:write', label: '文章编辑' },
+  { value: 'article:delete', label: '文章删除' },
+  { value: 'talk:write', label: '说说编辑' },
+  { value: 'talk:delete', label: '说说删除' },
+  { value: 'share:write', label: '分享编辑' },
+  { value: 'share:delete', label: '分享删除' }
+]
+
+const createEmptyToken = () => ({
   name: '',
   description: '',
   expiresIn: 86400000,
-  permissions: ['article:write', 'article:delete', 'talk:write', 'talk:delete']
+  permissions: PERMISSION_OPTIONS.map(p => p.value)
 })
+
+const tokens = ref([])
+const newToken = ref(createEmptyToken())
 
 // S3 配置相关数据
 const s3Config = ref({
@@ -860,7 +864,7 @@ const handleCreateToken = async () => {
   })
 
   if (result.success) {
-    newToken.value = { name: '', description: '', expiresIn: 86400000, permissions: ['article:write', 'article:delete', 'talk:write', 'talk:delete'] }
+      newToken.value = createEmptyToken()
     await loadTokens()
     await alert(`Token 创建成功！\n\n${result.data.token}\n\n(请妥善保存，关闭后将无法再次查看)`)
   } else {
@@ -927,10 +931,7 @@ const formatPermissions = (permissions) => {
   if (!permissions || !Array.isArray(permissions)) return '-'
 
   const permissionLabels = {
-    'article:write': '文章编辑',
-    'article:delete': '文章删除',
-    'talk:write': '说说编辑',
-    'talk:delete': '说说删除',
+    ...Object.fromEntries(PERMISSION_OPTIONS.map(p => [p.value, p.label])),
     'super': 'Super'
   }
 
