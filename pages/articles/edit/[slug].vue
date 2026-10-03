@@ -47,7 +47,7 @@
         <MarkdownEditor
           v-model="article.content"
           :article-url="articleUrl"
-          @onSave="handleSave"
+          @save="save"
           class="flex-1 rounded"
         />
         <div class="mt-4 flex gap-2 flex-shrink-0">
@@ -68,6 +68,7 @@ import { useAI } from '~/composables/useAI.js'
 import { withLoading } from '~/composables/useLoading.js'
 import { useToken } from '@/composables/useToken.js'
 import { showModal, alert } from '~/composables/useModal.js'
+import { toast } from '~/composables/useToast'
 import { siteConfig } from '~/site.config.js'
 import { useSettings } from '~/composables/useSettings.js'
 
@@ -173,12 +174,19 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', keydownHandler)
 })
 
+// 保存节流，按钮点击、编辑器工具栏、Ctrl+S 共用同一入口
+const SAVE_THROTTLE = 1000
+let lastSaveAt = 0
+
 // Ctrl+S 保存文章
 const keydownHandler = (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-    e.preventDefault()
-    save()
-  }
+  if (!((e.ctrlKey || e.metaKey) && e.key === 's')) return
+
+  e.preventDefault()
+  // 长按/连发时只响应第一次，避免重复提交与提示刷屏
+  if (e.repeat) return
+
+  save()
 }
 
 // 返回按钮
@@ -189,8 +197,13 @@ const goBack = () => {
 // 保存文章
 const save = async () => {
   if (isSaving.value) return
+
+  const now = Date.now()
+  if (now - lastSaveAt < SAVE_THROTTLE) return
+  lastSaveAt = now
+
   if (!hasChanges()) {
-    await alert('文章没有修改，无需保存')
+    toast('文章没有修改，无需保存')
     return
   }
 
@@ -201,7 +214,7 @@ const save = async () => {
 
     isSaved.value = true
     originalArticle.value = JSON.parse(JSON.stringify(article.value))
-    await alert('保存成功')
+    toast('保存成功！')
   } finally {
     isSaving.value = false
   }
@@ -245,7 +258,7 @@ const generateTitle = async () => {
 
     if (confirmed) {
       article.value.title = result.content
-      await alert('标题已替换！')
+      toast('标题已替换！')
     }
   } catch (error) {
     console.error('生成标题失败:', error)
@@ -291,7 +304,7 @@ const generateSummary = async () => {
 
     if (confirmed) {
       article.value.description = result.content
-      await alert('摘要已替换！')
+      toast('摘要已替换！')
     }
   } catch (error) {
     console.error('生成摘要失败:', error)
@@ -303,11 +316,5 @@ const generateSummary = async () => {
 const openArticle = () => {
   if (!articleUrl.value) return
   window.open(articleUrl.value, '_blank')
-}
-
-//编辑器事件绑定
-// 保存
-function handleSave(val) {
-  save()
 }
 </script>

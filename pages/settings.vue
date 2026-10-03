@@ -562,6 +562,7 @@ import { useToken } from '~/composables/useToken.js'
 import { useCrypto } from '~/composables/useCrypto.js'
 import { showLoading, hideLoading } from '@/composables/useLoading.js'
 import api from '~/composables/useApi.js'
+import { toast } from '~/composables/useToast'
 
 const { updateAccount, getTokensList, createToken, deleteToken, getConfig, setConfig } = useSettings()
 const { removeToken, removeTokenExpires } = useToken()
@@ -762,7 +763,7 @@ const handleAllowCorsToggle = async () => {
   if (result.data.success) {
     allowCors.value.ttl = result.data.data.ttl
     startAllowCorsTimer()
-    await alert(enabled ? '允许跨域已开启，2 小时后自动关闭' : '允许跨域已关闭')
+    toast(enabled ? '允许跨域已开启，2 小时后自动关闭' : '允许跨域已关闭')
   } else {
     allowCors.value.enabled = !enabled
     await alert(result.data.error || '操作失败')
@@ -820,7 +821,7 @@ const handleUpdateUsername = async () => {
   })
 
   if (result?.success) {
-    await alert('用户名修改成功！')
+    toast('用户名修改成功！')
   } else {
     await alert(result?.error || '修改用户名失败')
   }
@@ -853,7 +854,7 @@ const handleUpdatePassword = async () => {
   })
 
   if (result?.success) {
-    await alert('密码修改成功！')
+    toast('密码修改成功！')
   } else {
     await alert(result?.error || '修改密码失败')
   }
@@ -895,7 +896,7 @@ const handleDeleteToken = async (token) => {
   const result = await deleteToken(token.id)
   if (result.success) {
     await loadTokens()
-    await alert(result.message || 'Token 删除成功')
+    toast(result.message || 'Token 删除成功')
   } else {
     await alert(result.error || '删除 Token 失败')
   }
@@ -1044,7 +1045,7 @@ const handleSaveS3Config = async () => {
   loadingS3Config.value = false
 
   if (result.success) {
-    await alert('连接测试已通过，S3 配置保存成功！')
+    toast('连接测试已通过，S3 配置保存成功！')
     isEditingS3.value = false
   } else {
     await alert(result.error || '保存配置失败')
@@ -1072,7 +1073,7 @@ const handleClearS3Config = async () => {
       customDomain: ''
     }
     isEditingS3.value = false
-    await alert('S3 配置已清除！')
+    toast('S3 配置已清除！')
   } else {
     await alert(result.error || '清除配置失败')
   }
@@ -1165,7 +1166,7 @@ const handleSaveAIConfig = async () => {
     loadingAIConfig.value = false
 
     if (result.success) {
-      await alert('AI 配置保存成功！')
+      toast('AI 配置保存成功！')
       isEditingAI.value = false
     } else {
       await alert(result.error || '保存配置失败')
@@ -1218,7 +1219,7 @@ const handleSaveAIConfig = async () => {
   loadingAIConfig.value = false
 
   if (result.success) {
-    await alert('AI 配置保存成功！' + (aiConfig.value.model && aiConfig.value.endpoint ? '连接测试已通过。' : ''))
+    toast('AI 配置保存成功！' + (aiConfig.value.model && aiConfig.value.endpoint ? '连接测试已通过。' : ''))
     isEditingAI.value = false
   } else {
     await alert(result.error || '保存配置失败')
@@ -1244,7 +1245,7 @@ const handleClearAIConfig = async () => {
         model: ''
       }
       isEditingAI.value = false
-      await alert('AI 配置已清除！')
+      toast('AI 配置已清除！')
     } else {
     await alert(result.error || '清除配置失败')
   }
@@ -1316,7 +1317,7 @@ const handleClearLogs = async (days) => {
 
   const result = await clearLogs(days)
   if (result.success) {
-    await alert(`清理成功，已删除 ${result.deletedCount} 条日志`)
+    toast(`清理成功，已删除 ${result.deletedCount} 条日志`)
     loadLogsData(pagination.value.page)
   } else {
     await alert(result.error || '清理日志失败')

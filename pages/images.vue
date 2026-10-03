@@ -159,6 +159,7 @@ import { showLoading, hideLoading } from '@/composables/useLoading.js'
 import { useSettings } from '~/composables/useSettings.js'
 import { Fancybox } from '@fancyapps/ui'
 import '@fancyapps/ui/dist/fancybox/fancybox.css'
+import { toast } from '~/composables/useToast'
 
 const { getConfig } = useSettings()
 
@@ -283,7 +284,7 @@ async function uploadFiles(selectedFiles) {
   }
 
   if (imageFiles.length < selectedFiles.length) {
-    await alert(`已自动忽略非图片文件，共上传 ${imageFiles.length} 张图片`)
+    toast(`已自动忽略非图片文件，共上传 ${imageFiles.length} 张图片`)
   }
 
   showLoading('正在上传图片...')
@@ -302,7 +303,7 @@ async function uploadFiles(selectedFiles) {
 
     if (urls.length > 0 && navigator.clipboard) {
       await navigator.clipboard.writeText(urls.join('\n'))
-      await alert(`上传成功！共 ${urls.length} 张图片，链接已复制到剪贴板。`)
+      toast(`上传成功！共 ${urls.length} 张图片，链接已复制到剪贴板。`)
     }
   } catch (e) {
     await alert('上传失败，请重试')
@@ -327,7 +328,7 @@ async function handleDeleteFile(file) {
     hideLoading()
     await listFiles()
     if (status === 'deleted') {
-      await alert('图片删除成功！')
+      toast('图片删除成功！')
     } else if (status === 'exists') {
       await alert('删除失败：文件仍然存在，请检查权限或稍后重试。')
     } else {
@@ -453,7 +454,7 @@ async function handleDeleteByUrl(passedUrl) {
     deleteUrl.value = ''
     await listFiles()
     if (status === 'deleted') {
-      await alert('图片删除成功！')
+      toast('图片删除成功！')
     } else if (status === 'exists') {
       await alert('删除失败：文件仍然存在，请检查权限或稍后重试。')
     } else {
@@ -482,7 +483,7 @@ async function copyLink(link) {
   if (navigator.clipboard) {
     try {
       await navigator.clipboard.writeText(link)
-      await alert('链接已复制到剪贴板！')
+      toast('链接已复制到剪贴板！')
     } catch {
       await alert('复制失败，请手动复制链接！')
     }

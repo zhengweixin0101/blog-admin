@@ -245,6 +245,7 @@ import TalkEditorToolbar from '~/components/TalkEditorToolbar.vue'
 
 import { Fancybox } from '@fancyapps/ui'
 import '@fancyapps/ui/dist/fancybox/fancybox.css'
+import { toast } from '~/composables/useToast'
 
 const { talks, getTalks, editTalk, deleteTalk, addTalkInternal, importMemos, exportMemos, } = useTalks()
 const { sendMessage } = useAI()
@@ -253,6 +254,12 @@ const { getConfig } = useSettings()
 const newContent = ref('')
 const editingId = ref(null)
 const editingContent = ref('')
+// 编辑前的原始内容基线，用于判断是否真的改动过
+const editingBaseline = ref('')
+
+// 新增说说的节流配置
+const ADD_THROTTLE = 1000
+let lastAddAt = 0
 const currentTag = ref(null)
 const allTags = ref([])
 const page = ref(1)
@@ -342,7 +349,7 @@ const handleFileSelect = async (event, prefix = '', mode = 'new') => {
   }
 
   if (imageFiles.length < files.length) {
-    await alert(`已自动忽略非图片文件，仅上传 ${imageFiles.length} 张图片`)
+    toast(`已自动忽略非图片文件，仅上传 ${imageFiles.length} 张图片`)
   }
 
   const urls = await uploadImageFiles(imageFiles, prefix)
@@ -492,7 +499,7 @@ const aiPolish = async (target) => {
       } else if (target === 'editing') {
         editingContent.value = res.content
       }
-      await alert('润色完成！')
+      toast('润色完成！')
     } else {
       await alert('润色失败，请重试')
     }
@@ -770,12 +777,16 @@ const addNewTalk = async () => {
     return
   }
 
+  const now = Date.now()
+  if (now - lastAddAt < ADD_THROTTLE) return
+  lastAddAt = now
+
   const { pureContent, location, tags, links, imgs } = parseContent(newContent.value)
   const res = await addTalkInternal({ content: pureContent, location, tags, links, imgs })
   if (res && (res.success || res.talk)) {
     newContent.value = ''
     await loadTalks()
-    await alert('说说添加成功！')
+    toast('说说添加成功！')
   }
 }
 
@@ -786,7 +797,7 @@ const removeTalk = async (id) => {
   const res = await deleteTalk(id)
   if (res && res.success) {
     await loadTalks()
-    await alert('说说删除成功！')
+    toast('说说删除成功！')
   }
 }
 
@@ -806,12 +817,15 @@ const startEdit = (talk) => {
     talk.imgs,
     talk.location
   )
+  // 记录基线，用于判断是否真的改动过
+  editingBaseline.value = editingContent.value
 }
 
 // 取消编辑
 const cancelEdit = () => {
   editingId.value = null
   editingContent.value = ''
+  editingBaseline.value = ''
 }
 
 // 保存编辑
@@ -821,13 +835,20 @@ const saveEdit = async (id) => {
     return
   }
 
+  // 没有改动则不请求接口
+  if (editingContent.value === editingBaseline.value) {
+    toast('内容没有修改，无需保存')
+    return
+  }
+
   const { pureContent, location, tags, links, imgs } = parseContent(editingContent.value)
   const res = await editTalk({ id, content: pureContent, location, tags, links, imgs })
   if (res && (res.success || res.talk)) {
     editingId.value = null
     editingContent.value = ''
+    editingBaseline.value = ''
     await loadTalks()
-    await alert('说说修改成功！')
+    toast('说说修改成功！')
   }
 }
 
@@ -839,7 +860,8 @@ const syncFromMemos = async () => {
         '从 Memos 同步',
         'https://example.com/api/v1/memos'
     )
-    if (!apiUrl) return await alert('未输入 API 地址')
+    // 取消输入时静默返回
+    if (!apiUrl) return
 
     try {
         const res = await axios.get(apiUrl)
@@ -871,7 +893,7 @@ const syncFromMemos = async () => {
         }
 
         await getTalks()
-        await alert(`同步完成，共导入 ${successCount} 条说说。附件暂不支持导入！`)
+        toast(`同步完成，共导入 ${successCount} 条说说。附件暂不支持导入！`)
     } catch (err) {
         await alert('同步失败，请检查 API 地址或网络连接')
     }
@@ -894,20 +916,15 @@ onMounted(() => {
 })
 
 // 快捷键
-const handleEditorKeyDown = async (e) => {
+const handleEditorKeyDown = (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
     e.preventDefault()
+    if (e.repeat) return
 
     if (editingId.value !== null) {
-      const confirmed = await confirm('确定保存当前编辑吗？')
-      if (confirmed) {
-        saveEdit(editingId.value)
-      }
+      saveEdit(editingId.value)
     } else if (newContent.value.trim()) {
-      const confirmed = await confirm('确定添加新的说说吗？')
-      if (confirmed) {
-        addNewTalk()
-      }
+      addNewTalk()
     }
   }
 }

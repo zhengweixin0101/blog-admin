@@ -200,6 +200,7 @@ import Sortable from 'sortablejs'
 import { useShares } from '@/composables/useShares'
 import { siteConfig } from '@/site.config.js'
 import { alert, confirm } from '@/composables/useModal'
+import { toast } from '~/composables/useToast'
 
 const { shares, getShares, saveShare, deleteShare } = useShares()
 
@@ -335,7 +336,7 @@ const submitForm = async () => {
     if (res && res.success) {
         resetForm()
         await loadShares()
-        await alert(res.message || '保存成功！')
+        toast(res.message || '保存成功！')
     }
 }
 
@@ -366,7 +367,7 @@ const removeShare = async (share) => {
     if (res && res.success) {
         if (editingId.value === share.id) resetForm()
         await loadShares()
-        await alert('删除成功！')
+        toast('删除成功！')
     }
 }
 

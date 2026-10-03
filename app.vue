@@ -27,6 +27,7 @@
         <p>登录后才能继续访问......</p>
       </div>
     </div>
+    <ToastContainer />
   </div>
 </template>
 
@@ -35,6 +36,7 @@ import { ref, watch, onMounted } from 'vue'
 import Sidebar from '~/components/sidebar.vue'
 import ModalDialog from '~/components/ModalDialog.vue'
 import LoadingSpinner from '~/components/LoadingSpinner.vue'
+import ToastContainer from '~/components/ToastContainer.vue'
 import TurnstileDialog from '~/components/TurnstileDialog.vue'
 import ImageComparisonDialog from '~/components/ImageComparisonDialog.vue'
 import { setModal } from '~/composables/useModal'

@@ -156,7 +156,14 @@ export function useTalks() {
     }
 
     // 导出说说
+    const EXPORT_THROTTLE = 1000
+    let lastExportAt = 0
+
     const exportMemos = async () => {
+        const now = Date.now()
+        if (now - lastExportAt < EXPORT_THROTTLE) return
+        lastExportAt = now
+
         if (!talks.value || talks.value.length === 0) {
             await alert('暂无说说可导出')
             return
@@ -171,6 +178,7 @@ export function useTalks() {
         a.download = `talks_export_${Date.now()}.json`
         a.click()
         URL.revokeObjectURL(url)
+        toast(`导出成功！共 ${talks.value.length} 条说说`)
     }
 
     // 导入说说

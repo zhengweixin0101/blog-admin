@@ -258,6 +258,7 @@ import { useMusicManager } from '@/composables/useMusicManager.js'
 import { alert, confirm } from '@/composables/useModal'
 import { showLoading, hideLoading } from '@/composables/useLoading.js'
 import { useSettings } from '~/composables/useSettings.js'
+import { toast } from '~/composables/useToast'
 
 const { getConfig } = useSettings()
 
@@ -521,7 +522,7 @@ async function handleDelete(song) {
     await music.deleteMusic(song, s3Config.value)
     hideLoading()
     await loadSongs()
-    await alert('删除成功')
+    toast('删除成功！')
   } catch (e) {
     hideLoading()
     await alert('删除失败：' + (e.message || '请重试'))

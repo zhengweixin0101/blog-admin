@@ -4,7 +4,7 @@
       ref="editorRef"
       v-model="localValue"
       :toolbars="toolbars"
-      :onSave="props.handleSave"
+      :onSave="handleEditorSave"
       :onUploadImg="handleUploadImg"
     >
       <template #defToolbars>
@@ -34,13 +34,19 @@ import { useS3 } from '@/composables/useS3'
 import { useSettings } from '~/composables/useSettings.js'
 import { showLoading, hideLoading } from '@/composables/useLoading'
 import { alert } from '@/composables/useModal'
+import { toast } from '~/composables/useToast'
 
 const props = defineProps({
   modelValue: String,
-  onSave: Function,
   articleUrl: String
 })
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'save'])
+
+// md-editor-v3 的保存按钮与 Ctrl+S 都走 onSave prop，
+// 这里中转成 save 事件抛出，避免与组件自身的 onXxx prop 命名冲突
+function handleEditorSave(value) {
+  emit('save', value)
+}
 
 const { getConfig } = useSettings()
 
@@ -135,7 +141,7 @@ async function handleUploadImg(files, callback) {
     if (urls.length > 0) {
       callback(urls)
       hideLoading()
-      await alert(`上传成功！共 ${urls.length} 张图片`)
+      toast(`上传成功！共 ${urls.length} 张图片`)
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(urls.join('\n'))
       }

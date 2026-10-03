@@ -104,6 +104,7 @@ import { useArticleImportExport } from '~/composables/useArticleImportExport.js'
 import { alert, confirm } from '@/composables/useModal'
 import { siteConfig } from '@/site.config.js'
 import { useRouter } from 'vue-router'
+import { toast } from '~/composables/useToast'
 
 const router = useRouter()
 
@@ -146,7 +147,7 @@ const handleCreate = async () => {
 
   resetNewArticle()
   await getList()
-  await alert('创建成功')
+  toast('创建成功！')
   router.push(`/articles/edit/${slug}`)
 }
 
@@ -186,7 +187,7 @@ const handleDelete = async (slug) => {
   const result = await deleteArticle(slug)
   if (!result || !result.success) return
   await getList()
-  await alert('删除成功')
+  toast('删除成功！')
 }
 
 // 删除全部文章
@@ -204,7 +205,7 @@ const deleteAll = async () => {
   // 输入Yes确认
   const inputYes = await prompt('请输入 "Yes" 以确认删除全部文章：','No','确认删除','输入 "Yes" 进行删除')
   if (inputYes !== 'Yes') {
-    await alert('操作已取消。')
+    toast('操作已取消。')
     return
   }
 
@@ -216,13 +217,13 @@ const deleteAll = async () => {
     if (!backupResult) {
       const continueWithoutBackup = await confirm('导出失败，是否继续删除操作？')
       if (!continueWithoutBackup) {
-        await alert('操作已取消。')
+        toast('操作已取消。')
         return
       }
     } else {
       const backupConfirmed = await confirm('文章已导出，请检查备份文件。确认无误后点击"确定"继续删除。')
       if (!backupConfirmed) {
-        await alert('操作已取消。')
+        toast('操作已取消。')
         return
       }
     }
@@ -247,7 +248,7 @@ const deleteAll = async () => {
       message += `失败 ${failedCount} 篇文章。`
     }
     
-    await alert(message)
+    toast(message)
     await getList()
     
   } catch (e) {
@@ -266,7 +267,7 @@ const handleEditSlug = async (article) => {
   const result = await editSlug(article.slug, newSlug)
   if (!result || !result.success) return
   await getList()
-  await alert('修改成功')
+  toast('修改成功！')
 }
 
 // 导入导出相关
@@ -306,7 +307,7 @@ const handleExportMarkdown = async () => {
   closePanel()
   const result = await exportToMarkdown()
   if (result) {
-    await alert('导出成功！')
+    toast('导出成功！')
   }
 }
 
@@ -315,7 +316,7 @@ const handleExportJSON = async () => {
   closePanel()
   const result = await exportToJSON()
   if (result) {
-    await alert('导出成功！')
+    toast('导出成功！')
   }
 }
 
@@ -359,9 +360,9 @@ const handleImportMarkdown = async () => {
     }
     
     if (failCount > 0) {
-      await alert(`导入完成！成功 ${successCount} 篇文章，失败 ${failCount} 篇文章。`)
+      toast(`导入完成！成功 ${successCount} 篇文章，失败 ${failCount} 篇文章。`)
     } else {
-      await alert(`导入成功！共导入 ${successCount} 篇文章。`)
+      toast(`导入成功！共导入 ${successCount} 篇文章。`)
     }
 
     getList()

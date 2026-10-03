@@ -171,6 +171,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import { useShares } from '@/composables/useShares'
 import { siteConfig } from '@/site.config.js'
 import { alert, confirm } from '@/composables/useModal'
+import { toast } from '~/composables/useToast'
 
 const props = defineProps({
   articleUrl: {
@@ -269,7 +270,7 @@ async function offerArticleLink(share) {
     drives: share.drives || []
   })
   if (result?.success) {
-    await alert('已将文章链接添加到分享描述')
+    toast('已将文章链接添加到分享描述')
   } else {
     await alert(`添加文章链接失败：${result?.error || '请重试'}`)
   }

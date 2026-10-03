@@ -3,6 +3,7 @@ import { siteConfig } from '@/site.config.js'
 import { withLoading } from './useLoading.js'
 import { useToken } from './useToken.js'
 import { useErrorHandler } from './useErrorHandler.js'
+import { toast } from '~/composables/useToast'
 
 export function useArticleImportExport() {
     const { getToken, clearAuthData } = useToken()
@@ -365,9 +366,9 @@ published: ${article.published !== undefined ? article.published : false}
             const failCount = results.length - successCount
 
             if (failCount > 0) {
-                await alert(`导入完成！成功 ${successCount} 篇，失败 ${failCount} 篇。请查看控制台了解详情。`)
+                toast(`导入完成！成功 ${successCount} 篇，失败 ${failCount} 篇。请查看控制台了解详情。`)
             } else {
-                await alert(`导入成功！共导入 ${successCount} 篇文章。`)
+                toast(`导入成功！共导入 ${successCount} 篇文章。`)
             }
 
             return { success: true, results }
