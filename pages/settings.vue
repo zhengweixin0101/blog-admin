@@ -178,12 +178,15 @@
             <label class="text-sm text-gray-600 mb-1 block">结束日期</label>
             <input v-model="logFilters.endDate" type="date" class="w-full p-2 box-border border rounded" />
           </div>
-          <div class="flex items-end gap-2">
+          <div class="flex items-end gap-2 flex-wrap">
             <button @click="handleLogSearch" class="px-4 py-2 bg-blue-600 text-white rounded border-none hover:bg-blue-700 transition-colors cursor-pointer">
               搜索
             </button>
             <button @click="handleClearLogs(0)" class="px-4 py-2 bg-red-500 text-white rounded border-none hover:bg-red-600 transition-colors cursor-pointer">
               清空日志
+            </button>
+            <button @click="handleLogRefresh" title="刷新日志列表" class="px-4 py-2 bg-gray-200 text-gray-700 rounded border-none hover:bg-gray-300 transition-colors cursor-pointer">
+              刷新
             </button>
           </div>
         </div>
@@ -527,7 +530,7 @@
           <div class="flex items-center">
             <label class="text-sm font-medium text-gray-700">允许跨域</label>
             <div class="relative ml-2 group flex items-center">
-              <label class="relative inline-flex items-center cursor-pointer">
+              <label class="relative inline-flex items-center" :class="allowCors.loading ? 'cursor-not-allowed' : 'cursor-pointer'">
                 <input
                   v-model="allowCors.enabled"
                   type="checkbox"
@@ -535,10 +538,10 @@
                   @change="handleAllowCorsToggle"
                   :disabled="allowCors.loading"
                 />
-                <div class="w-10 h-5 bg-gray-300 rounded-full peer-checked:bg-orange-500 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-5 disabled:opacity-50 disabled:cursor-not-allowed"></div>
+                <div class="w-10 h-5 bg-gray-300 rounded-full peer-checked:bg-orange-500 peer-disabled:opacity-50 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-5"></div>
               </label>
               <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 p-2 bg-gray-800 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 whitespace-nowrap">
-                {{ allowCors.enabled ? `允许跨域将在 ${formatAllowCorsTtl(allowCors.ttl)} 后自动关闭` : '开启后将临时放行所有跨域请求来源，2 小时后自动关闭' }}
+                {{ allowCors.loading ? '正在更新允许跨域设置...' : allowCors.enabled ? `允许跨域将在 ${formatAllowCorsTtl(allowCors.ttl)} 后自动关闭` : '开启后将临时放行所有跨域请求来源，2 小时后自动关闭' }}
               </div>
             </div>
           </div>
@@ -709,8 +712,8 @@ watch(activeTab, (newTab) => {
 // 根据标签页加载对应数据
 const loadTabData = (tab) => {
   if (tab === 'account') {
-    loadTokens()
-    loadLogsData()
+    if (!tokensLoaded.value) loadTokens()
+    if (!logsLoaded.value) loadLogsData()
   } else if (tab === 'config') {
     loadS3Config()
     loadAIConfig()
@@ -719,7 +722,7 @@ const loadTabData = (tab) => {
   }
 }
 
-// 加载开发模式状态
+// 加载允许跨域状态
 const loadAllowCorsStatus = async () => {
   try {
     const result = await api.get('/api/system/allowcors')
@@ -729,34 +732,44 @@ const loadAllowCorsStatus = async () => {
       startAllowCorsTimer()
     }
   } catch (error) {
-    console.error('加载开发模式状态失败:', error)
+    console.error('加载允许跨域状态失败:', error)
   }
 }
 
-// 切换开发模式
+// 切换允许跨域
 const handleAllowCorsToggle = async () => {
+  if (allowCors.value.loading) return
+  const enabled = allowCors.value.enabled
   allowCors.value.loading = true
+  showLoading('正在更新允许跨域设置...')
+  let result = null
+  let errorMessage = ''
   try {
-    const result = await api.post('/api/system/allowcors', {
-      enabled: allowCors.value.enabled
-    })
-    if (result.data.success) {
-      allowCors.value.ttl = result.data.data.ttl
-      startAllowCorsTimer()
-      await alert(allowCors.value.enabled ? '允许跨域已开启，2 小时后自动关闭' : '允许跨域已关闭')
-    } else {
-      allowCors.value.enabled = !allowCors.value.enabled
-      await alert(result.data.error || '操作失败')
-    }
+    result = await api.post('/api/system/allowcors', { enabled })
   } catch (error) {
-    allowCors.value.enabled = !allowCors.value.enabled
-    await alert('操作失败：' + (error.response?.data?.error || error.message))
+    errorMessage = '操作失败：' + (error.response?.data?.error || error.message)
   } finally {
+    hideLoading()
     allowCors.value.loading = false
   }
+
+  if (errorMessage) {
+    allowCors.value.enabled = !enabled
+    await alert(errorMessage)
+    return
+  }
+
+  if (result.data.success) {
+    allowCors.value.ttl = result.data.data.ttl
+    startAllowCorsTimer()
+    await alert(enabled ? '允许跨域已开启，2 小时后自动关闭' : '允许跨域已关闭')
+  } else {
+    allowCors.value.enabled = !enabled
+    await alert(result.data.error || '操作失败')
+  }
 }
 
-// 启动开发模式倒计时
+// 启动允许跨域倒计时
 const startAllowCorsTimer = () => {
   if (allowCorsTimer) {
     clearInterval(allowCorsTimer)
@@ -775,7 +788,7 @@ const startAllowCorsTimer = () => {
   }
 }
 
-// 格式化开发模式剩余时间
+// 格式化允许跨域剩余时间
 const formatAllowCorsTtl = (ttl) => {
   if (ttl <= 0) return '已关闭'
   const hours = Math.floor(ttl / 3600)
@@ -1249,7 +1262,7 @@ const logsLoaded = ref(false)
 
 // 加载日志
 const loadLogsData = async (page = 1) => {
-  await getLogs({
+  const result = await getLogs({
     page,
     pageSize: pagination.value.pageSize,
     action: logFilters.value.action,
@@ -1259,11 +1272,22 @@ const loadLogsData = async (page = 1) => {
     endDate: logFilters.value.endDate
   })
   logsLoaded.value = true
+  // 当前页超出范围时（如清理日志后）自动回到最后一页
+  const totalPages = pagination.value.totalPages
+  if (result.success && totalPages > 0 && page > totalPages) {
+    return loadLogsData(totalPages)
+  }
+  return result
 }
 
 // 日志搜索
 const handleLogSearch = () => {
   loadLogsData(1)
+}
+
+// 日志刷新
+const handleLogRefresh = () => {
+  loadLogsData(pagination.value.page)
 }
 
 // 日志重置
@@ -1293,6 +1317,7 @@ const handleClearLogs = async (days) => {
   const result = await clearLogs(days)
   if (result.success) {
     await alert(`清理成功，已删除 ${result.deletedCount} 条日志`)
+    loadLogsData(pagination.value.page)
   } else {
     await alert(result.error || '清理日志失败')
   }

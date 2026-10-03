@@ -83,8 +83,6 @@ export function useLogs() {
 
             const response = res.data
             if (response.success) {
-                // 刷新日志列表
-                await getLogs({ page: pagination.value.page })
                 return { success: true, message: response.message, deletedCount: response.data?.deletedCount }
             }
             return { success: false, error: response.error || '清空日志失败' }
