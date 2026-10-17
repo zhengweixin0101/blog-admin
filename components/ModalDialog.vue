@@ -4,6 +4,22 @@
       <h2 class="text-lg font-bold mb-4 text-center">{{ title }}</h2>
       <p class="text-gray-600 mb-4 whitespace-pre-line">{{ message }}</p>
 
+      <div v-if="imageUrl" class="mb-4">
+        <div class="flex items-center justify-center bg-gray-50 border border-gray-200 rounded p-2">
+          <img
+            v-if="!imageError"
+            :src="imageUrl"
+            :alt="imageCaption || '图片预览'"
+            class="max-w-full max-h-60 rounded object-contain"
+            @error="imageError = true"
+          />
+          <p v-else class="text-sm text-gray-400 py-8">图片加载失败</p>
+        </div>
+        <p v-if="imageCaption" class="mt-2 text-xs text-gray-400 text-center truncate" :title="imageCaption">
+          {{ imageCaption }}
+        </p>
+      </div>
+
       <input
         v-if="type === 'prompt'"
         v-model="inputValue"
@@ -60,6 +76,9 @@ const placeholder = ref('')
 const inputRef = ref(null)
 const modalRef = ref(null)
 const showError = ref(false)
+const imageUrl = ref('')
+const imageCaption = ref('')
+const imageError = ref(false)
 let resolvePromise = null
 
 // 控制 body 滚动
@@ -86,6 +105,9 @@ function show(options = {}) {
   cancelText.value = options.cancelText || '取消'
   inputValue.value = options.defaultValue || ''
   placeholder.value = options.placeholder || ''
+  imageUrl.value = options.imageUrl || ''
+  imageCaption.value = options.imageCaption || ''
+  imageError.value = false
 
   if (type.value === 'prompt') {
     nextTick(() => {

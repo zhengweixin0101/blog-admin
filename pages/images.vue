@@ -154,7 +154,7 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import { useS3 } from '@/composables/useS3.js'
-import { alert } from '@/composables/useModal'
+import { alert, confirm } from '@/composables/useModal'
 import { showLoading, hideLoading } from '@/composables/useLoading.js'
 import { useSettings } from '~/composables/useSettings.js'
 import { Fancybox } from '@fancyapps/ui'
@@ -313,6 +313,13 @@ async function uploadFiles(selectedFiles) {
 }
 
 async function handleDeleteFile(file) {
+  const confirmed = await confirm('确定要删除以下图片吗？删除后无法恢复。', '删除确认', {
+    imageUrl: buildPreviewUrl(file.key),
+    imageCaption: file.key,
+    confirmText: '确认删除'
+  })
+  if (!confirmed) return
+
   showLoading('正在删除图片...')
   try {
     const exists = await existsKey(file.key)
@@ -349,9 +356,17 @@ function normalizeKey(k) {
   return k.startsWith('/') ? k.slice(1) : k
 }
 
+function buildPreviewUrl(key, fallback = '') {
+  const target = normalizeKey(key)
+  if (customDomain.value) {
+    return customDomain.value.endsWith('/') ? `${customDomain.value}${target}` : `${customDomain.value}/${target}`
+  }
+  return fallback || target
+}
+
 async function headCheck(key, retries = 2, interval = 300) {
   if (!customDomain.value) return null
-  const url = customDomain.value.endsWith('/') ? `${customDomain.value}${key}` : `${customDomain.value}/${key}`
+  const url = buildPreviewUrl(key)
   for (let i = 0; i < retries; i++) {
     try {
       const resp = await fetch(url, { method: 'HEAD', cache: 'no-store' })
@@ -445,6 +460,13 @@ async function handleDeleteByUrl(passedUrl) {
     await listFiles()
     return
   }
+
+  const confirmed = await confirm('确定要删除以下图片吗？删除后无法恢复。', '删除确认', {
+    imageUrl: buildPreviewUrl(key, target),
+    imageCaption: key,
+    confirmText: '确认删除'
+  })
+  if (!confirmed) return
 
   try {
     showLoading('正在删除图片...')

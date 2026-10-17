@@ -26,11 +26,12 @@ export function alert(message, title = '提示') {
   })
 }
 
-export function confirm(message, title = '确认') {
+export function confirm(message, title = '确认', options = {}) {
   return showModal({
     title,
     message,
-    type: 'confirm'
+    type: 'confirm',
+    ...options
   })
 }
 
