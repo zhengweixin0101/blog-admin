@@ -206,7 +206,7 @@ const { getCommentsCount, getRecentComments } = useTwikoo()
 // Umami配置
 const UMAMI_URL = siteConfig.umami.url
 const WEBSITE_ID = siteConfig.umami.siteId
-const TOKEN = siteConfig.umami.token
+const API_KEY = siteConfig.umami.apiKey
 
 // 响应式数据
 const loading = ref(true)
@@ -264,7 +264,7 @@ const fetchStats = async (startAt, endAt) => {
   try {
     const url = `${UMAMI_URL}/api/websites/${WEBSITE_ID}/stats`
     const response = await fetch(`${url}?startAt=${startAt}&endAt=${endAt}`, {
-      headers: { Authorization: `Bearer ${TOKEN}` },
+      headers: { Authorization: `Bearer ${API_KEY}` },
       method: 'GET',
     })
 
@@ -297,7 +297,7 @@ const fetchMetrics = async (startAt, endAt, type = 'path', limit = 500) => {
     url.searchParams.set('limit', limit)
 
     const response = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${TOKEN}` },
+      headers: { Authorization: `Bearer ${API_KEY}` },
       method: 'GET',
     })
 
